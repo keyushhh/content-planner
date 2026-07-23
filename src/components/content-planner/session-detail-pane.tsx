@@ -448,21 +448,41 @@ export function SessionDetailPane({
                     </span>
                   </span>
                 </PopoverTrigger>
-                <PopoverContent align="center" className="w-64 p-1.5">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-accent"
-                  >
-                    <UploadCloud className="size-4" />
-                    Upload from Device
-                  </button>
-                  <button
-                    onClick={() => setView("media-library")}
-                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-accent"
-                  >
-                    <FolderOpen className="size-4" />
-                    Choose from Media Library
-                  </button>
+                <PopoverContent align="start" sideOffset={6} className="w-[320px] rounded-xl border border-border/80 bg-background/95 p-2 shadow-xl backdrop-blur-md">
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
+                        <UploadCloud className="size-4.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
+                          Upload from Device
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Select JPG, PNG, or MP4 files
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setView("media-library")}
+                      className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
+                        <FolderOpen className="size-4.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
+                          Choose from Media Library
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Browse centralized media repository
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 </PopoverContent>
               </Popover>
             ) : (
@@ -499,21 +519,41 @@ export function SessionDetailPane({
                   <PopoverTrigger className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:border-violet-500/50 hover:bg-accent/20 hover:text-violet-400">
                     <UploadCloud className="size-5" />
                   </PopoverTrigger>
-                  <PopoverContent align="center" className="w-64 p-1.5">
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-accent"
-                    >
-                      <UploadCloud className="size-4" />
-                      Upload from Device
-                    </button>
-                    <button
-                      onClick={() => setView("media-library")}
-                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-accent"
-                    >
-                      <FolderOpen className="size-4" />
-                      Choose from Media Library
-                    </button>
+                  <PopoverContent align="start" sideOffset={6} className="w-[320px] rounded-xl border border-border/80 bg-background/95 p-2 shadow-xl backdrop-blur-md">
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
+                      >
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
+                          <UploadCloud className="size-4.5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
+                            Upload from Device
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Select JPG, PNG, or MP4 files
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setView("media-library")}
+                        className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
+                      >
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
+                          <FolderOpen className="size-4.5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
+                            Choose from Media Library
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Browse centralized media repository
+                          </div>
+                        </div>
+                      </button>
+                    </div>
                   </PopoverContent>
                 </Popover>
                 )}

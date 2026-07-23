@@ -58,9 +58,9 @@ export function MediaLibraryView({
           <button
             onClick={() => setActiveFolderId(ALL_MEDIA)}
             className={cn(
-              "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm mb-1.5 transition-colors",
+              "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm mb-1.5 transition-colors",
               activeFolderId === ALL_MEDIA
-                ? "bg-primary text-primary-foreground font-medium"
+                ? "border border-violet-500/50 bg-violet-500/10 text-violet-300 font-medium"
                 : "text-muted-foreground hover:bg-accent/50",
             )}
           >
@@ -71,7 +71,7 @@ export function MediaLibraryView({
             <span
               className={cn(
                 "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
-                activeFolderId === ALL_MEDIA ? "bg-white/20" : "bg-accent",
+                activeFolderId === ALL_MEDIA ? "bg-violet-500/20 text-violet-300" : "bg-accent",
               )}
             >
               {assets.length}
@@ -89,9 +89,9 @@ export function MediaLibraryView({
                 key={folder.id}
                 onClick={() => setActiveFolderId(folder.id)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm mb-0.5 transition-colors",
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm mb-0.5 transition-colors",
                   isActive
-                    ? "bg-primary text-primary-foreground font-medium"
+                    ? "border border-violet-500/50 bg-violet-500/10 text-violet-300 font-medium"
                     : "text-muted-foreground hover:bg-accent/50",
                 )}
               >
@@ -99,7 +99,7 @@ export function MediaLibraryView({
                 <span
                   className={cn(
                     "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
-                    isActive ? "bg-white/20" : "bg-accent",
+                    isActive ? "bg-violet-500/20 text-violet-300" : "bg-accent",
                   )}
                 >
                   {count}
