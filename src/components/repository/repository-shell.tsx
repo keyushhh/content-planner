@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { ImportFromRepositorySheet } from "./import-from-repository-sheet";
+import { InviteModal } from "@/components/content-planner/invite-modal";
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/lib/mock-data";
 import {
@@ -15,6 +16,7 @@ import {
   Tag,
   PanelLeftClose,
   PanelLeftOpen,
+  UserPlus,
 } from "lucide-react";
 import type { Campaign, Session } from "@/lib/types";
 
@@ -49,6 +51,8 @@ export function RepositoryShell({
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
+
+  const [showInvite, setShowInvite] = useState(false);
 
   const activeCampaign =
     typeof view === "object" ? campaigns.find((c) => c.id === view.campaignId) ?? null : null;
@@ -195,6 +199,15 @@ export function RepositoryShell({
                 Import Content from Repository
               </Button>
             )}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5 text-sm"
+              onClick={() => setShowInvite(true)}
+            >
+              <UserPlus className="size-4" />
+              Invite
+            </Button>
             {view === "repository" && (
               <Button
                 variant="ghost"
@@ -288,6 +301,12 @@ export function RepositoryShell({
           onImport={(sessionIds) => onImportToCampaign(sessionIds, activeCampaign.id)}
         />
       )}
+
+      <InviteModal
+        open={showInvite}
+        onOpenChange={setShowInvite}
+        contextName={activeCampaign ? activeCampaign.name : "Repository"}
+      />
     </div>
   );
 }

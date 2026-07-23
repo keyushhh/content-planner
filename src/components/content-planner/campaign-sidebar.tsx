@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, PanelLeftClose, PanelLeftOpen, Layers, CalendarClock } from "lucide-react";
+import { Plus, PanelLeftClose, PanelLeftOpen, Layers, CalendarClock, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -109,16 +109,26 @@ export function CampaignSidebar({
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-1.5">
                   <span className="truncate text-sm font-semibold">
                     {campaign.name}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 border-violet-500/40 bg-violet-500/10 px-1.5 py-0 text-[10px] text-violet-400"
-                  >
-                    {campaign.tag}
-                  </Badge>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="border-violet-500/40 bg-violet-500/10 px-1.5 py-0 text-[10px] uppercase text-violet-400"
+                    >
+                      {campaign.tag}
+                    </Badge>
+                    {isSelected && (
+                      <span
+                        title="Campaign Setup (redirects to Wozku campaign setup)"
+                        className="flex size-5 items-center justify-center rounded-md text-muted-foreground/80 hover:bg-violet-500/20 hover:text-violet-300"
+                      >
+                        <Pencil className="size-3" />
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">

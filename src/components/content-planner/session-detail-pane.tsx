@@ -239,10 +239,6 @@ export function SessionDetailPane({
               </>
             )}
           </button>
-          <Button size="sm" variant="secondary" className="gap-1.5 text-sm">
-            <UserPlus className="size-3.5" />
-            Invite
-          </Button>
           <Button
             size="sm"
             variant={isDiscussionOpen ? "secondary" : "ghost"}

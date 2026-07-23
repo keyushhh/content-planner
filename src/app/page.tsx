@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, PlusCircle, Settings2, LayoutGrid } from "lucide-react";
+import { CalendarDays, PlusCircle, Settings2, LayoutGrid, UserPlus } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { SessionDetailPane } from "@/components/content-planner/session-detail-pane";
 import { DiscussionPanel } from "@/components/content-planner/discussion-panel";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
+import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,7 @@ export default function Home() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [discussionOpen, setDiscussionOpen] = useState(false);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const nextId = useRef(1000);
 
   useEffect(() => {
@@ -252,9 +254,14 @@ export default function Home() {
                   <span className="font-semibold text-sm">{selectedCampaign.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-sm">
-                    <Settings2 className="size-4" />
-                    Setup
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-sm text-foreground hover:bg-accent"
+                    onClick={() => setShowInviteModal(true)}
+                  >
+                    <UserPlus className="size-4" />
+                    Invite
                   </Button>
                   <Button
                     variant="ghost"
@@ -362,6 +369,12 @@ export default function Home() {
         }}
         allowCreateCampaign={mode === "new"}
         onCreateCampaign={mode === "new" ? createCampaign : undefined}
+      />
+
+      <InviteModal
+        open={showInviteModal}
+        onOpenChange={setShowInviteModal}
+        contextName={selectedCampaign.name}
       />
     </div>
   );
