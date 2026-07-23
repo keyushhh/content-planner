@@ -1,0 +1,186 @@
+import type {
+  Campaign,
+  MediaAsset,
+  MediaFolder,
+  Session,
+  User,
+} from "./types";
+
+export const currentUser: User = {
+  id: "u-biradhwaj",
+  name: "Biradhwaj Senapati",
+};
+
+export const users: User[] = [
+  currentUser,
+  { id: "u-sarah", name: "Sarah Taylor" },
+  { id: "u-john", name: "John M." },
+];
+
+export const mediaFolders: MediaFolder[] = [
+  { id: "folder-background", name: "Background Image" },
+  { id: "folder-frames", name: "Frames" },
+  { id: "folder-gift", name: "Gift Images" },
+  { id: "folder-headers", name: "Headers" },
+  { id: "folder-logos", name: "Logos" },
+  { id: "folder-post", name: "Post images" },
+  { id: "folder-thankyou", name: "Thankyou images" },
+  { id: "folder-welcome", name: "Welcome Images" },
+];
+
+export const mediaAssets: MediaAsset[] = [
+  {
+    id: "asset-logo-black",
+    folderId: "folder-logos",
+    name: "logo-black.png",
+    url: "",
+    type: "image",
+  },
+  {
+    id: "asset-post-1",
+    folderId: "folder-post",
+    name: "product-launch-hero.png",
+    url: "",
+    type: "image",
+  },
+  {
+    id: "asset-frame-1",
+    folderId: "folder-frames",
+    name: "frame-gold.png",
+    url: "",
+    type: "image",
+  },
+  {
+    id: "asset-post-embed-1",
+    folderId: "folder-post",
+    name: "product-demo-walkthrough.embed",
+    url: "",
+    type: "embed",
+  },
+  {
+    id: "asset-post-pdf-1",
+    folderId: "folder-post",
+    name: "campaign-spec-sheet.pdf",
+    url: "",
+    type: "pdf",
+  },
+];
+
+export const campaigns: Campaign[] = [
+  {
+    id: "camp-test-contest",
+    name: "test-contest",
+    tag: "CONTEST",
+    inWozku: true,
+    endDate: "2026-08-04",
+    sessionIds: ["session-1", "session-2", "session-3", "session-4"],
+  },
+  {
+    id: "camp-summer-launch",
+    name: "summer-launch",
+    tag: "LAUNCH",
+    inWozku: true,
+    endDate: "2026-09-15",
+    sessionIds: [],
+  },
+];
+
+export const sessions: Session[] = [
+  {
+    id: "session-1",
+    title: "Untitled Session",
+    createdAt: "2026-07-23T10:00:00Z",
+    updatedAt: "2026-07-23T10:20:00Z",
+    lastEditedBy: null,
+    status: "draft",
+    postType: "Image",
+    platforms: ["linkedin"],
+    visualAssetIds: [],
+    copy: "",
+    variations: [],
+    hashtags: "",
+    sentToCampaignId: null,
+    sentAt: null,
+    tags: ["social"],
+    comments: [],
+    history: [],
+  },
+  {
+    id: "session-2",
+    title: "Untitled Session",
+    createdAt: "2026-07-23T10:00:00Z",
+    updatedAt: "2026-07-23T10:00:00Z",
+    lastEditedBy: null,
+    status: "draft",
+    postType: "Image",
+    platforms: ["linkedin"],
+    visualAssetIds: [],
+    copy: "",
+    variations: [],
+    hashtags: "",
+    sentToCampaignId: null,
+    sentAt: null,
+    tags: ["email"],
+    comments: [],
+    history: [],
+  },
+  {
+    id: "session-3",
+    title: "Untitled Session",
+    createdAt: "2026-07-23T10:00:00Z",
+    updatedAt: "2026-07-23T10:00:00Z",
+    lastEditedBy: null,
+    status: "draft",
+    postType: "Image",
+    platforms: ["linkedin"],
+    visualAssetIds: [],
+    copy: "",
+    variations: [],
+    hashtags: "",
+    sentToCampaignId: null,
+    sentAt: null,
+    tags: [],
+    comments: [],
+    history: [],
+  },
+  {
+    id: "session-4",
+    title: "test-contest",
+    createdAt: "2026-07-21T12:08:00Z",
+    updatedAt: "2026-07-21T12:08:00Z",
+    lastEditedBy: users[2],
+    status: "approved",
+    postType: "Image",
+    platforms: ["linkedin"],
+    visualAssetIds: ["asset-post-1"],
+    copy: "Announcing our biggest contest of the year! Enter now for a chance to win amazing prizes.",
+    variations: [],
+    hashtags: "#contest #giveaway",
+    sentToCampaignId: null,
+    sentAt: null,
+    tags: ["contest", "giveaway"],
+    comments: [
+      {
+        id: "c-1",
+        author: users[2],
+        fieldLabel: "Copy",
+        text: "Let's tighten this up before we send it out.",
+        createdAt: "2026-07-21T12:30:00Z",
+      },
+    ],
+    history: [
+      {
+        id: "h-1",
+        actor: users[2],
+        action: "Approved this session",
+        createdAt: "2026-07-21T13:00:00Z",
+      },
+      {
+        id: "h-2",
+        actor: users[2],
+        action: "Created this session",
+        createdAt: "2026-07-21T12:08:00Z",
+      },
+    ],
+  },
+];

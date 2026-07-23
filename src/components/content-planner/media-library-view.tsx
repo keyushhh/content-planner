@@ -1,0 +1,195 @@
+"use client";
+
+import { useState } from "react";
+import { Check, UploadCloud, X, Layers } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { MediaThumb } from "./media-thumb";
+import type { MediaAsset, MediaAssetType, MediaFolder } from "@/lib/types";
+
+interface MediaLibraryViewProps {
+  folders: MediaFolder[];
+  assets: MediaAsset[];
+  selectedAssetIds?: string[];
+  onSelectAsset: (assetId: string) => void;
+  onClose: () => void;
+}
+
+const ALL_MEDIA = "__all__";
+
+const TYPE_FILTERS: { value: MediaAssetType | "all"; label: string }[] = [
+  { value: "all", label: "All types" },
+  { value: "image", label: "Images" },
+  { value: "embed", label: "Embeds" },
+  { value: "pdf", label: "PDFs" },
+];
+
+export function MediaLibraryView({
+  folders,
+  assets,
+  selectedAssetIds = [],
+  onSelectAsset,
+  onClose,
+}: MediaLibraryViewProps) {
+  // Default to the cross-folder view so embeds/PDFs are visible immediately,
+  // instead of being hidden inside whichever single folder they were filed under.
+  const [activeFolderId, setActiveFolderId] = useState<string>(ALL_MEDIA);
+  const [activeType, setActiveType] = useState<MediaAssetType | "all">("all");
+
+  const activeFolder = folders.find((f) => f.id === activeFolderId);
+  const scopedAssets =
+    activeFolderId === ALL_MEDIA
+      ? assets
+      : assets.filter((a) => a.folderId === activeFolderId);
+  const visibleAssets =
+    activeType === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === activeType);
+
+  return (
+    <div className="flex h-full min-h-0">
+      <div className="flex w-56 shrink-0 flex-col border-r border-border">
+        <div className="px-4 py-3.5 border-b border-border">
+          <span className="text-sm font-semibold">Media Library</span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          <button
+            onClick={() => setActiveFolderId(ALL_MEDIA)}
+            className={cn(
+              "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm mb-1.5 transition-colors",
+              activeFolderId === ALL_MEDIA
+                ? "bg-primary text-primary-foreground font-medium"
+                : "text-muted-foreground hover:bg-accent/50",
+            )}
+          >
+            <span className="flex items-center gap-1.5 truncate">
+              <Layers className="size-3.5" />
+              All Media
+            </span>
+            <span
+              className={cn(
+                "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
+                activeFolderId === ALL_MEDIA ? "bg-white/20" : "bg-accent",
+              )}
+            >
+              {assets.length}
+            </span>
+          </button>
+
+          <div className="px-2 pb-1.5 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Collections
+          </div>
+          {folders.map((folder) => {
+            const count = assets.filter((a) => a.folderId === folder.id).length;
+            const isActive = folder.id === activeFolderId;
+            return (
+              <button
+                key={folder.id}
+                onClick={() => setActiveFolderId(folder.id)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm mb-0.5 transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent/50",
+                )}
+              >
+                <span className="truncate">{folder.name}</span>
+                <span
+                  className={cn(
+                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
+                    isActive ? "bg-white/20" : "bg-accent",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <span className="font-semibold text-sm">
+            {activeFolderId === ALL_MEDIA ? "All Media" : activeFolder?.name}
+          </span>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+          >
+            <X className="size-3.5" />
+            Close
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border/60 px-5 py-2.5">
+          {TYPE_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setActiveType(f.value)}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                activeType === f.value
+                  ? "bg-violet-600 text-white"
+                  : "bg-accent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-center hover:border-primary/50 hover:bg-accent/20">
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={onClose}
+              />
+              <UploadCloud className="size-6 text-muted-foreground" />
+              <span className="text-xs font-medium">Upload Media</span>
+              <span className="px-4 text-[11px] text-muted-foreground">
+                Click or drag and drop images, embeds, or PDFs
+              </span>
+            </label>
+
+            {visibleAssets.map((asset) => {
+              const isSelected = selectedAssetIds.includes(asset.id);
+              return (
+                <button
+                  key={asset.id}
+                  onClick={() => onSelectAsset(asset.id)}
+                  className="group flex flex-col gap-1.5 text-left"
+                >
+                  <div className="relative">
+                    <MediaThumb
+                      assetId={asset.id}
+                      type={asset.type}
+                      className={cn(
+                        "aspect-square w-full ring-1 transition-all group-hover:ring-primary",
+                        isSelected ? "ring-primary" : "ring-border",
+                      )}
+                    />
+                    {asset.type !== "image" && (
+                      <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur">
+                        {asset.type}
+                      </span>
+                    )}
+                    {isSelected && (
+                      <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="size-3" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {asset.name}
+                    {isSelected && " · Added"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
