@@ -474,12 +474,12 @@ export function SessionDetailPane({
                 {session.visualAssetIds.map((assetId) => (
                   <div
                     key={assetId}
-                    className="group relative size-24 shrink-0 overflow-hidden rounded-xl border border-border/60 shadow-sm"
+                    className="group relative size-24 shrink-0 rounded-xl ring-1 ring-border/80 shadow-xs"
                   >
                     <MediaThumb
                       assetId={assetId}
                       type={mediaAssets.find((a) => a.id === assetId)?.type}
-                      className="size-full rounded-none"
+                      className="size-full"
                     />
                     {!isCampaignLocked && (
                       <button
@@ -490,7 +490,8 @@ export function SessionDetailPane({
                             ),
                           })
                         }
-                        className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
+                        aria-label="Remove asset"
+                        className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
                       >
                         <X className="size-3" />
                       </button>
@@ -691,11 +692,11 @@ export function SessionDetailPane({
 
         <Field label="Tags">
           <div className="space-y-2">
-            <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-transparent px-3.5 py-1.5 focus-within:border-violet-500/60 focus-within:ring-2 focus-within:ring-violet-500/20">
+            <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-transparent p-1.5 focus-within:border-violet-500/60 focus-within:ring-2 focus-within:ring-violet-500/20">
               {session.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-medium"
+                  className="inline-flex h-6.5 items-center gap-1.5 rounded-md bg-accent/80 px-2.5 py-0 text-xs font-medium"
                 >
                   {tag}
                   {!isCampaignLocked && (

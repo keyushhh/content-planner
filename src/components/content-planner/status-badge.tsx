@@ -7,10 +7,10 @@ export function StatusBadge({ status }: { status: SessionStatus }) {
     return (
       <Badge
         variant="outline"
-        className="gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-medium"
+        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-full border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-400"
       >
-        <CheckCircle2 className="size-3" />
-        Approved
+        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
+        <span>Approved</span>
       </Badge>
     );
   }
@@ -18,20 +18,20 @@ export function StatusBadge({ status }: { status: SessionStatus }) {
     return (
       <Badge
         variant="outline"
-        className="gap-1.5 border-violet-500/40 bg-violet-500/10 text-violet-400 font-medium"
+        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-full border-violet-500/50 bg-violet-500/10 text-xs font-medium text-violet-400"
       >
-        <PencilLine className="size-3" />
-        WIP
+        <PencilLine className="size-3.5 shrink-0 text-violet-400" />
+        <span>WIP</span>
       </Badge>
     );
   }
   return (
     <Badge
       variant="outline"
-      className="gap-1.5 border-border text-muted-foreground font-medium"
+      className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-full border-border/80 bg-accent/30 text-xs font-medium text-muted-foreground"
     >
-      <Circle className="size-3" />
-      Draft
+      <Circle className="size-3.5 shrink-0 text-muted-foreground/70" />
+      <span>Draft</span>
     </Badge>
   );
 }

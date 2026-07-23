@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, UploadCloud, X, Layers } from "lucide-react";
+import { Check, UploadCloud, X, Layers, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { MediaThumb } from "./media-thumb";
 import type { MediaAsset, MediaAssetType, MediaFolder } from "@/lib/types";
@@ -34,14 +35,18 @@ export function MediaLibraryView({
   // instead of being hidden inside whichever single folder they were filed under.
   const [activeFolderId, setActiveFolderId] = useState<string>(ALL_MEDIA);
   const [activeType, setActiveType] = useState<MediaAssetType | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const activeFolder = folders.find((f) => f.id === activeFolderId);
   const scopedAssets =
     activeFolderId === ALL_MEDIA
       ? assets
       : assets.filter((a) => a.folderId === activeFolderId);
-  const visibleAssets =
-    activeType === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === activeType);
+  const visibleAssets = scopedAssets.filter((a) => {
+    const matchesType = activeType === "all" || a.type === activeType;
+    const matchesSearch = searchQuery.trim() === "" || a.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+    return matchesType && matchesSearch;
+  });
 
   return (
     <div className="flex h-full min-h-0">
@@ -106,13 +111,30 @@ export function MediaLibraryView({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-          <span className="font-semibold text-sm">
+        <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-border">
+          <span className="font-semibold text-sm shrink-0">
             {activeFolderId === ALL_MEDIA ? "All Media" : activeFolder?.name}
           </span>
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search assets..."
+              className="h-8 pl-8 text-xs bg-accent/30 border-border/60 focus:border-violet-500/60"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent/50 shrink-0"
           >
             <X className="size-3.5" />
             Close
