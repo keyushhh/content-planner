@@ -26,6 +26,7 @@ interface RepositoryShellProps {
   onOpenSend: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
+  onDuplicateSession: (id: string) => void;
   onNewContent: () => void;
   onImportToCampaign: (sessionIds: string[], campaignId: string) => void;
 }
@@ -40,6 +41,7 @@ export function RepositoryShell({
   onOpenSend,
   onDeleteSession,
   onUnlockSession,
+  onDuplicateSession,
   onNewContent,
   onImportToCampaign,
 }: RepositoryShellProps) {
@@ -250,6 +252,7 @@ export function RepositoryShell({
             onOpenSend={onOpenSend}
             onDeleteSession={onDeleteSession}
             onUnlockSession={onUnlockSession}
+            onDuplicateSession={onDuplicateSession}
             emptyState={
               view === "repository"
                 ? {

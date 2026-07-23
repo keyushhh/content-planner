@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, PlusCircle, Settings2, LayoutGrid } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
@@ -8,6 +8,7 @@ import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { SessionDetailPane } from "@/components/content-planner/session-detail-pane";
 import { DiscussionPanel } from "@/components/content-planner/discussion-panel";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
+import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { cn } from "@/lib/utils";
 import {
@@ -52,6 +53,19 @@ export default function Home() {
   const [discussionOpen, setDiscussionOpen] = useState(false);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const nextId = useRef(1000);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (selectedSessionId) setSelectedSessionId(null);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        handleNewContent();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedSessionId]);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId)!;
   const campaignSessions = sessions
@@ -143,6 +157,25 @@ export default function Home() {
       })),
     );
     if (selectedSessionId === id) setSelectedSessionId(null);
+  }
+
+  function duplicateSession(id: string) {
+    const source = sessions.find((s) => s.id === id);
+    if (!source) return;
+    const newId = `session-${nextId.current++}`;
+    const copyItem: Session = {
+      ...source,
+      id: newId,
+      title: `${source.title} (Copy)`,
+      status: "draft",
+      sentToCampaignId: null,
+      sentAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastEditedBy: currentUser,
+    };
+    setSessions((prev) => [copyItem, ...prev]);
+    setSelectedSessionId(newId);
   }
 
   function handleNewSession() {
@@ -268,43 +301,53 @@ export default function Home() {
             onOpenSend={setSendSheetSessionId}
             onDeleteSession={deleteSession}
             onUnlockSession={unlockSession}
+            onDuplicateSession={duplicateSession}
             onNewContent={handleNewContent}
             onImportToCampaign={importSessionsToCampaign}
           />
         )}
       </div>
 
-      {selectedSession && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-background/25 backdrop-blur-[2px] transition-opacity"
-            onClick={() => setSelectedSessionId(null)}
-            aria-hidden
-          />
-          <div className="session-pane-surface fixed inset-y-0 right-0 z-50 flex w-[70%] min-w-[720px] rounded-none bg-background text-foreground shadow-2xl ring-1 ring-black/10">
-            <div className="min-h-0 min-w-0 flex-1">
-              <SessionDetailPane
-                session={selectedSession}
-                mediaFolders={mediaFolders}
-                mediaAssets={mediaAssets}
-                onUpdate={(patch) => updateSession(selectedSession.id, patch)}
-                onClose={() => setSelectedSessionId(null)}
-                isDiscussionOpen={discussionOpen}
-                onToggleDiscussion={() => setDiscussionOpen((v) => !v)}
-                onOpenDiscussion={() => setDiscussionOpen(true)}
-                onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
-                hidePlatforms={mode === "new"}
-              />
-            </div>
-            <DiscussionPanel
-              session={selectedSession}
-              isOpen={discussionOpen}
-              onClose={() => setDiscussionOpen(false)}
-              onAddComment={(text) => addComment(selectedSession.id, text)}
-            />
-          </div>
-        </>
-      )}
+      <Sheet
+        open={selectedSession !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSessionId(null);
+        }}
+      >
+        <SheetPortal>
+          <SheetOverlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+          <SheetContent
+            showCloseButton={false}
+            side="right"
+            className="session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !w-[70%] !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-transform duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full"
+          >
+            {selectedSession && (
+              <div className="flex size-full min-h-0 min-w-0">
+                <div className="min-h-0 min-w-0 flex-1">
+                  <SessionDetailPane
+                    session={selectedSession}
+                    mediaFolders={mediaFolders}
+                    mediaAssets={mediaAssets}
+                    onUpdate={(patch) => updateSession(selectedSession.id, patch)}
+                    onClose={() => setSelectedSessionId(null)}
+                    isDiscussionOpen={discussionOpen}
+                    onToggleDiscussion={() => setDiscussionOpen((v) => !v)}
+                    onOpenDiscussion={() => setDiscussionOpen(true)}
+                    onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
+                    hidePlatforms={mode === "new"}
+                  />
+                </div>
+                <DiscussionPanel
+                  session={selectedSession}
+                  isOpen={discussionOpen}
+                  onClose={() => setDiscussionOpen(false)}
+                  onAddComment={(text) => addComment(selectedSession.id, text)}
+                />
+              </div>
+            )}
+          </SheetContent>
+        </SheetPortal>
+      </Sheet>
 
       <SendToCampaignSheet
         open={sendSheetSessionId !== null}

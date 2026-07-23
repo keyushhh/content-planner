@@ -137,34 +137,38 @@ export function SessionDetailPane({
 
   if (view === "variations") {
     return (
-      <VariationsView
-        variations={session.variations}
-        onChange={(variations) => onUpdate({ variations })}
-        mediaAssets={mediaAssets}
-        mediaFolders={mediaFolders}
-        onOpenMediaLibrary={() => setView("media-library")}
-        onClose={() => setView("form")}
-        disabled={isSessionLocked(session)}
-      />
+      <div className="h-full w-full animate-in fade-in-50 slide-in-from-right-4 duration-200">
+        <VariationsView
+          variations={session.variations}
+          onChange={(variations) => onUpdate({ variations })}
+          mediaAssets={mediaAssets}
+          mediaFolders={mediaFolders}
+          onOpenMediaLibrary={() => setView("media-library")}
+          onClose={() => setView("form")}
+          disabled={isSessionLocked(session)}
+        />
+      </div>
     );
   }
 
   if (view === "media-library") {
     return (
-      <MediaLibraryView
-        folders={mediaFolders}
-        assets={mediaAssets}
-        selectedAssetIds={session.visualAssetIds}
-        onClose={() => setView("form")}
-        onSelectAsset={(assetId) => {
-          if (!session.visualAssetIds.includes(assetId)) {
-            onUpdate({
-              visualAssetIds: [...session.visualAssetIds, assetId],
-            });
-          }
-          setView("form");
-        }}
-      />
+      <div className="h-full w-full animate-in fade-in-50 slide-in-from-right-4 duration-200">
+        <MediaLibraryView
+          folders={mediaFolders}
+          assets={mediaAssets}
+          selectedAssetIds={session.visualAssetIds}
+          onClose={() => setView("form")}
+          onSelectAsset={(assetId) => {
+            if (!session.visualAssetIds.includes(assetId)) {
+              onUpdate({
+                visualAssetIds: [...session.visualAssetIds, assetId],
+              });
+            }
+            setView("form");
+          }}
+        />
+      </div>
     );
   }
 
@@ -202,8 +206,6 @@ export function SessionDetailPane({
             disabled={isCampaignLocked}
             canApprove={canApprove}
           />
-          <div className="h-4 w-px bg-border" />
-          <SaveIndicator status={saveStatus} />
         </div>
         <div className="flex items-center gap-1.5">
           {readyToSend && (
@@ -220,15 +222,23 @@ export function SessionDetailPane({
               {needsResend ? "Send Update" : "Send to Campaign"}
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="gap-1.5 text-sm text-muted-foreground"
+          <button
             onClick={() => setSaveStatus("saved")}
+            title="Click to force manual save"
+            className="flex items-center gap-1.5 rounded-full border border-border/60 bg-accent/30 px-3 py-1.5 text-xs transition-colors hover:bg-accent hover:border-border"
           >
-            <Save className="size-3.5" />
-            Save
-          </Button>
+            {saveStatus === "saving" ? (
+              <>
+                <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">Saving…</span>
+              </>
+            ) : (
+              <>
+                <Check className="size-3 text-emerald-400" />
+                <span className="text-muted-foreground">Autosaved</span>
+              </>
+            )}
+          </button>
           <Button size="sm" variant="secondary" className="gap-1.5 text-sm">
             <UserPlus className="size-3.5" />
             Invite
@@ -538,6 +548,43 @@ export function SessionDetailPane({
               disabled={isCampaignLocked}
               className="min-h-32 resize-y"
             />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-accent/20 px-3 py-2 text-xs">
+              <span className="font-mono text-muted-foreground">
+                {session.copy.length} characters
+              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
+                    session.copy.length > 280
+                      ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                      : "border-border/60 text-muted-foreground"
+                  )}
+                >
+                  X: {session.copy.length}/280
+                </span>
+                <span
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
+                    session.copy.length > 3000
+                      ? "border-red-500/50 bg-red-500/10 text-red-400"
+                      : "border-border/60 text-muted-foreground"
+                  )}
+                >
+                  LinkedIn: {session.copy.length}/3000
+                </span>
+                <span
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
+                    session.copy.length > 2200
+                      ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                      : "border-border/60 text-muted-foreground"
+                  )}
+                >
+                  IG: {session.copy.length}/2200
+                </span>
+              </div>
+            </div>
           </Field>
 
         <Field
@@ -643,45 +690,64 @@ export function SessionDetailPane({
         </Field>
 
         <Field label="Tags">
-          <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-transparent px-3.5 py-1.5 focus-within:border-violet-500/60 focus-within:ring-2 focus-within:ring-violet-500/20">
-            {session.tags.map((tag) => (
-              <span
-                key={tag}
-                className="flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-medium"
-              >
-                {tag}
-                {!isCampaignLocked && (
-                  <button
-                    onClick={() =>
-                      onUpdate({ tags: session.tags.filter((t) => t !== tag) })
+          <div className="space-y-2">
+            <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-transparent px-3.5 py-1.5 focus-within:border-violet-500/60 focus-within:ring-2 focus-within:ring-violet-500/20">
+              {session.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-medium"
+                >
+                  {tag}
+                  {!isCampaignLocked && (
+                    <button
+                      onClick={() =>
+                        onUpdate({ tags: session.tags.filter((t) => t !== tag) })
+                      }
+                      aria-label={`Remove tag ${tag}`}
+                      className="text-muted-foreground transition-colors hover:text-destructive"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </span>
+              ))}
+              <input
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                disabled={isCampaignLocked}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === ",") && tagDraft.trim()) {
+                    e.preventDefault();
+                    const next = tagDraft.trim().toLowerCase();
+                    if (!session.tags.includes(next)) {
+                      onUpdate({ tags: [...session.tags, next] });
                     }
-                    aria-label={`Remove tag ${tag}`}
-                    className="text-muted-foreground transition-colors hover:text-destructive"
-                  >
-                    <X className="size-3" />
-                  </button>
-                )}
-              </span>
-            ))}
-            <input
-              value={tagDraft}
-              onChange={(e) => setTagDraft(e.target.value)}
-              disabled={isCampaignLocked}
-              onKeyDown={(e) => {
-                if ((e.key === "Enter" || e.key === ",") && tagDraft.trim()) {
-                  e.preventDefault();
-                  const next = tagDraft.trim().toLowerCase();
-                  if (!session.tags.includes(next)) {
-                    onUpdate({ tags: [...session.tags, next] });
+                    setTagDraft("");
+                  } else if (e.key === "Backspace" && !tagDraft && session.tags.length > 0) {
+                    onUpdate({ tags: session.tags.slice(0, -1) });
                   }
-                  setTagDraft("");
-                } else if (e.key === "Backspace" && !tagDraft && session.tags.length > 0) {
-                  onUpdate({ tags: session.tags.slice(0, -1) });
-                }
-              }}
-              placeholder={session.tags.length === 0 ? "Add tags (location, topic…)" : ""}
-              className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-            />
+                }}
+                placeholder={session.tags.length === 0 ? "Add tags (location, topic…)" : ""}
+                className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+              />
+            </div>
+            {!isCampaignLocked && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="text-[11px] font-medium text-muted-foreground/60">Suggested:</span>
+                {["social", "product", "launch", "giveaway", "contest", "email", "announcement"]
+                  .filter((t) => !session.tags.includes(t))
+                  .slice(0, 5)
+                  .map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => onUpdate({ tags: [...session.tags, tag] })}
+                      className="rounded-md border border-border/60 bg-accent/20 px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-violet-300"
+                    >
+                      +{tag}
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
         </Field>
       </div>

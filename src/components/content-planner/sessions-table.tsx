@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./status-badge";
 import { ConfirmDialog } from "./confirm-dialog";
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
-import { Send, Lock, LockOpen, Info, Trash2, RefreshCw } from "lucide-react";
+import { Send, Lock, LockOpen, Info, Trash2, RefreshCw, Copy } from "lucide-react";
 import type { Session } from "@/lib/types";
 
 interface SessionsTableProps {
@@ -16,10 +16,11 @@ interface SessionsTableProps {
   onOpenSend: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
+  onDuplicateSession?: (id: string) => void;
   emptyState?: { title: string; description: string };
 }
 
-const GRID = "grid-cols-[1fr_160px_110px_130px_40px] gap-3";
+const GRID = "grid-cols-[1fr_160px_110px_130px_60px] gap-3";
 
 function initials(name: string) {
   return name
@@ -37,6 +38,7 @@ export function SessionsTable({
   onOpenSend,
   onDeleteSession,
   onUnlockSession,
+  onDuplicateSession,
   emptyState = {
     title: "No sessions yet",
     description: 'Click "New Session" to create your first post.',
@@ -166,14 +168,25 @@ export function SessionsTable({
 
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="flex justify-end"
+                  className="flex items-center justify-end gap-1"
                 >
+                  {onDuplicateSession && (
+                    <button
+                      onClick={() => onDuplicateSession(session.id)}
+                      aria-label="Duplicate session"
+                      title="Duplicate content item"
+                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                  )}
                   <button
                     onClick={() => setConfirmDeleteId(session.id)}
                     aria-label="Delete session"
+                    title="Delete session"
                     className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="size-3.5" />
                   </button>
                 </div>
               </div>
