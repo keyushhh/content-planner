@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   UserPlus,
+  Plus,
 } from "lucide-react";
 import type { Campaign, Session } from "@/lib/types";
 
@@ -31,6 +32,7 @@ interface RepositoryShellProps {
   onDuplicateSession: (id: string) => void;
   onNewContent: () => void;
   onImportToCampaign: (sessionIds: string[], campaignId: string) => void;
+  onCreateCampaign?: (name: string) => string;
 }
 
 type View = "repository" | { campaignId: string };
@@ -46,6 +48,7 @@ export function RepositoryShell({
   onDuplicateSession,
   onNewContent,
   onImportToCampaign,
+  onCreateCampaign,
 }: RepositoryShellProps) {
   const [view, setView] = useState<View>("repository");
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -122,8 +125,23 @@ export function RepositoryShell({
               Repository
             </button>
 
-            <div className="mt-6 mb-2 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-              CAMPAIGNS
+            <div className="mt-6 mb-2 px-2.5 flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                CAMPAIGNS
+              </span>
+              <button
+                onClick={() => {
+                  const name = prompt("Enter campaign name:");
+                  if (name && name.trim() && onCreateCampaign) {
+                    onCreateCampaign(name.trim());
+                  }
+                }}
+                className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                title="Create Campaign (redirects to Wozku campaign creation live)"
+              >
+                <Plus className="size-3" />
+                Create Campaign
+              </button>
             </div>
             <div className="flex flex-col gap-0.5">
               {campaigns.map((c) => {
@@ -200,9 +218,9 @@ export function RepositoryShell({
               </Button>
             )}
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              className="gap-1.5 text-sm"
+              className="gap-1.5 text-sm text-foreground hover:bg-accent"
               onClick={() => setShowInvite(true)}
             >
               <UserPlus className="size-4" />

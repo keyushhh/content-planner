@@ -19,7 +19,7 @@ import {
   mediaFolders,
   sessions as initialSessions,
 } from "@/lib/mock-data";
-import type { Session } from "@/lib/types";
+import type { HistoryEntry, Session } from "@/lib/types";
 
 function createBlankSession(id: string): Session {
   const now = new Date().toISOString();
@@ -81,6 +81,57 @@ export default function Home() {
     setSessions((prev) =>
       prev.map((s) => {
         if (s.id !== id) return s;
+
+        // Build history entries, coalescing recent edits to the same field (within 10s)
+        const updatedHistory = [...s.history];
+        const now = new Date();
+
+        const updateOrPushHistory = (key: string, defaultAction: string) => {
+          const lastIdx = updatedHistory.length - 1;
+          const last = updatedHistory[lastIdx];
+          const isRecentSameField =
+            last &&
+            last.id.includes(key) &&
+            now.getTime() - new Date(last.createdAt).getTime() < 10000;
+
+          if (isRecentSameField) {
+            updatedHistory[lastIdx] = {
+              ...last,
+              action: defaultAction,
+              createdAt: now.toISOString(),
+            };
+          } else {
+            updatedHistory.push({
+              id: `hist-${now.getTime()}-${key}`,
+              actor: currentUser,
+              action: defaultAction,
+              createdAt: now.toISOString(),
+            });
+          }
+        };
+
+        if (patch.title !== undefined && patch.title !== s.title) {
+          updateOrPushHistory("title", `updated title to "${patch.title}"`);
+        }
+        if (patch.status !== undefined && patch.status !== s.status) {
+          updateOrPushHistory("status", `changed status to ${patch.status.toUpperCase()}`);
+        }
+        if (patch.postType !== undefined && patch.postType !== s.postType) {
+          updateOrPushHistory("postType", `changed post type to ${patch.postType}`);
+        }
+        if (patch.copy !== undefined && patch.copy !== s.copy) {
+          updateOrPushHistory("copy", `updated content copy`);
+        }
+        if (patch.hashtags !== undefined && patch.hashtags !== s.hashtags) {
+          updateOrPushHistory("tags", `updated hashtags`);
+        }
+        if (patch.visualAssetIds !== undefined && patch.visualAssetIds.length !== s.visualAssetIds.length) {
+          updateOrPushHistory(
+            "media",
+            `${patch.visualAssetIds.length > s.visualAssetIds.length ? "added" : "removed"} visual assets (${patch.visualAssetIds.length} total)`
+          );
+        }
+
         // Any edit while still a untouched Draft immediately promotes it to
         // WIP — unless this very patch is itself an explicit status change.
         const status = patch.status ?? (s.status === "draft" ? "wip" : s.status);
@@ -88,10 +139,17 @@ export default function Home() {
           ...s,
           ...patch,
           status,
+          history: updatedHistory,
           lastEditedBy: currentUser,
           updatedAt: new Date().toISOString(),
         };
       }),
+    );
+  }
+
+  function clearHistory(id: string) {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, history: [] } : s)),
     );
   }
 
@@ -311,6 +369,7 @@ export default function Home() {
             onDuplicateSession={duplicateSession}
             onNewContent={handleNewContent}
             onImportToCampaign={importSessionsToCampaign}
+            onCreateCampaign={createCampaign}
           />
         )}
       </div>
@@ -349,6 +408,7 @@ export default function Home() {
                   isOpen={discussionOpen}
                   onClose={() => setDiscussionOpen(false)}
                   onAddComment={(text) => addComment(selectedSession.id, text)}
+                  onClearHistory={() => clearHistory(selectedSession.id)}
                 />
               </div>
             )}

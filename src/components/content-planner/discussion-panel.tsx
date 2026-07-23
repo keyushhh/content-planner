@@ -13,6 +13,7 @@ interface DiscussionPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onAddComment: (text: string) => void;
+  onClearHistory?: () => void;
 }
 
 type Filter = "all" | "comments" | "activity";
@@ -44,6 +45,7 @@ export function DiscussionPanel({
   isOpen,
   onClose,
   onAddComment,
+  onClearHistory,
 }: DiscussionPanelProps) {
   const [draft, setDraft] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -62,7 +64,17 @@ export function DiscussionPanel({
   return (
     <div className="flex h-full w-[320px] shrink-0 flex-col border-l border-border/60">
       <div className="flex shrink-0 items-center justify-between px-5 py-4">
-        <h3 className="text-base font-semibold tracking-tight">Activity</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold tracking-tight">Activity</h3>
+          {session.history.length > 0 && onClearHistory && (
+            <button
+              onClick={onClearHistory}
+              className="text-[11px] font-medium text-rose-500/80 hover:text-rose-400 hover:underline transition-colors ml-1"
+            >
+              Clear history
+            </button>
+          )}
+        </div>
         <button
           onClick={onClose}
           aria-label="Close activity panel"

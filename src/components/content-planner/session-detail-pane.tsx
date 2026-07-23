@@ -62,8 +62,8 @@ import type {
 
 const POST_TYPE_META: Record<PostType, { icon: typeof ImageIcon; label: string }> = {
   Image: { icon: ImageIcon, label: "Image" },
-  Frames: { icon: Frame, label: "Frames" },
   Reshare: { icon: Repeat2, label: "Reshare" },
+  Frames: { icon: Frame, label: "Frames" },
 };
 const POST_TYPES = Object.keys(POST_TYPE_META) as PostType[];
 
@@ -676,14 +676,38 @@ export function SessionDetailPane({
             )}
           </Field>
 
-        <Field label="Hashtags" onComment={onOpenDiscussion}>
-          <Input
-            value={session.hashtags}
-            onChange={(e) => onUpdate({ hashtags: e.target.value })}
-            placeholder="#product #launch"
-            disabled={isCampaignLocked}
-            className="h-10 w-full rounded-lg px-3.5 text-sm"
-          />
+        <Field label="Hashtags" comments={commentsFor("Hashtags")} onComment={() => onOpenDiscussion("Hashtags")}>
+          <div className="space-y-2">
+            <Input
+              value={session.hashtags}
+              onChange={(e) => onUpdate({ hashtags: e.target.value })}
+              placeholder="#product #launch"
+              disabled={isCampaignLocked}
+              className="h-10 w-full rounded-lg px-3.5 text-sm"
+            />
+            {!isCampaignLocked && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="text-[11px] font-medium text-muted-foreground/60">Suggested:</span>
+                {["#product", "#launch", "#giveaway", "#contest", "#announcement", "#marketing", "#branding"]
+                  .filter((ht) => !session.hashtags.includes(ht))
+                  .slice(0, 5)
+                  .map((ht) => (
+                    <button
+                      key={ht}
+                      type="button"
+                      onClick={() => {
+                        const trimmed = session.hashtags.trim();
+                        const next = trimmed ? `${trimmed} ${ht}` : ht;
+                        onUpdate({ hashtags: next });
+                      }}
+                      className="rounded-md border border-border/60 bg-accent/20 px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-violet-300"
+                    >
+                      +{ht}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
         </Field>
 
         <Field label="Tags">
