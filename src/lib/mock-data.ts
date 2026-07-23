@@ -9,6 +9,7 @@ import type {
 export const currentUser: User = {
   id: "u-biradhwaj",
   name: "Biradhwaj Senapati",
+  email: "biradhwajsenapati@gmail.com",
 };
 
 export const users: User[] = [

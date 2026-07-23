@@ -293,6 +293,7 @@ export default function Home() {
                 onToggleDiscussion={() => setDiscussionOpen((v) => !v)}
                 onOpenDiscussion={() => setDiscussionOpen(true)}
                 onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
+                hidePlatforms={mode === "new"}
               />
             </div>
             <DiscussionPanel

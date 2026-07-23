@@ -90,6 +90,7 @@ interface SessionDetailPaneProps {
   isDiscussionOpen: boolean;
   onToggleDiscussion: () => void;
   onOpenSend: () => void;
+  hidePlatforms?: boolean;
 }
 
 export function SessionDetailPane({
@@ -102,6 +103,7 @@ export function SessionDetailPane({
   isDiscussionOpen,
   onToggleDiscussion,
   onOpenSend,
+  hidePlatforms = false,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
   const [variationDraft, setVariationDraft] = useState("");
@@ -346,7 +348,8 @@ export function SessionDetailPane({
             </div>
           </Field>
 
-        <Field
+        {!hidePlatforms && (
+          <Field
             label="Platforms"
             comments={commentsFor("Platforms")}
             onComment={() => onOpenDiscussion("Platforms")}
@@ -413,6 +416,7 @@ export function SessionDetailPane({
               More platforms can be connected here as they become available.
             </p>
           </Field>
+        )}
 
         <Field
             label="Visual Assets"

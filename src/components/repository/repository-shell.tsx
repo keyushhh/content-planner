@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { ImportFromRepositorySheet } from "./import-from-repository-sheet";
 import { cn } from "@/lib/utils";
+import { currentUser } from "@/lib/mock-data";
 import {
   Database,
   Megaphone,
@@ -12,6 +13,8 @@ import {
   FolderInput,
   ChevronRight,
   Tag,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { Campaign, Session } from "@/lib/types";
 
@@ -43,6 +46,7 @@ export function RepositoryShell({
   const [view, setView] = useState<View>("repository");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [showImport, setShowImport] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const activeCampaign =
     typeof view === "object" ? campaigns.find((c) => c.id === view.campaignId) ?? null : null;
@@ -67,44 +71,90 @@ export function RepositoryShell({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <nav className="flex w-56 shrink-0 flex-col border-r border-border px-3 py-4">
-        <button
-          onClick={() => setView("repository")}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors",
-            view === "repository"
-              ? "bg-violet-500/10 text-violet-300"
-              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-          )}
-        >
-          <Database className="size-4" />
-          Repository
-        </button>
+      {collapsed ? (
+        <div className="flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-card/40 py-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 text-muted-foreground hover:text-foreground"
+            onClick={() => setCollapsed(false)}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <PanelLeftOpen className="size-4" />
+          </Button>
+        </div>
+      ) : (
+        <nav className="flex w-64 shrink-0 flex-col border-r border-border bg-card/40">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Navigation
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              onClick={() => setCollapsed(true)}
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="size-4" />
+            </Button>
+          </div>
 
-        <div className="mt-5 mb-1.5 px-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
-          Campaigns
-        </div>
-        <div className="flex flex-col gap-0.5">
-          {campaigns.map((c) => {
-            const active = typeof view === "object" && view.campaignId === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setView({ campaignId: c.id })}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
-                  active
-                    ? "bg-violet-500/10 font-medium text-violet-300"
-                    : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                )}
-              >
-                <Megaphone className="size-3.5 shrink-0" />
-                <span className="truncate">{c.name}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+          <div className="flex-1 overflow-y-auto px-3 py-4">
+            <button
+              onClick={() => setView("repository")}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors",
+                view === "repository"
+                  ? "bg-violet-500/10 text-violet-300"
+                  : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+              )}
+            >
+              <Database className="size-4" />
+              Repository
+            </button>
+
+            <div className="mt-6 mb-2 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              CAMPAIGNS
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {campaigns.map((c) => {
+                const active = typeof view === "object" && view.campaignId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setView({ campaignId: c.id })}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                      active
+                        ? "bg-violet-500/10 font-medium text-violet-300"
+                        : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                    )}
+                  >
+                    <Megaphone className="size-3.5 shrink-0" />
+                    <span className="truncate">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* User Sign In Footer */}
+          <div className="border-t border-border p-4 bg-muted/20">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+              SIGNED IN
+            </div>
+            <div className="mt-2 text-sm font-medium text-foreground">
+              {currentUser.name}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground truncate">
+              {currentUser.email || "biradhwajsenapati@gmail.com"}
+            </div>
+          </div>
+        </nav>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
