@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, UploadCloud, X, Layers, Search } from "lucide-react";
+import { Check, UploadCloud, X, Layers, Search, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { MediaThumb } from "./media-thumb";
@@ -134,10 +134,10 @@ export function MediaLibraryView({
           </div>
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent/50 shrink-0"
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent/50 shrink-0 text-foreground"
           >
-            <X className="size-3.5" />
-            Close
+            <ArrowLeft className="size-3.5" />
+            Back
           </button>
         </div>
 

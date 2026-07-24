@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ChevronDown,
   UserPlus,
@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Lock,
   LockOpen,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -91,6 +92,8 @@ interface SessionDetailPaneProps {
   onToggleDiscussion: () => void;
   onOpenSend: () => void;
   hidePlatforms?: boolean;
+  hidePostType?: boolean;
+  postTypeAsSegmented?: boolean;
 }
 
 export function SessionDetailPane({
@@ -104,36 +107,77 @@ export function SessionDetailPane({
   onToggleDiscussion,
   onOpenSend,
   hidePlatforms = false,
+  hidePostType = false,
+  postTypeAsSegmented = false,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
   const [variationDraft, setVariationDraft] = useState("");
   const [tagDraft, setTagDraft] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skipNextSave = useRef(true);
 
+  // Local draft states for blur & 30-second timer autosave
+  const [titleDraft, setTitleDraft] = useState(session.title);
+  const [copyDraft, setCopyDraft] = useState(session.copy);
+  const [hashtagsDraft, setHashtagsDraft] = useState(session.hashtags);
+
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveSource, setSaveSource] = useState<"blur" | "timer" | "instant" | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync draft states when session changes or is re-loaded
   useEffect(() => {
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
-      return;
-    }
+    setTitleDraft(session.title);
+    setCopyDraft(session.copy);
+    setHashtagsDraft(session.hashtags);
+    setSaveStatus("idle");
+    setSaveSource(null);
+  }, [session.id]);
+
+  // Flush pending local draft changes to onUpdate
+  const savePendingChanges = useCallback(
+    (source: "blur" | "timer" | "instant" = "blur") => {
+      const patch: Partial<Session> = {};
+      if (titleDraft !== session.title) patch.title = titleDraft;
+      if (copyDraft !== session.copy) patch.copy = copyDraft;
+      if (hashtagsDraft !== session.hashtags) patch.hashtags = hashtagsDraft;
+
+      if (Object.keys(patch).length > 0) {
+        onUpdate(patch);
+        setSaveStatus("saving");
+        setSaveSource(source);
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => {
+          setSaveStatus("saved");
+        }, 1200);
+      }
+    },
+    [titleDraft, copyDraft, hashtagsDraft, session.title, session.copy, session.hashtags, onUpdate]
+  );
+
+  // 30-second periodic timer autosave
+  useEffect(() => {
+    const interval = setInterval(() => {
+      savePendingChanges("timer");
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [savePendingChanges]);
+
+  // Helper for instant actions (e.g. status, dropdowns, asset add/remove)
+  const handleUpdateWithPendingSave = (patch: Partial<Session>) => {
+    const draftPatch: Partial<Session> = {};
+    if (titleDraft !== session.title) draftPatch.title = titleDraft;
+    if (copyDraft !== session.copy) draftPatch.copy = copyDraft;
+    if (hashtagsDraft !== session.hashtags) draftPatch.hashtags = hashtagsDraft;
+
+    onUpdate({ ...draftPatch, ...patch });
     setSaveStatus("saving");
+    setSaveSource("instant");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       setSaveStatus("saved");
     }, 1200);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.updatedAt]);
-
-  useEffect(() => {
-    skipNextSave.current = true;
-    setSaveStatus("idle");
-  }, [session.id]);
+  };
 
   if (view === "variations") {
     return (
@@ -176,8 +220,7 @@ export function SessionDetailPane({
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
 
   const sendReadinessIssues: string[] = [];
-  if (!session.copy.trim()) sendReadinessIssues.push("copy");
-  if (session.visualAssetIds.length === 0) sendReadinessIssues.push("at least one image");
+  if (!copyDraft.trim()) sendReadinessIssues.push("copy");
   const canApprove = sendReadinessIssues.length === 0;
 
   const isCampaignLocked = isSessionLocked(session);
@@ -192,7 +235,7 @@ export function SessionDetailPane({
         accept="image/*"
         className="hidden"
         onChange={() => {
-          onUpdate({
+          handleUpdateWithPendingSave({
             visualAssetIds: [...session.visualAssetIds, `device-upload-${Date.now()}`],
           });
         }}
@@ -202,7 +245,7 @@ export function SessionDetailPane({
         <div className="flex items-center gap-3">
           <StatusMenu
             status={session.status}
-            onChange={(status) => onUpdate({ status })}
+            onChange={(status) => handleUpdateWithPendingSave({ status })}
             disabled={isCampaignLocked}
             canApprove={canApprove}
           />
@@ -223,19 +266,23 @@ export function SessionDetailPane({
             </Button>
           )}
           <button
-            onClick={() => setSaveStatus("saved")}
-            title="Click to force manual save"
+            onClick={() => savePendingChanges("instant")}
+            title="Autosaves on focus loss (blur) or every 30 seconds"
             className="flex items-center gap-1.5 rounded-full border border-border/60 bg-accent/30 px-3 py-1.5 text-xs transition-colors hover:bg-accent hover:border-border"
           >
             {saveStatus === "saving" ? (
               <>
-                <Loader2 className="size-3 animate-spin text-muted-foreground" />
-                <span className="text-muted-foreground">Saving…</span>
+                <Loader2 className="size-3 animate-spin text-violet-400" />
+                <span className="text-muted-foreground">
+                  Saving{saveSource === "timer" ? " (30s timer)…" : saveSource === "blur" ? " (on blur)…" : "…"}
+                </span>
               </>
             ) : (
               <>
                 <Check className="size-3 text-emerald-400" />
-                <span className="text-muted-foreground">Autosaved</span>
+                <span className="text-muted-foreground">
+                  Autosaved {saveSource === "timer" ? "(30s timer)" : saveSource === "blur" ? "(on blur)" : ""}
+                </span>
               </>
             )}
           </button>
@@ -255,7 +302,10 @@ export function SessionDetailPane({
           </Button>
           <div className="mx-1 h-6 w-px bg-border" />
           <button
-            onClick={onClose}
+            onClick={() => {
+              savePendingChanges("blur");
+              onClose();
+            }}
             aria-label="Save and collapse session"
             title="Save and collapse"
             className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
@@ -292,8 +342,9 @@ export function SessionDetailPane({
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         <div className="mb-6">
           <input
-            value={session.title}
-            onChange={(e) => onUpdate({ title: e.target.value })}
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => savePendingChanges("blur")}
             disabled={isCampaignLocked}
             className="w-full bg-transparent text-3xl font-bold tracking-tight outline-none disabled:cursor-not-allowed disabled:opacity-70"
           />
@@ -317,42 +368,72 @@ export function SessionDetailPane({
           </div>
         </div>
 
-        <Field
+        {!hidePostType && (
+          <Field
             label="Post Type"
             comments={commentsFor("Post Type")}
             onComment={() => onOpenDiscussion("Post Type")}
           >
-            <div className="grid grid-cols-3 gap-2.5">
-              {POST_TYPES.map((t) => {
-                const meta = POST_TYPE_META[t];
-                const Icon = meta.icon;
-                const active = session.postType === t;
-                return (
-                  <button
-                    key={t}
-                    disabled={isCampaignLocked}
-                    onClick={() => onUpdate({ postType: t })}
-                    className={cn(
-                      "flex flex-col items-center gap-2 rounded-xl border px-3 py-3.5 transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                      active
-                        ? "border-violet-500/70 bg-violet-500/[0.08] shadow-[0_0_0_1px_#8b5cf6_inset]"
-                        : "border-border text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                    )}
-                  >
-                    <Icon className={cn("size-5", active && "text-violet-400")} />
-                    <span
+            {postTypeAsSegmented ? (
+              // Segmented control pill — compact single-line selector
+              <div className="flex items-center rounded-lg border border-border bg-accent/20 p-1 gap-1">
+                {POST_TYPES.map((t) => {
+                  const meta = POST_TYPE_META[t];
+                  const Icon = meta.icon;
+                  const active = session.postType === t;
+                  return (
+                    <button
+                      key={t}
+                      disabled={isCampaignLocked}
+                      onClick={() => onUpdate({ postType: t })}
                       className={cn(
-                        "text-xs font-medium",
-                        active && "text-foreground",
+                        "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                        active
+                          ? "bg-violet-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                       )}
                     >
+                      <Icon className="size-3.5" />
                       {meta.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              // Default 3-card grid
+              <div className="grid grid-cols-3 gap-2.5">
+                {POST_TYPES.map((t) => {
+                  const meta = POST_TYPE_META[t];
+                  const Icon = meta.icon;
+                  const active = session.postType === t;
+                  return (
+                    <button
+                      key={t}
+                      disabled={isCampaignLocked}
+                      onClick={() => onUpdate({ postType: t })}
+                      className={cn(
+                        "flex flex-col items-center gap-2 rounded-xl border px-3 py-3.5 transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                        active
+                          ? "border-violet-500/70 bg-violet-500/[0.08] shadow-[0_0_0_1px_#8b5cf6_inset]"
+                          : "border-border text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                      )}
+                    >
+                      <Icon className={cn("size-5", active && "text-violet-400")} />
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          active && "text-foreground",
+                        )}
+                      >
+                        {meta.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Field>
+        )}
 
         {!hidePlatforms && (
           <Field
@@ -426,65 +507,27 @@ export function SessionDetailPane({
 
         <Field
             label="Visual Assets"
-            required
             comments={commentsFor("Visual Assets")}
             onComment={() => onOpenDiscussion("Visual Assets")}
           >
             {session.visualAssetIds.length === 0 ? (
-              <Popover>
-                <PopoverTrigger
-                  disabled={isCampaignLocked}
-                  className="flex w-full items-center gap-3 rounded-xl border border-dashed border-violet-500/50 px-4 py-3.5 text-left transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-400">
-                    <UploadCloud className="size-4" />
+              <button
+                disabled={isCampaignLocked}
+                onClick={() => setView("media-library")}
+                className="flex w-full items-center gap-3 rounded-xl border border-dashed border-violet-500/50 px-4 py-3.5 text-left transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-400">
+                  <UploadCloud className="size-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">
+                    Add an image or video
                   </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium">
-                      Add an image or video
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      Upload from your device or pick from Media Library
-                    </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Pick from Media Library
                   </span>
-                </PopoverTrigger>
-                <PopoverContent align="start" sideOffset={6} className="w-[320px] rounded-xl border border-border/80 bg-background/95 p-2 shadow-xl backdrop-blur-md">
-                  <div className="space-y-1">
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
-                    >
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
-                        <UploadCloud className="size-4.5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
-                          Upload from Device
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Select JPG, PNG, or MP4 files
-                        </div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setView("media-library")}
-                      className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
-                    >
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
-                        <FolderOpen className="size-4.5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
-                          Choose from Media Library
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Browse centralized media repository
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                </span>
+              </button>
             ) : (
               <div className="flex flex-wrap gap-3">
                 {session.visualAssetIds.map((assetId) => (
@@ -515,47 +558,13 @@ export function SessionDetailPane({
                   </div>
                 ))}
                 {!isCampaignLocked && (
-                <Popover>
-                  <PopoverTrigger className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:border-violet-500/50 hover:bg-accent/20 hover:text-violet-400">
+                  <button
+                    onClick={() => setView("media-library")}
+                    title="Pick from Media Library"
+                    className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:border-violet-500/50 hover:bg-accent/20 hover:text-violet-400"
+                  >
                     <UploadCloud className="size-5" />
-                  </PopoverTrigger>
-                  <PopoverContent align="start" sideOffset={6} className="w-[320px] rounded-xl border border-border/80 bg-background/95 p-2 shadow-xl backdrop-blur-md">
-                    <div className="space-y-1">
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
-                      >
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
-                          <UploadCloud className="size-4.5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
-                            Upload from Device
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">
-                            Select JPG, PNG, or MP4 files
-                          </div>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setView("media-library")}
-                        className="group flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-violet-500/10"
-                      >
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400 transition-colors group-hover:border-violet-500/40 group-hover:bg-violet-500/20">
-                          <FolderOpen className="size-4.5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-foreground group-hover:text-violet-300">
-                            Choose from Media Library
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">
-                            Browse centralized media repository
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                  </button>
                 )}
               </div>
             )}
@@ -567,6 +576,19 @@ export function SessionDetailPane({
             onComment={() => onOpenDiscussion("Copy")}
             action={
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setView("variations")}
+                  className="flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:underline"
+                >
+                  <Layers className="size-3.5 text-blue-400" />
+                  <span>Post Variations</span>
+                  {session.variations.length > 0 && (
+                    <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-blue-300">
+                      {session.variations.length}
+                    </span>
+                  )}
+                </button>
                 <button className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:underline">
                   <AtSign className="size-3.5" />
                   Add Mentions
@@ -579,148 +601,60 @@ export function SessionDetailPane({
             }
           >
             <Textarea
-              value={session.copy}
-              onChange={(e) => onUpdate({ copy: e.target.value })}
+              value={copyDraft}
+              onChange={(e) => setCopyDraft(e.target.value)}
+              onBlur={() => savePendingChanges("blur")}
               placeholder="Post content..."
               disabled={isCampaignLocked}
               className="min-h-32 resize-y"
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-accent/20 px-3 py-2 text-xs">
               <span className="font-mono text-muted-foreground">
-                {session.copy.length} characters
+                {copyDraft.length} characters
               </span>
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
                     "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
-                    session.copy.length > 280
+                    copyDraft.length > 280
                       ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
                       : "border-border/60 text-muted-foreground"
                   )}
                 >
-                  X: {session.copy.length}/280
+                  X: {copyDraft.length}/280
                 </span>
                 <span
                   className={cn(
                     "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
-                    session.copy.length > 3000
+                    copyDraft.length > 3000
                       ? "border-red-500/50 bg-red-500/10 text-red-400"
                       : "border-border/60 text-muted-foreground"
                   )}
                 >
-                  LinkedIn: {session.copy.length}/3000
+                  LinkedIn: {copyDraft.length}/3000
                 </span>
                 <span
                   className={cn(
                     "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
-                    session.copy.length > 2200
+                    copyDraft.length > 2200
                       ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
                       : "border-border/60 text-muted-foreground"
                   )}
                 >
-                  IG: {session.copy.length}/2200
+                  IG: {copyDraft.length}/2200
                 </span>
               </div>
             </div>
           </Field>
 
-        <Field
-            label="Post Variations"
-            comments={commentsFor("Post Variations")}
-            onComment={() => onOpenDiscussion("Post Variations")}
-            action={
-              session.variations.length > 0 ? (
-                <button
-                  onClick={() => setView("variations")}
-                  className="text-xs font-semibold text-violet-400 hover:text-violet-300 hover:underline"
-                >
-                  Manage
-                </button>
-              ) : undefined
-            }
-          >
-            {session.variations.length === 0 ? (
-              <div className="relative">
-                <Input
-                  value={variationDraft}
-                  onChange={(e) => setVariationDraft(e.target.value)}
-                  disabled={isCampaignLocked}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && variationDraft.trim()) {
-                      e.preventDefault();
-                      onUpdate({
-                        variations: [
-                          ...session.variations,
-                          {
-                            id: `var-${Date.now()}`,
-                            label: `Variation ${session.variations.length + 1}`,
-                            copy: variationDraft.trim(),
-                            assetIds: [],
-                          },
-                        ],
-                      });
-                      setVariationDraft("");
-                    }
-                  }}
-                  placeholder="Add alternate post content..."
-                  className="h-10 w-full rounded-lg border-border bg-transparent pr-16 pl-3.5 text-sm"
-                />
-                <button
-                  disabled={!variationDraft.trim() || isCampaignLocked}
-                  onClick={() => {
-                    if (!variationDraft.trim()) return;
-                    onUpdate({
-                      variations: [
-                        ...session.variations,
-                        {
-                          id: `var-${Date.now()}`,
-                          label: `Variation ${session.variations.length + 1}`,
-                          copy: variationDraft.trim(),
-                          assetIds: [],
-                        },
-                      ],
-                    });
-                    setVariationDraft("");
-                  }}
-                  className={cn(
-                    "absolute top-1.5 right-1.5 flex h-7 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors disabled:opacity-40",
-                    variationDraft.trim()
-                      ? "bg-violet-600 text-white hover:bg-violet-500"
-                      : "bg-accent text-foreground"
-                  )}
-                >
-                  <Plus className="size-3.5" />
-                  Add
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setView("variations")}
-                className="group w-full rounded-xl border border-border/80 bg-accent/15 p-4 text-left transition-all hover:border-violet-500/50 hover:bg-accent/30"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground">
-                    {session.variations.length} variation{session.variations.length === 1 ? "" : "s"}
-                  </span>
-                  <span className="text-xs text-muted-foreground group-hover:text-violet-300">
-                    Click to manage
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground/80">#1</span>
-                  <span className="truncate">
-                    {session.variations[0]?.copy || "Empty variation copy"}
-                  </span>
-                </div>
-              </button>
-            )}
-          </Field>
+
 
         <Field label="Hashtags" comments={commentsFor("Hashtags")} onComment={() => onOpenDiscussion("Hashtags")}>
           <div className="space-y-2">
             <Input
-              value={session.hashtags}
-              onChange={(e) => onUpdate({ hashtags: e.target.value })}
+              value={hashtagsDraft}
+              onChange={(e) => setHashtagsDraft(e.target.value)}
+              onBlur={() => savePendingChanges("blur")}
               placeholder="#product #launch"
               disabled={isCampaignLocked}
               className="h-10 w-full rounded-lg px-3.5 text-sm"
@@ -729,16 +663,17 @@ export function SessionDetailPane({
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="text-[11px] font-medium text-muted-foreground/60">Suggested:</span>
                 {["#product", "#launch", "#giveaway", "#contest", "#announcement", "#marketing", "#branding"]
-                  .filter((ht) => !session.hashtags.includes(ht))
+                  .filter((ht) => !hashtagsDraft.includes(ht))
                   .slice(0, 5)
                   .map((ht) => (
                     <button
                       key={ht}
                       type="button"
                       onClick={() => {
-                        const trimmed = session.hashtags.trim();
+                        const trimmed = hashtagsDraft.trim();
                         const next = trimmed ? `${trimmed} ${ht}` : ht;
-                        onUpdate({ hashtags: next });
+                        setHashtagsDraft(next);
+                        handleUpdateWithPendingSave({ hashtags: next });
                       }}
                       className="rounded-md border border-border/60 bg-accent/20 px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-violet-300"
                     >

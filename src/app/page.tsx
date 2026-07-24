@@ -46,8 +46,10 @@ function createBlankSession(id: string): Session {
 
 export default function Home() {
   const [mode, setMode] = useState<"current" | "new">("current");
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
-  const [sessions, setSessions] = useState(initialSessions);
+  const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
+  const [sessions, setSessions] = useState<Session[]>(initialSessions);
+  const [mounted, setMounted] = useState(false);
+
   const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0].id);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -55,6 +57,45 @@ export default function Home() {
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const nextId = useRef(1000);
+
+  // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    const savedMode = localStorage.getItem("cp_mode");
+    if (savedMode === "current" || savedMode === "new") {
+      setMode(savedMode);
+    }
+    const savedCampaigns = localStorage.getItem("cp_campaigns");
+    if (savedCampaigns) {
+      try {
+        setCampaigns(JSON.parse(savedCampaigns));
+      } catch (e) {}
+    }
+    const savedSessions = localStorage.getItem("cp_sessions");
+    if (savedSessions) {
+      try {
+        setSessions(JSON.parse(savedSessions));
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem("cp_mode", mode);
+    }
+  }, [mode, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem("cp_campaigns", JSON.stringify(campaigns));
+    }
+  }, [campaigns, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem("cp_sessions", JSON.stringify(sessions));
+    }
+  }, [sessions, mounted]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -132,13 +173,23 @@ export default function Home() {
           );
         }
 
-        // Any edit while still a untouched Draft immediately promotes it to
-        // WIP — unless this very patch is itself an explicit status change.
-        const status = patch.status ?? (s.status === "draft" ? "wip" : s.status);
+        // Any edit while Draft or Approved automatically sets/reverts status to WIP
+        let nextStatus = patch.status;
+        if (nextStatus === undefined) {
+          if (s.status === "draft" || s.status === "approved") {
+            nextStatus = "wip";
+            if (s.status === "approved") {
+              updateOrPushHistory("status", "reverted status to WIP due to edits");
+            }
+          } else {
+            nextStatus = s.status;
+          }
+        }
+
         return {
           ...s,
           ...patch,
-          status,
+          status: nextStatus,
           history: updatedHistory,
           lastEditedBy: currentUser,
           updatedAt: new Date().toISOString(),
@@ -153,24 +204,29 @@ export default function Home() {
     );
   }
 
-  function addComment(id: string, text: string) {
+  function addComment(id: string, text: string, parentId?: string) {
+    const newComment = {
+      id: `comment-${Date.now()}`,
+      author: currentUser,
+      text,
+      createdAt: new Date().toISOString(),
+    };
     setSessions((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              comments: [
-                ...s.comments,
-                {
-                  id: `comment-${Date.now()}`,
-                  author: currentUser,
-                  text,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-          : s,
-      ),
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        if (!parentId) {
+          return { ...s, comments: [...s.comments, newComment] };
+        }
+        // Append reply to the parent comment's replies array
+        return {
+          ...s,
+          comments: s.comments.map((c) =>
+            c.id === parentId
+              ? { ...c, replies: [...(c.replies ?? []), newComment] }
+              : c
+          ),
+        };
+      }),
     );
   }
 
@@ -400,14 +456,16 @@ export default function Home() {
                     onToggleDiscussion={() => setDiscussionOpen((v) => !v)}
                     onOpenDiscussion={() => setDiscussionOpen(true)}
                     onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
-                    hidePlatforms={mode === "new"}
+                    hidePlatforms={true}
+                    hidePostType={mode === "new"}
+                    postTypeAsSegmented={mode === "current"}
                   />
                 </div>
                 <DiscussionPanel
                   session={selectedSession}
                   isOpen={discussionOpen}
                   onClose={() => setDiscussionOpen(false)}
-                  onAddComment={(text) => addComment(selectedSession.id, text)}
+                  onAddComment={(text, parentId) => addComment(selectedSession.id, text, parentId)}
                   onClearHistory={() => clearHistory(selectedSession.id)}
                 />
               </div>

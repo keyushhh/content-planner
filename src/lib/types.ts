@@ -33,6 +33,7 @@ export interface Comment {
   fieldLabel?: string;
   text: string;
   createdAt: string;
+  replies?: Comment[];
 }
 
 export interface HistoryEntry {

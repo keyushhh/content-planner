@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   X,
   Plus,
@@ -48,6 +48,27 @@ export function VariationsView({
   const currentVariation =
     variations.find((v) => v.id === selectedId) || variations[0];
   const activeId = currentVariation?.id;
+
+  const [copyDraft, setCopyDraft] = useState(currentVariation?.copy || "");
+
+  useEffect(() => {
+    setCopyDraft(currentVariation?.copy || "");
+  }, [currentVariation?.id, currentVariation?.copy]);
+
+  const saveCopyIfDirty = useCallback(() => {
+    if (currentVariation && copyDraft !== currentVariation.copy && activeId) {
+      onChange(
+        variations.map((v) => (v.id === activeId ? { ...v, copy: copyDraft } : v))
+      );
+    }
+  }, [currentVariation, copyDraft, activeId, variations, onChange]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      saveCopyIfDirty();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [saveCopyIfDirty]);
 
   const filteredVariations = variations.filter((v) => {
     if (!searchQuery.trim()) return true;
@@ -142,10 +163,13 @@ export function VariationsView({
           <Button
             size="sm"
             className="gap-1.5 bg-violet-600 font-medium text-white hover:bg-violet-500"
-            onClick={onClose}
+            onClick={() => {
+              saveCopyIfDirty();
+              onClose();
+            }}
           >
             <Check className="size-3.5" />
-            Done
+            Save Variation
           </Button>
         </div>
       </div>
@@ -165,7 +189,10 @@ export function VariationsView({
           </div>
 
           <Button
-            onClick={handleAddVariation}
+            onClick={() => {
+              saveCopyIfDirty();
+              handleAddVariation();
+            }}
             disabled={disabled}
             className="w-full justify-center gap-2 bg-violet-600 font-medium text-white hover:bg-violet-500"
             size="sm"
@@ -181,7 +208,10 @@ export function VariationsView({
               return (
                 <button
                   key={v.id}
-                  onClick={() => setSelectedId(v.id)}
+                  onClick={() => {
+                    saveCopyIfDirty();
+                    setSelectedId(v.id);
+                  }}
                   className={cn(
                     "w-full text-left rounded-lg border p-3 transition-all relative group",
                     isSelected
@@ -199,7 +229,7 @@ export function VariationsView({
                     )}
                   </div>
                   <p className="mt-1.5 line-clamp-2 text-xs font-normal leading-relaxed text-foreground">
-                    {v.copy || <span className="italic text-muted-foreground/60">Empty copy...</span>}
+                    {(isSelected ? copyDraft : v.copy) || <span className="italic text-muted-foreground/60">Empty copy...</span>}
                   </p>
                 </button>
               );
@@ -224,7 +254,7 @@ export function VariationsView({
                     Variation {variations.findIndex((v) => v.id === activeId) + 1}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {currentVariation.copy.length} characters
+                    {copyDraft.length} characters
                   </p>
                 </div>
 
@@ -247,8 +277,9 @@ export function VariationsView({
                   Alternate Copy
                 </span>
                 <Textarea
-                  value={currentVariation.copy}
-                  onChange={(e) => handleUpdateCurrentCopy(e.target.value)}
+                  value={copyDraft}
+                  onChange={(e) => setCopyDraft(e.target.value)}
+                  onBlur={saveCopyIfDirty}
                   disabled={disabled}
                   placeholder="Enter alternate post content..."
                   className="min-h-[220px] flex-1 resize-y border-border bg-card p-4 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-violet-500/20"
