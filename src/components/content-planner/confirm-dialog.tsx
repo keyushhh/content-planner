@@ -1,6 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +12,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Tone = "violet" | "destructive" | "success";
-
-const TONE_STYLES: Record<Tone, string> = {
-  violet: "bg-violet-500/10 text-violet-400",
-  destructive: "bg-destructive/10 text-destructive",
-  success: "bg-emerald-500/10 text-emerald-400",
-};
 
 interface ConfirmDialogAction {
   label: string;
@@ -38,47 +33,65 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({
   open,
   onOpenChange,
-  icon: Icon,
+  icon: CustomIcon,
   tone = "violet",
   title,
   description,
   actions,
 }: ConfirmDialogProps) {
+  // Default to AlertTriangle for destructive tone if no custom icon provided
+  const Icon = CustomIcon ?? (tone === "destructive" ? AlertTriangle : null);
+
+  // Separate destructive/primary action from outline action for stacked ordering
+  const mainActions = actions.filter((a) => a.tone !== "outline");
+  const outlineActions = actions.filter((a) => a.tone === "outline");
+  const orderedActions = [...mainActions, ...outlineActions];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg sm:max-w-lg gap-0 rounded-2xl p-7">
+      <DialogContent className="max-w-[380px] gap-0 rounded-2xl p-5 text-center shadow-2xl border border-border">
         {Icon && (
-          <span
-            className={cn(
-              "mb-4 flex size-12 items-center justify-center rounded-full",
-              TONE_STYLES[tone],
-            )}
-          >
-            <Icon className="size-6" />
-          </span>
+          <div className="mx-auto mb-3 flex items-center justify-center pointer-events-none select-none">
+            <Icon
+              className={cn(
+                "size-8 stroke-[1.75]",
+                tone === "destructive"
+                  ? "text-red-600"
+                  : tone === "violet"
+                  ? "text-violet-400"
+                  : "text-emerald-400"
+              )}
+            />
+          </div>
         )}
-        <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
-        <DialogDescription className="mt-2 text-[13px] leading-relaxed">
+
+        <DialogTitle className="text-center text-lg font-bold tracking-tight text-foreground">
+          {title}
+        </DialogTitle>
+
+        <DialogDescription className="mt-1.5 text-center text-xs sm:text-sm text-muted-foreground leading-relaxed">
           {description}
         </DialogDescription>
-        <div className="mt-7 flex flex-wrap justify-end gap-2.5">
-          {actions.map((action) => {
+
+        <div className="mt-5 flex flex-col gap-2.5 w-full">
+          {orderedActions.map((action) => {
             const ActionIcon = action.icon;
+            const isDestructive = action.tone === "destructive";
+            const isPrimary = action.tone === "primary";
+            const isOutline = action.tone === "outline";
+
             return (
               <Button
                 key={action.label}
-                size="lg"
-                variant={
-                  action.tone === "outline"
-                    ? "outline"
-                    : action.tone === "destructive"
-                      ? "destructive"
-                      : "default"
-                }
+                variant={isOutline ? "outline" : isDestructive ? "destructive" : "default"}
                 className={cn(
-                  "h-10 gap-1.5 px-4",
-                  action.tone === "primary" &&
-                    "bg-violet-600 text-white hover:bg-violet-500",
+                  "h-10 w-full gap-2 rounded-xl text-sm font-semibold transition-all shadow-none",
+                  isDestructive &&
+                    "bg-red-600 text-white hover:bg-red-500 active:bg-red-700 border-0 shadow-sm",
+                  isPrimary &&
+                    "bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-700 border-0 shadow-sm",
+                  isOutline &&
+                    "border-border bg-transparent text-foreground hover:bg-accent/60 font-medium"
                 )}
                 onClick={action.onClick}
               >

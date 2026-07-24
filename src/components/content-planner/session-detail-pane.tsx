@@ -94,6 +94,7 @@ interface SessionDetailPaneProps {
   hidePlatforms?: boolean;
   hidePostType?: boolean;
   postTypeAsSegmented?: boolean;
+  isNewModel?: boolean;
 }
 
 export function SessionDetailPane({
@@ -109,6 +110,7 @@ export function SessionDetailPane({
   hidePlatforms = false,
   hidePostType = false,
   postTypeAsSegmented = false,
+  isNewModel = false,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
   const [variationDraft, setVariationDraft] = useState("");
@@ -506,9 +508,9 @@ export function SessionDetailPane({
         )}
 
         <Field
-            label="Visual Assets"
-            comments={commentsFor("Visual Assets")}
-            onComment={() => onOpenDiscussion("Visual Assets")}
+            label={isNewModel ? "Assets" : "Visual Assets"}
+            comments={commentsFor(isNewModel ? "Assets" : "Visual Assets")}
+            onComment={() => onOpenDiscussion(isNewModel ? "Assets" : "Visual Assets")}
           >
             {session.visualAssetIds.length === 0 ? (
               <button
@@ -521,10 +523,12 @@ export function SessionDetailPane({
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">
-                    Add an image or video
+                    {isNewModel ? "Add assets" : "Add an image or video"}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    Pick from Media Library
+                    {isNewModel
+                      ? "add an image, video or an embed code."
+                      : "Pick from Media Library"}
                   </span>
                 </span>
               </button>

@@ -459,6 +459,7 @@ export default function Home() {
                     hidePlatforms={true}
                     hidePostType={mode === "new"}
                     postTypeAsSegmented={mode === "current"}
+                    isNewModel={mode === "new"}
                   />
                 </div>
                 <DiscussionPanel

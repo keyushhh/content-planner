@@ -6,8 +6,24 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./status-badge";
 import { ConfirmDialog } from "./confirm-dialog";
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
-import { Send, Lock, LockOpen, Info, Trash2, RefreshCw, Copy } from "lucide-react";
+import {
+  Send,
+  Lock,
+  LockOpen,
+  Info,
+  Trash2,
+  RefreshCw,
+  Copy,
+  AlertTriangle,
+  Plus,
+  X,
+} from "lucide-react";
 import type { Session } from "@/lib/types";
+
+interface CustomColumn {
+  id: string;
+  name: string;
+}
 
 interface SessionsTableProps {
   sessions: Session[];
@@ -19,8 +35,6 @@ interface SessionsTableProps {
   onDuplicateSession?: (id: string) => void;
   emptyState?: { title: string; description: string };
 }
-
-const GRID = "grid-cols-[1fr_160px_110px_130px_60px] gap-3";
 
 function initials(name: string) {
   return name
@@ -46,27 +60,126 @@ export function SessionsTable({
 }: SessionsTableProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmUnlockId, setConfirmUnlockId] = useState<string | null>(null);
-  const sessionPendingDelete = sessions.find((s) => s.id === confirmDeleteId) ?? null;
-  const sessionPendingUnlock = sessions.find((s) => s.id === confirmUnlockId) ?? null;
+
+  // Dynamic custom columns state
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+  const [editingHeaderId, setEditingHeaderId] = useState<string | null>(null);
+  const [customCellValues, setCustomCellValues] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [editingCell, setEditingCell] = useState<{
+    sessionId: string;
+    colId: string;
+  } | null>(null);
+
+  const sessionPendingDelete =
+    sessions.find((s) => s.id === confirmDeleteId) ?? null;
+  const sessionPendingUnlock =
+    sessions.find((s) => s.id === confirmUnlockId) ?? null;
+
+  const handleAddColumn = () => {
+    const newId = `col-${Date.now()}`;
+    const newName = `Column ${customColumns.length + 1}`;
+    setCustomColumns((prev) => [...prev, { id: newId, name: newName }]);
+    setEditingHeaderId(newId);
+  };
+
+  const handleRemoveColumn = (colId: string) => {
+    setCustomColumns((prev) => prev.filter((c) => c.id !== colId));
+  };
+
+  const handleUpdateHeaderName = (colId: string, newName: string) => {
+    setCustomColumns((prev) =>
+      prev.map((c) => (c.id === colId ? { ...c, name: newName || "Column" } : c))
+    );
+  };
+
+  const handleUpdateCellValue = (
+    sessionId: string,
+    colId: string,
+    val: string
+  ) => {
+    setCustomCellValues((prev) => ({
+      ...prev,
+      [sessionId]: {
+        ...(prev[sessionId] || {}),
+        [colId]: val,
+      },
+    }));
+  };
+
+  // Dynamic CSS grid template columns
+  const gridStyle = {
+    gridTemplateColumns: `minmax(200px, 1.5fr) 160px 110px 130px ${customColumns
+      .map(() => "140px")
+      .join(" ")} 60px 40px`,
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div
-        className={cn(
-          "grid items-center border-b border-border px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/80",
-          GRID,
-        )}
-      >
-        <span>Session Name</span>
-        <span>Last Edited By</span>
-        <span>Status</span>
-        <span>Sent to Campaign</span>
-        <span />
+      <div className="w-full overflow-x-auto border-b border-border">
+        <div
+          style={gridStyle}
+          className="grid min-w-max items-center px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/80 gap-3"
+        >
+          <span>Session Name</span>
+          <span>Last Edited By</span>
+          <span>Status</span>
+          <span>Sent to Campaign</span>
+
+          {/* Custom Column Headers */}
+          {customColumns.map((col) => (
+            <div key={col.id} className="min-w-0">
+              {editingHeaderId === col.id ? (
+                <input
+                  autoFocus
+                  value={col.name}
+                  onChange={(e) => handleUpdateHeaderName(col.id, e.target.value)}
+                  onBlur={() => setEditingHeaderId(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === "Escape") setEditingHeaderId(null);
+                  }}
+                  className="h-6 w-full rounded border border-violet-500/50 bg-background px-1.5 text-xs text-foreground uppercase tracking-wide font-medium outline-none"
+                />
+              ) : (
+                <div className="group/col flex items-center justify-between gap-1 pr-1">
+                  <span
+                    onClick={() => setEditingHeaderId(col.id)}
+                    title="Click to rename column"
+                    className="truncate cursor-pointer hover:text-foreground font-medium transition-colors"
+                  >
+                    {col.name}
+                  </span>
+                  <button
+                    onClick={() => handleRemoveColumn(col.id)}
+                    title="Remove column"
+                    className="opacity-0 group-hover/col:opacity-100 text-muted-foreground hover:text-rose-400 transition-opacity"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          <span />
+
+          {/* Add Column Button (+ icon at the extreme right) */}
+          <div className="flex items-center justify-center">
+            <button
+              onClick={handleAddColumn}
+              title="Add column"
+              className="flex size-6 items-center justify-center rounded bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 hover:text-violet-300 transition-colors"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-auto">
         {sessions.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-muted-foreground">
+          <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-muted-foreground min-w-max p-8">
             <span className="text-sm font-medium">{emptyState.title}</span>
             <span className="text-xs">{emptyState.description}</span>
           </div>
@@ -75,14 +188,15 @@ export function SessionsTable({
             const isSelected = session.id === selectedSessionId;
             const locked = isSessionLocked(session);
             const needsResend = sessionNeedsResend(session);
+
             return (
               <div
                 key={session.id}
                 onClick={() => onSelectSession(session.id)}
+                style={gridStyle}
                 className={cn(
-                  "group grid items-center border-b border-border/60 px-4 py-3 cursor-pointer transition-colors",
-                  GRID,
-                  isSelected ? "bg-primary/[0.06]" : "hover:bg-accent/30",
+                  "group grid min-w-max items-center border-b border-border/60 px-4 py-3 cursor-pointer transition-colors gap-3",
+                  isSelected ? "bg-primary/[0.06]" : "hover:bg-accent/30"
                 )}
               >
                 <span className="truncate pr-4 font-medium text-sm">
@@ -166,6 +280,61 @@ export function SessionsTable({
                   )}
                 </div>
 
+                {/* Custom Column Cell Values */}
+                {customColumns.map((col) => {
+                  const cellVal =
+                    customCellValues[session.id]?.[col.id] || "Untitled";
+                  const isEditing =
+                    editingCell?.sessionId === session.id &&
+                    editingCell?.colId === col.id;
+
+                  return (
+                    <div key={col.id} className="min-w-0" onClick={(e) => e.stopPropagation()}>
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          value={
+                            customCellValues[session.id]?.[col.id] ??
+                            (cellVal === "Untitled" ? "" : cellVal)
+                          }
+                          onChange={(e) =>
+                            handleUpdateCellValue(
+                              session.id,
+                              col.id,
+                              e.target.value
+                            )
+                          }
+                          onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === "Escape")
+                              setEditingCell(null);
+                          }}
+                          className="h-7 w-full rounded border border-violet-500/50 bg-background px-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-violet-500"
+                        />
+                      ) : (
+                        <span
+                          onClick={() =>
+                            setEditingCell({
+                              sessionId: session.id,
+                              colId: col.id,
+                            })
+                          }
+                          title="Click to edit"
+                          className={cn(
+                            "inline-block max-w-full cursor-pointer truncate rounded px-1.5 py-0.5 text-xs transition-colors hover:bg-accent/60",
+                            cellVal === "Untitled"
+                              ? "text-muted-foreground/50 italic"
+                              : "text-foreground font-medium"
+                          )}
+                        >
+                          {cellVal}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Actions column */}
                 <div
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center justify-end gap-1"
@@ -189,6 +358,9 @@ export function SessionsTable({
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
+
+                {/* Empty column placeholder matching header + button */}
+                <div />
               </div>
             );
           })
@@ -198,7 +370,7 @@ export function SessionsTable({
       <ConfirmDialog
         open={sessionPendingDelete !== null}
         onOpenChange={(open) => !open && setConfirmDeleteId(null)}
-        icon={Trash2}
+        icon={AlertTriangle}
         tone="destructive"
         title={
           sessionPendingDelete ? (
@@ -207,21 +379,20 @@ export function SessionsTable({
             ""
           )
         }
-        description="This can't be undone. The session and all its content will be permanently removed."
+        description="This action cannot be undone. All content associated with this session will be permanently removed."
         actions={[
           {
-            label: "Cancel",
-            tone: "outline",
-            onClick: () => setConfirmDeleteId(null),
-          },
-          {
-            label: "Delete",
-            icon: Trash2,
+            label: "Delete session",
             tone: "destructive",
             onClick: () => {
               if (sessionPendingDelete) onDeleteSession(sessionPendingDelete.id);
               setConfirmDeleteId(null);
             },
+          },
+          {
+            label: "Cancel",
+            tone: "outline",
+            onClick: () => setConfirmDeleteId(null),
           },
         ]}
       />
