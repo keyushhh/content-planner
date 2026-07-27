@@ -5,7 +5,6 @@ import {
   AlertCircle,
   AtSign,
   Check,
-  ChevronDown,
   ChevronsRight,
   FileText,
   Layers,
@@ -14,7 +13,8 @@ import {
   Repeat2,
   Loader2,
   Lock,
-  MessageCircle,
+  MessageSquare,
+  MessageSquarePlus,
   RefreshCw,
   Send,
   Sparkles,
@@ -23,10 +23,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn, countComments } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
-import { PostTypeModal } from "./post-type-modal";
-import type { Comment, MediaAsset, Platform, PostType, Session } from "@/lib/types";
+import type { Feedback, MediaAsset, Platform, PostType, Session } from "@/lib/types";
 
 /** Post types offered in the composer, matching the creation modal. */
 export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
@@ -217,9 +217,9 @@ export interface ComposerLayoutProps {
   onUpdate: (patch: Partial<Session>) => void;
   onUpdateWithPendingSave: (patch: Partial<Session>) => void;
   onClose: () => void;
-  onOpenDiscussion: (fieldLabel?: string) => void;
-  isDiscussionOpen: boolean;
-  onToggleDiscussion: () => void;
+  onOpenFeedback: (sectionLabel?: string) => void;
+  isFeedbackOpen: boolean;
+  onToggleFeedback: () => void;
   onOpenSend: () => void;
   onOpenMediaLibrary: () => void;
   onOpenVariations: () => void;
@@ -243,15 +243,13 @@ export function SessionComposer({
   tagDraft,
   onTagDraftChange,
   saveStatus,
-  saveSource,
   isDirty,
   savePendingChanges,
   onUpdate,
-  onUpdateWithPendingSave,
   onClose,
-  onOpenDiscussion,
-  isDiscussionOpen,
-  onToggleDiscussion,
+  onOpenFeedback,
+  isFeedbackOpen,
+  onToggleFeedback,
   onOpenSend,
   onOpenMediaLibrary,
   onOpenVariations,
@@ -264,14 +262,12 @@ export function SessionComposer({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [typeModalOpen, setTypeModalOpen] = useState(false);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
 
-  const commentsFor = (fieldLabel: string) =>
-    session.comments.filter((c) => c.fieldLabel === fieldLabel);
-  // replies live inside their parent, so the raw length under-reports the thread
-  const totalComments = countComments(session.comments);
+  const feedbackFor = (sectionLabel: string) =>
+    session.feedback.filter((f) => f.sectionLabel === sectionLabel);
+  const openCount = openFeedback(session.feedback).length;
   const media = MEDIA_COPY[session.postType];
   const canAddMore = session.visualAssetIds.length < media.max;
 
@@ -340,30 +336,15 @@ export function SessionComposer({
 
           <SaveChip
             saveStatus={saveStatus}
-            saveSource={saveSource}
             isDirty={isDirty}
             onClick={() => savePendingChanges("instant")}
           />
 
-          <button
-            onClick={onToggleDiscussion}
-            aria-label="Toggle discussion"
-            aria-pressed={isDiscussionOpen}
-            title="Discussion"
-            className={cn(
-              "relative flex size-8 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
-              isDiscussionOpen
-                ? "bg-white/[0.09] text-foreground"
-                : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
-            )}
-          >
-            <MessageCircle className="size-4" />
-            {totalComments > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-violet-500 text-[9px] font-semibold tabular-nums text-white ring-2 ring-background">
-                {totalComments}
-              </span>
-            )}
-          </button>
+          <FeedbackToolbarButton
+            openCount={openCount}
+            isOpen={isFeedbackOpen}
+            onClick={onToggleFeedback}
+          />
 
           <div className="mx-1 h-5 w-px bg-white/10" />
 
@@ -438,8 +419,8 @@ export function SessionComposer({
                 <Card focusable>
                   <CardHeader
                     label="Copy"
-                    comments={commentsFor("Copy")}
-                    onComment={() => onOpenDiscussion("Copy")}
+                    feedback={feedbackFor("Copy")}
+                    onFeedback={() => onOpenFeedback("Copy")}
                     action={
                       <div className="flex items-center gap-1">
                         <GhostAction onClick={onOpenVariations} icon={Layers}>
@@ -479,21 +460,24 @@ export function SessionComposer({
                 </Card>
               </Stagger>
 
-              {/* Read-only: chosen before the pane opened, and it decides which
-                  cards appear below — changing it in place would rearrange the
-                  column under the cursor. */}
+              {/* Fixed for the life of the post — see the note in
+                  session-canvas.tsx. Stated as plain text, so it does not read
+                  as a control that has been taken away. */}
               <Stagger index={2} className="mb-4">
                 <Card>
                   <div className="group/row flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                    <span className="text-[13px] font-medium text-muted-foreground">
-                      Post type
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="text-[13px] font-medium text-muted-foreground">
+                        Post type
+                      </span>
+                      <FeedbackButton
+                        items={feedbackFor("Post type")}
+                        onClick={() => onOpenFeedback("Post type")}
+                      />
                     </span>
-                    <div className="flex items-center gap-1">
-                    <button
-                      disabled={isCampaignLocked}
-                      onClick={() => setTypeModalOpen(true)}
-                      title="Change post type"
-                      className="group/type -mr-1.5 flex h-8 items-center gap-2 rounded-full bg-white/[0.04] pl-2.5 pr-2 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] hover:inset-ring-white/[0.14] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+                    <span
+                      title="Set when this content was created — it can’t be changed"
+                      className="flex items-center gap-2 text-[13px] font-medium text-foreground/90"
                     >
                       {(() => {
                         const Icon =
@@ -501,14 +485,7 @@ export function SessionComposer({
                         return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
                       })()}
                       {session.postType}
-                      {/* always visible — see note in session-canvas.tsx */}
-                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors duration-150 group-hover/type:text-muted-foreground" />
-                    </button>
-                    <CommentButton
-                      comments={commentsFor("Post type")}
-                      onClick={() => onOpenDiscussion("Post type")}
-                    />
-                    </div>
+                    </span>
                   </div>
                 </Card>
               </Stagger>
@@ -534,8 +511,8 @@ export function SessionComposer({
                 <Card>
                   <CardHeader
                     label={media.section}
-                    comments={commentsFor("Assets")}
-                    onComment={() => onOpenDiscussion("Assets")}
+                    feedback={feedbackFor("Assets")}
+                    onFeedback={() => onOpenFeedback("Assets")}
                     action={
                       // a count is only information when the number can vary;
                       // "1 attached" on a one-PDF post says nothing
@@ -676,7 +653,11 @@ export function SessionComposer({
               )}
 
               <Stagger index={2}>
-                <RailCard label="Tags">
+                <RailCard
+                  label="Tags"
+                  feedback={feedbackFor("Tags")}
+                  onFeedback={() => onOpenFeedback("Tags")}
+                >
                   <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
                     {session.tags.map((tag) => (
                       <span
@@ -751,9 +732,13 @@ export function SessionComposer({
                       }
                     />
                     <DetailRow
-                      label="Comments"
+                      label="Feedback"
                       value={
-                        session.comments.length === 0 ? "None" : `${session.comments.length}`
+                        session.feedback.length === 0
+                          ? "None"
+                          : openCount > 0
+                            ? `${openCount} open of ${session.feedback.length}`
+                            : `${session.feedback.length} closed`
                       }
                     />
                   </dl>
@@ -763,20 +748,6 @@ export function SessionComposer({
           </aside>
         </div>
       </div>
-
-      <PostTypeModal
-        open={typeModalOpen}
-        onOpenChange={setTypeModalOpen}
-        mode="change"
-        current={session.postType}
-        onSelect={(postType) => {
-          onUpdate({
-            postType,
-            visualAssetIds: assetsForType(session.visualAssetIds, mediaAssets, postType),
-          });
-          setTypeModalOpen(false);
-        }}
-      />
 
       {unlockDialog}
     </div>
@@ -834,91 +805,150 @@ function Card({
 function CardHeader({
   label,
   action,
-  comments,
-  onComment,
+  feedback,
+  onFeedback,
 }: {
   label: string;
   action?: React.ReactNode;
-  comments?: Comment[];
-  onComment?: () => void;
+  feedback?: Feedback[];
+  onFeedback?: () => void;
 }) {
   return (
     <div className="group/row flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-        {label}
-      </span>
-      <div className="flex items-center gap-1.5">
-        {action}
-        {onComment && (
-          <CommentButton comments={comments ?? []} onClick={onComment} />
+      {/* Label and its feedback control travel together — see FeedbackButton */}
+      <span className="flex min-w-0 items-center gap-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {label}
+        </span>
+        {onFeedback && (
+          <FeedbackButton items={feedback ?? []} onClick={onFeedback} />
         )}
-      </div>
+      </span>
+      {action && <div className="flex items-center gap-1.5">{action}</div>}
     </div>
   );
 }
 
 export function RailCard({
   label,
-  comments,
-  onComment,
+  feedback,
+  onFeedback,
   children,
 }: {
   label: string;
-  comments?: Comment[];
-  onComment?: () => void;
+  feedback?: Feedback[];
+  onFeedback?: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white/[0.022] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)] inset-ring-1 inset-ring-white/[0.06]">
-      <div className="mb-2.5 flex min-h-6 items-center justify-between gap-2">
+    <section className="group/row rounded-2xl bg-white/[0.022] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)] inset-ring-1 inset-ring-white/[0.06]">
+      <div className="mb-2.5 flex min-h-6 items-center gap-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </span>
-        {onComment && <CommentButton comments={comments ?? []} onClick={onComment} />}
+        {onFeedback && (
+          <FeedbackButton items={feedback ?? []} onClick={onFeedback} />
+        )}
       </div>
       {children}
     </section>
   );
 }
 
-export function CommentButton({
-  comments,
+/**
+ * Opens the feedback rail. The badge counts what is still OPEN, not the total —
+ * a post with six closed notes and nothing outstanding should look finished, and
+ * "6" on the toolbar says the opposite. Amber, because an open note is a request
+ * somebody is waiting on.
+ */
+export function FeedbackToolbarButton({
+  openCount,
+  isOpen,
   onClick,
 }: {
-  comments: Comment[];
+  openCount: number;
+  isOpen: boolean;
   onClick: () => void;
 }) {
-  // Empty state hides until you are actually in the section. Five identical grey
-  // bubbles down the sheet said "no comments here" five times — the same non-fact
-  // repeated, and it read as chrome rather than as an invitation. Once a thread
-  // exists the button is always visible, because then it carries real content.
-  //
-  // Requires `group/row` on the section that contains it.
-  if (comments.length === 0) {
-    return (
-      <button
-        onClick={onClick}
-        aria-label="Add comment"
-        title="Comment on this section"
-        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/65 opacity-0 transition-[opacity,background-color,color,scale] duration-200 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] hover:text-muted-foreground focus-visible:opacity-100 active:scale-[0.96] group-hover/row:opacity-100 group-focus-within/row:opacity-100"
-      >
-        <MessageCircle className="size-3.5" />
-      </button>
-    );
-  }
-  const lastAuthor = comments[comments.length - 1].author;
   return (
     <button
       onClick={onClick}
-      aria-label={`${countComments(comments)} comments`}
-      className="relative flex size-8 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] active:scale-[0.96]"
+      aria-label={openCount > 0 ? `Feedback, ${openCount} open` : "Feedback"}
+      aria-pressed={isOpen}
+      title={openCount > 0 ? `${openCount} open feedback` : "Feedback"}
+      className={cn(
+        "relative flex size-8 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+        isOpen
+          ? "bg-white/[0.09] text-foreground"
+          : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+      )}
     >
-      <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
-        <AvatarFallback className="text-[9px]">{lastAuthor.name[0]}</AvatarFallback>
-      </Avatar>
-      <span className="absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-violet-500 text-[8px] font-semibold tabular-nums text-white ring-2 ring-background">
-        {countComments(comments)}
-      </span>
+      <MessageSquare className="size-4" />
+      {openCount > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-semibold tabular-nums text-black/80 ring-2 ring-background">
+          {openCount}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * The feedback affordance for one section.
+ *
+ * It sits INLINE AFTER THE SECTION LABEL, not in a reserved column on the right.
+ * The old arrangement kept a permanent 32px gutter down the sheet for a button
+ * that was invisible until you hovered — so the sheet carried a dead stripe, and
+ * a tooltip that fired over apparently empty space. A label is short by nature,
+ * so the room immediately after it is already empty: putting the control there
+ * costs no layout, shifts nothing when it appears, and attaches the feedback to
+ * the one thing that names the section.
+ *
+ * No mode to enter, no extra click: hover a section, click the icon, type.
+ * Once feedback exists it stops hiding and becomes a count — amber while
+ * anything is still open, quiet grey once it is all closed out, so the state of
+ * the review is legible from the section itself.
+ *
+ * Requires `group/row` on the section that contains it.
+ */
+export function FeedbackButton({
+  items,
+  onClick,
+}: {
+  items: Feedback[];
+  onClick: () => void;
+}) {
+  const open = openFeedback(items).length;
+
+  if (items.length === 0) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label="Add feedback"
+        title="Add feedback on this section"
+        className="relative flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 opacity-0 transition-[opacity,background-color,color,scale] duration-200 before:absolute before:-inset-1.5 before:content-[''] hover:bg-white/[0.08] hover:text-foreground focus-visible:opacity-100 active:scale-[0.94] group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+      >
+        <MessageSquarePlus className="size-3.5" />
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${items.length} feedback, ${open} open`}
+      title={open > 0 ? `${open} open of ${items.length}` : "All feedback closed"}
+      className={cn(
+        "relative flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] font-medium tabular-nums inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:brightness-110 active:scale-[0.94]",
+        open > 0
+          ? "bg-amber-500/[0.14] text-amber-200 inset-ring-amber-400/30"
+          : "bg-white/[0.06] text-muted-foreground inset-ring-white/[0.09]",
+      )}
+    >
+      <MessageSquare className="size-2.5" />
+      {items.length}
     </button>
   );
 }
@@ -1191,12 +1221,10 @@ export function Banner({
 
 export function SaveChip({
   saveStatus,
-  saveSource,
   isDirty,
   onClick,
 }: {
   saveStatus: "idle" | "saving" | "saved";
-  saveSource: "blur" | "timer" | "instant" | null;
   /** Drafts differ from the saved session — work is genuinely not persisted yet. */
   isDirty: boolean;
   onClick: () => void;
@@ -1205,8 +1233,6 @@ export function SaveChip({
   // Dirty must win over "saved": having typed since the last flush is the whole
   // point of the indicator, and claiming "Autosaved" then would be a lie.
   const state = saving ? "saving" : isDirty ? "dirty" : "saved";
-  const suffix =
-    saveSource === "timer" ? " (30s timer)" : saveSource === "blur" ? " (on blur)" : "";
 
   return (
     <button
@@ -1247,11 +1273,13 @@ export function SaveChip({
         aria-live="polite"
         className={cn(state === "dirty" ? "text-amber-300" : "text-muted-foreground")}
       >
+        {/* Which mechanism saved it — blur, timer, ⌘S — is our business, not
+            the writer's. All three mean the same thing: the work is safe. */}
         {state === "saving"
-          ? `Saving${suffix}…`
+          ? "Saving…"
           : state === "dirty"
             ? "Unsaved changes"
-            : `Autosaved${suffix}`}
+            : "Autosaved"}
       </span>
     </button>
   );

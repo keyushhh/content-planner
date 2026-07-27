@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Mail, UserPlus, Shield, Check, Info, MessageCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  Info,
+  MessageCircle,
+  Search,
+  Shield,
+  UserPlus,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +17,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { avatarTint, cn } from "@/lib/utils";
+import { subAccounts } from "@/lib/mock-data";
+import type { SubAccount } from "@/lib/types";
 
 type Role = "editor" | "commenter";
 
@@ -20,31 +36,83 @@ const ROLES: { id: Role; label: string; hint: string; icon: typeof Shield }[] = 
 
 const EASE = "cubic-bezier(0.2,0,0,1)";
 
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 interface InviteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contextName?: string;
 }
 
+/**
+ * Inviting is picking a seat that already exists on the account, not typing an
+ * address. The email field it replaces could only produce two outcomes: the
+ * address of somebody already on the account (which we know) or a typo. The
+ * account is the source of truth for who exists, so the account is the list.
+ */
 export function InviteModal({
   open,
   onOpenChange,
   contextName = "this campaign",
 }: InviteModalProps) {
-  const [email, setEmail] = useState("");
+  const [personId, setPersonId] = useState<string | null>(null);
   const [role, setRole] = useState<Role>("editor");
   const [sent, setSent] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  // Cleared on the way in, so a half-finished invite never greets the next one.
+  // Adjusted during render rather than in an effect — see the send sheet.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setPersonId(null);
+      setRole("editor");
+      setSent(false);
+      setQuery("");
+    }
+  }
+
+  const person = subAccounts.find((s) => s.id === personId) ?? null;
+
+  const q = query.trim().toLowerCase();
+  const results = useMemo(
+    () =>
+      q
+        ? subAccounts.filter(
+            (s) =>
+              s.name.toLowerCase().includes(q) ||
+              s.jobTitle.toLowerCase().includes(q),
+          )
+        : subAccounts,
+    [q],
+  );
 
   function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!person || person.alreadyHasAccess) return;
     setSent(true);
     setTimeout(() => {
       setSent(false);
-      setEmail("");
       onOpenChange(false);
     }, 1400);
   }
+
+  function choose(s: SubAccount) {
+    setPersonId(s.id);
+    setPickerOpen(false);
+    setQuery("");
+  }
+
+  const canSend = person !== null && !person.alreadyHasAccess && !sent;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +137,8 @@ export function InviteModal({
                 Invite to {contextName}
               </DialogTitle>
               <DialogDescription className="mt-1 text-[13px] leading-snug text-muted-foreground text-pretty">
-                They&rsquo;ll get an email, and must accept before they can see any content.
+                They&rsquo;ll be notified, and must accept before they can see any
+                content.
               </DialogDescription>
             </div>
           </div>
@@ -78,24 +147,126 @@ export function InviteModal({
         <form onSubmit={handleSend}>
           <div className="space-y-4 border-t border-white/[0.06] px-6 py-5">
             <div>
-              <label
-                htmlFor="invite-email"
-                className="mb-1.5 block w-fit cursor-pointer text-[13px] font-medium text-muted-foreground"
-              >
-                Email address
-              </label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="invite-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  className="h-10 w-full rounded-[10px] bg-white/[0.04] pl-9 pr-3 text-sm caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
-                />
-              </div>
+              <span className="mb-1.5 block text-[13px] font-medium text-muted-foreground">
+                Person
+              </span>
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Choose a person from your account"
+                      className={cn(
+                        "flex h-11 w-full items-center gap-2.5 rounded-[10px] bg-white/[0.04] px-2.5 text-left inset-ring-1 transition-[background-color,box-shadow] duration-200 hover:bg-white/[0.06]",
+                        pickerOpen
+                          ? "inset-ring-violet-400/50"
+                          : "inset-ring-white/[0.08]",
+                      )}
+                    />
+                  }
+                >
+                  {person ? (
+                    <>
+                      <Avatar className="size-7 shrink-0 inset-ring-1 inset-ring-white/10">
+                        <AvatarFallback
+                          className={cn("text-[10px] font-medium", avatarTint(person.name))}
+                        >
+                          {initials(person.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-medium">
+                          {person.name}
+                        </span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {person.jobTitle}
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="min-w-0 flex-1 pl-0.5 text-[13px] text-muted-foreground">
+                      Select from your account…
+                    </span>
+                  )}
+                  <ChevronDown className="mr-1 size-4 shrink-0 text-muted-foreground/70" />
+                </PopoverTrigger>
+
+                <PopoverContent
+                  align="start"
+                  className="w-[var(--anchor-width)] overflow-hidden rounded-[14px] border-0 bg-[oklch(0.23_0_0)] p-0 shadow-[0_2px_4px_rgba(0,0,0,0.35),0_24px_56px_-28px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09]"
+                >
+                  {subAccounts.length > 5 && (
+                    <div className="border-b border-white/[0.06] p-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          autoFocus
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                          placeholder="Search people…"
+                          aria-label="Search people"
+                          className="h-8 w-full rounded-lg bg-white/[0.05] pl-7.5 pr-2.5 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="max-h-[248px] overflow-y-auto p-1.5">
+                    {results.map((s) => {
+                      const isSelected = s.id === personId;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          disabled={s.alreadyHasAccess}
+                          onClick={() => choose(s)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition-colors duration-100",
+                            s.alreadyHasAccess
+                              ? "cursor-default opacity-55"
+                              : "hover:bg-white/[0.06]",
+                            isSelected && "bg-violet-500/[0.12]",
+                          )}
+                        >
+                          <Avatar className="size-7 shrink-0 inset-ring-1 inset-ring-white/10">
+                            <AvatarFallback
+                              className={cn(
+                                "text-[10px] font-medium",
+                                avatarTint(s.name),
+                              )}
+                            >
+                              {initials(s.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-medium">
+                              {s.name}
+                            </span>
+                            <span className="block truncate text-[11px] text-muted-foreground">
+                              {s.jobTitle}
+                            </span>
+                          </span>
+                          {s.alreadyHasAccess ? (
+                            <span className="shrink-0 text-[11px] font-medium text-emerald-300/85">
+                              Has access
+                            </span>
+                          ) : (
+                            isSelected && (
+                              <Check className="size-3.5 shrink-0 text-violet-300" />
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {results.length === 0 && (
+                      <p className="px-2 py-6 text-center text-[12px] text-muted-foreground text-pretty">
+                        Nobody on the account matches &ldquo;{query.trim()}&rdquo;.
+                      </p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
@@ -148,8 +319,8 @@ export function InviteModal({
             <p className="flex items-start gap-2 text-[11px] leading-snug text-muted-foreground">
               <Info className="mt-px size-3.5 shrink-0 text-muted-foreground/70" />
               <span className="text-pretty">
-                No team members to pick from yet — add subadmins in your Wozku account
-                settings.
+                Only people already on your Wozku account appear here. Add a
+                sub-account in account settings to invite somebody new.
               </span>
             </p>
           </div>
@@ -164,7 +335,7 @@ export function InviteModal({
             </button>
             <button
               type="submit"
-              disabled={sent || !email.trim()}
+              disabled={!canSend}
               className={cn(
                 "flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium text-white inset-ring-1 inset-ring-white/15 transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.97] disabled:pointer-events-none",
                 sent
@@ -181,7 +352,7 @@ export function InviteModal({
                   )}
                   style={{ transitionTimingFunction: EASE }}
                 />
-                <Mail
+                <UserPlus
                   className={cn(
                     "absolute size-3.5 transition-[opacity,scale,filter] duration-200",
                     sent ? "scale-[0.25] opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-0",

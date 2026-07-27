@@ -1,182 +1,475 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Plus, Send } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useMemo, useRef, useState } from "react";
+import { Check, Plus, Search, Send, X } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Stagger } from "./session-composer";
 import { cn } from "@/lib/utils";
-import type { Campaign } from "@/lib/types";
+import type { Campaign, Session } from "@/lib/types";
 
 interface SendToCampaignSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaigns: Campaign[];
-  onShare: (campaignId: string) => void;
+  /** What is being sent, so the sheet can name it rather than imply it. */
+  session?: Session | null;
+  /** Campaigns this post already lives in — offered as state, not as targets. */
+  alreadySentTo?: string[];
+  onShare: (campaignIds: string[]) => void;
   allowCreateCampaign?: boolean;
   onCreateCampaign?: (name: string) => string;
 }
 
+/**
+ * "Ends 4 Aug", plus a countdown only while it is close.
+ *
+ * "in 50 days" is not urgency, it is arithmetic nobody asked for, and printing
+ * it on every row makes the one campaign that closes this week look no different
+ * from the one that closes next quarter. Under a fortnight it earns the tail.
+ */
+function endsLabel(endDate: string, now: number) {
+  const parsed = new Date(endDate);
+  if (Number.isNaN(parsed.getTime())) return { date: "No end date", soon: null };
+  const date = parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const days = Math.ceil((parsed.getTime() - now) / 86400000);
+  if (days < 0) return { date: `Ended ${date}`, soon: null };
+  if (days === 0) return { date: `Ends ${date}`, soon: "today" };
+  if (days === 1) return { date: `Ends ${date}`, soon: "tomorrow" };
+  if (days <= 14) return { date: `Ends ${date}`, soon: `${days} days left` };
+  return { date: `Ends ${date}`, soon: null };
+}
+
+/**
+ * Send to campaigns.
+ *
+ * Built in the Canvas idiom, which is one elevated sheet of hairline-divided
+ * rows on a washed ground — the same material as the content table, so the two
+ * read as the same product. The version before this was a stack of individually
+ * outlined pills floating on flat black: every row its own card, every card the
+ * same weight, and a grey icon well repeated down the list. Three identical
+ * decorations is not a system, it is noise, so the wells are gone and the rows
+ * carry type alone.
+ *
+ * Multi-select, because one post feeding several campaigns is the entire point
+ * of a repository. Campaigns it already lives in sit under their own heading
+ * INSIDE the same sheet: they are context, not destinations.
+ */
 export function SendToCampaignSheet({
   open,
   onOpenChange,
   campaigns,
+  session,
+  alreadySentTo = [],
   onShare,
   allowCreateCampaign,
   onCreateCampaign,
 }: SendToCampaignSheetProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [search, setSearch] = useState("");
+  // Focus lands here on open. Left to itself the sheet focused the close button,
+  // which then wore a focus ring — the first thing you saw was Dismiss, ringed.
+  const bodyRef = useRef<HTMLDivElement | null>(null);
 
-  function reset() {
-    setSelectedId(null);
-    setCreating(false);
-    setNewName("");
+  // Read once, at mount, not on every render: the countdowns are day-resolution,
+  // so re-reading the clock per keystroke would only make a stable number look
+  // unstable. Lazy initialiser keeps it out of the render path.
+  const [now] = useState(() => Date.now());
+
+  // Reset on the way IN, not out: closing runs while the sheet is still
+  // animating away, so clearing there makes the footer count tick to zero on
+  // screen. Adjusted during render rather than in an effect — an effect would
+  // paint the last selection for one frame first.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setSelectedIds([]);
+      setCreating(false);
+      setNewName("");
+      setSearch("");
+    }
   }
 
+  const q = search.trim().toLowerCase();
+
+  const { available, already } = useMemo(() => {
+    const matched = q
+      ? campaigns.filter((c) => c.name.toLowerCase().includes(q))
+      : campaigns;
+    return {
+      available: matched.filter((c) => !alreadySentTo.includes(c.id)),
+      already: matched.filter((c) => alreadySentTo.includes(c.id)),
+    };
+  }, [campaigns, q, alreadySentTo]);
+
+  const showSearch = campaigns.length > 6;
+  const count = selectedIds.length;
+  const selectedNames = campaigns
+    .filter((c) => selectedIds.includes(c.id))
+    .map((c) => c.name);
+
+  function toggle(id: string) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function commitNewCampaign() {
+    const name = newName.trim();
+    if (!name || !onCreateCampaign) return;
+    const id = onCreateCampaign(name);
+    setSelectedIds((prev) => [...prev, id]);
+    setCreating(false);
+    setNewName("");
+    setSearch("");
+  }
+
+  function send() {
+    if (count === 0) return;
+    onShare(selectedIds);
+    onOpenChange(false);
+  }
+
+  const canCreate = Boolean(allowCreateCampaign && onCreateCampaign);
+  const isEmpty = available.length === 0 && already.length === 0;
+
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-        if (!next) reset();
-      }}
-    >
-      <SheetContent side="right">
-        <SheetHeader>
-          <SheetTitle>Send to Campaign</SheetTitle>
-          <SheetDescription>
-            Choose a campaign to share this post to, or create a new one.
-          </SheetDescription>
-        </SheetHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        showCloseButton={false}
+        side="right"
+        initialFocus={bodyRef}
+        aria-label="Send to campaigns"
+        // `!` throughout: the base sheet hard-codes a 3/4-viewport width and a
+        // 384px cap for the right side, both variant-prefixed, so nothing but an
+        // important wins against them.
+        className="flex !w-[464px] !max-w-[calc(100vw-2rem)] flex-col gap-0 border-0 bg-[oklch(0.145_0_0)] p-0 text-foreground shadow-[-40px_0_80px_-40px_rgba(0,0,0,1)]"
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            send();
+          }
+        }}
+      >
+        {/* Lit rim. On a right-hand sheet the light catches the left edge, the
+            same way the canvas sheets catch it along the top. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/[0.14] to-transparent"
+        />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4">
-          <div className="space-y-1.5">
-            {campaigns.map((campaign) => {
-              const isSelected = campaign.id === selectedId;
-              return (
-                <button
-                  key={campaign.id}
-                  onClick={() => setSelectedId(campaign.id)}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-lg border px-3.5 py-3 text-left transition-colors",
-                    isSelected
-                      ? "border-violet-500/60 bg-violet-500/[0.08]"
-                      : "border-border hover:bg-accent/40",
-                  )}
-                >
-                  <div>
-                    <div className="text-sm font-medium">{campaign.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {campaign.sessionIds.length} sessions · Ends {campaign.endDate}
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "flex size-5 items-center justify-center rounded-full border",
-                      isSelected
-                        ? "border-violet-500 bg-violet-500 text-white"
-                        : "border-border",
-                    )}
-                  >
-                    {isSelected && <Check className="size-3" />}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {allowCreateCampaign && onCreateCampaign ? (
-            creating ? (
-              <div className="mt-3 space-y-2.5 rounded-lg border border-violet-500/40 bg-violet-500/[0.06] p-3">
-                <Input
-                  autoFocus
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="New campaign name…"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newName.trim()) {
-                      const id = onCreateCampaign(newName.trim());
-                      setSelectedId(id);
-                      setCreating(false);
-                      setNewName("");
-                    }
-                  }}
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setCreating(false);
-                      setNewName("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={!newName.trim()}
-                    className="bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
-                    onClick={() => {
-                      if (!newName.trim()) return;
-                      const id = onCreateCampaign(newName.trim());
-                      setSelectedId(id);
-                      setCreating(false);
-                      setNewName("");
-                    }}
-                  >
-                    Create &amp; Select
-                  </Button>
-                </div>
+        <div className="flex shrink-0 items-start justify-between gap-3 px-7 pb-4 pt-6">
+          <div className="min-w-0">
+            {/* Provenance line, not a card. As an outlined pill it looked
+                selectable — a fourth row you could not tick. */}
+            {session && (
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="shrink-0 uppercase tracking-[0.09em] text-muted-foreground/60">
+                  Sending
+                </span>
+                <span className="truncate font-medium text-foreground/85">
+                  {session.title}
+                </span>
+                <span aria-hidden className="shrink-0 text-muted-foreground/30">
+                  ·
+                </span>
+                <span className="shrink-0">{session.postType}</span>
               </div>
-            ) : (
-              <button
-                onClick={() => setCreating(true)}
-                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-violet-500/50 px-3.5 py-2.5 text-sm font-medium text-violet-400 transition-colors hover:bg-violet-500/10"
-              >
-                <Plus className="size-4" />
-                Create New Campaign
-              </button>
-            )
-          ) : (
-            <button
-              disabled
-              title="Campaign creation happens in Wozku — coming soon"
-              className="mt-3 flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-dashed border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground/50 transition-colors"
-            >
-              <Plus className="size-4" />
-              Create New Campaign
-            </button>
-          )}
+            )}
+            <h2 className="text-[21px] font-semibold leading-tight tracking-[-0.022em]">
+              Send to campaigns
+            </h2>
+            <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground text-pretty">
+              Pick as many as you need. Nothing is removed from where it already is.
+            </p>
+          </div>
+          <button
+            onClick={() => onOpenChange(false)}
+            aria-label="Close"
+            className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground focus-visible:inset-ring-2 focus-visible:inset-ring-violet-400/60 active:scale-[0.96]"
+          >
+            <X className="size-4" />
+          </button>
         </div>
 
-        <SheetFooter className="flex-row justify-end gap-2 border-t border-border">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!selectedId}
-            className="gap-1.5 bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
-            onClick={() => {
-              if (!selectedId) return;
-              onShare(selectedId);
-              onOpenChange(false);
-            }}
+        {showSearch && (
+          <div className="shrink-0 px-7 pb-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search campaigns…"
+                aria-label="Search campaigns"
+                className="h-9 w-full rounded-full bg-white/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Washed ground. The sheet below floats on it, which is what makes the
+            surrounding space read as margin rather than as a gap. */}
+        <div
+          ref={bodyRef}
+          tabIndex={-1}
+          className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_70%_at_50%_0%,rgba(139,92,246,0.05),transparent_62%)] px-6 pb-6 pt-1 outline-none"
+        >
+          {/* ONE elevated sheet, rows divided by hairlines — the sessions-table
+              material. `items-start` equivalent: no flex-1, so it sizes to its
+              content instead of stretching into a lake of empty surface. */}
+          <Stagger
+            index={0}
+            className="overflow-hidden rounded-[18px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]"
           >
-            <Send className="size-4" />
-            Share
-          </Button>
-        </SheetFooter>
+            <div
+              aria-hidden
+              className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+            />
+
+            {isEmpty ? (
+              <p className="px-5 py-10 text-center text-[13px] text-muted-foreground text-pretty">
+                {q
+                  ? `No campaign matches “${search.trim()}”.`
+                  : "There are no campaigns yet."}
+              </p>
+            ) : (
+              <>
+                {available.map((campaign) => (
+                  <CampaignRow
+                    key={campaign.id}
+                    campaign={campaign}
+                    now={now}
+                    selected={selectedIds.includes(campaign.id)}
+                    onToggle={() => toggle(campaign.id)}
+                  />
+                ))}
+
+                {already.length > 0 && (
+                  <>
+                    <GroupHeading>Already in</GroupHeading>
+                    {already.map((campaign) => (
+                      <SentRow key={campaign.id} campaign={campaign} now={now} />
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Creating a campaign belongs to the list, so it lives in the sheet
+                — but as its own quiet last row, not as a fourth thing that looks
+                pickable. */}
+            {canCreate &&
+              (creating ? (
+                <div className="border-t border-white/[0.06] bg-violet-500/[0.05] px-4 py-3">
+                  <input
+                    autoFocus
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="New campaign name…"
+                    aria-label="New campaign name"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitNewCampaign();
+                      } else if (e.key === "Escape") {
+                        e.stopPropagation();
+                        setCreating(false);
+                        setNewName("");
+                      }
+                    }}
+                    className="h-9 w-full rounded-[10px] bg-white/[0.05] px-3 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.10] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
+                  />
+                  <div className="mt-2 flex justify-end gap-1.5">
+                    <button
+                      onClick={() => {
+                        setCreating(false);
+                        setNewName("");
+                      }}
+                      className="flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={!newName.trim()}
+                      onClick={commitNewCampaign}
+                      className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3 text-xs font-medium text-white inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      <Plus className="size-3.5" />
+                      Create &amp; select
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCreating(true)}
+                  className="flex h-12 w-full items-center gap-2 border-t border-white/[0.06] px-4 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-white/[0.035] hover:text-foreground"
+                >
+                  <Plus className="size-4 shrink-0 text-muted-foreground/70" />
+                  New campaign
+                </button>
+              ))}
+          </Stagger>
+        </div>
+
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/[0.07] bg-black/[0.22] px-7 py-4">
+          {/* Names, not a bare number: "2 selected" makes you scroll back up to
+              check which two. */}
+          <span
+            aria-live="polite"
+            className={cn(
+              "min-w-0 truncate text-[12px] transition-colors duration-150",
+              count > 0 ? "text-foreground/80" : "text-muted-foreground/70",
+            )}
+          >
+            {count === 0
+              ? "Nothing selected"
+              : count === 1
+                ? selectedNames[0]
+                : `${selectedNames[0]} +${count - 1}`}
+          </span>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => onOpenChange(false)}
+              className="flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={count === 0}
+              onClick={send}
+              title="Send (⌘↵)"
+              className="flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+            >
+              <Send className="size-3.5" />
+              {count > 1 ? `Send to ${count}` : "Send"}
+            </button>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** A band inside the sheet, darker than the rows, so it reads as structure. */
+function GroupHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-y border-white/[0.06] bg-[oklch(0.205_0_0)] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/70">
+      {children}
+    </div>
+  );
+}
+
+function CampaignRow({
+  campaign,
+  now,
+  selected,
+  onToggle,
+}: {
+  campaign: Campaign;
+  now: number;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const ends = endsLabel(campaign.endDate, now);
+
+  return (
+    <button
+      onClick={onToggle}
+      aria-pressed={selected}
+      className={cn(
+        // Fixed height is what makes a run of rows read as a rhythm rather than
+        // as a stack of separate objects.
+        "group relative flex h-[62px] w-full items-center gap-3 border-b border-white/[0.05] px-4 text-left transition-colors duration-150 last:border-b-0",
+        selected
+          ? "bg-violet-500/[0.10] before:absolute before:left-0 before:top-1/2 before:h-8 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-violet-400 before:content-['']"
+          : "hover:bg-white/[0.035]",
+      )}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn(
+              "truncate text-[13.5px] font-medium transition-colors duration-150",
+              selected ? "text-foreground" : "text-foreground/85 group-hover:text-foreground",
+            )}
+          >
+            {campaign.name}
+          </span>
+          <span className="shrink-0 rounded-[5px] bg-white/[0.06] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/85">
+            {campaign.tag}
+          </span>
+        </span>
+        {/* Tags-as-quiet-text, the same reading the table row uses for its
+            second line — no second chip treatment competing with the first. */}
+        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground/70">
+          <span className="shrink-0 tabular-nums">
+            {campaign.sessionIds.length}{" "}
+            {campaign.sessionIds.length === 1 ? "item" : "items"}
+          </span>
+          <span aria-hidden className="size-1 shrink-0 rounded-full bg-current opacity-40" />
+          <span className="truncate">{ends.date}</span>
+          {ends.soon && (
+            <>
+              <span
+                aria-hidden
+                className="size-1 shrink-0 rounded-full bg-current opacity-40"
+              />
+              <span className="shrink-0 text-amber-300/80">{ends.soon}</span>
+            </>
+          )}
+        </span>
+      </span>
+
+      {/* A square, not a radio: the shape is the only cue that more than one
+          answer is allowed. */}
+      <span
+        className={cn(
+          "flex size-[19px] shrink-0 items-center justify-center rounded-[6px] transition-[background-color,box-shadow] duration-150 inset-ring-1",
+          selected
+            ? "bg-violet-500 text-white inset-ring-violet-400"
+            : "bg-transparent inset-ring-white/[0.18] group-hover:inset-ring-white/35",
+        )}
+      >
+        <Check
+          className={cn(
+            "size-3 transition-[opacity,scale] duration-150",
+            selected ? "scale-100 opacity-100" : "scale-50 opacity-0",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+/** A campaign the post is already in — present for orientation, not for picking. */
+function SentRow({ campaign, now }: { campaign: Campaign; now: number }) {
+  const ends = endsLabel(campaign.endDate, now);
+  return (
+    <div className="flex h-[54px] items-center gap-3 border-b border-white/[0.05] px-4 last:border-b-0">
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-medium text-muted-foreground">
+          {campaign.name}
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground/60">
+          {ends.date}
+        </span>
+      </span>
+      <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-emerald-300/80">
+        <Check className="size-3.5" />
+        Sent
+      </span>
+    </div>
   );
 }

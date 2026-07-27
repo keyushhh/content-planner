@@ -20,23 +20,32 @@ import {
   Trash2,
   RefreshCw,
   Copy,
-  AlertTriangle,
   Plus,
-  X,
+  Pencil,
+  MoreHorizontal,
   Inbox,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
   ListFilter,
 } from "lucide-react";
-import type { Session } from "@/lib/types";
-
-interface CustomColumn {
-  id: string;
-  name: string;
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 interface SessionsTableProps {
+  /** Custom columns are owned above the table so they outlive filtering,
+      sorting, paging and reloads — see the page component. */
+  customColumns: CustomColumn[];
+  customCellValues: CustomCellValues;
+  onAddColumn: () => string;
+  onRenameColumn: (colId: string, name: string) => void;
+  onDeleteColumn: (colId: string) => void;
+  onSetCellValue: (sessionId: string, colId: string, value: string) => void;
   sessions: Session[];
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
@@ -137,6 +146,12 @@ export function SessionsTable({
   statusLabel = "Status",
   statusFiltered = false,
   onCycleStatus,
+  customColumns,
+  customCellValues,
+  onAddColumn,
+  onRenameColumn,
+  onDeleteColumn,
+  onSetCellValue,
 }: SessionsTableProps) {
   const [page, setPage] = useState(1);
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -174,12 +189,8 @@ export function SessionsTable({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmUnlockId, setConfirmUnlockId] = useState<string | null>(null);
 
-  // Dynamic custom columns state
-  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+  // Only which cell is being typed in is local — that is transient UI, not data.
   const [editingHeaderId, setEditingHeaderId] = useState<string | null>(null);
-  const [customCellValues, setCustomCellValues] = useState<
-    Record<string, Record<string, string>>
-  >({});
   const [editingCell, setEditingCell] = useState<{
     sessionId: string;
     colId: string;
@@ -191,64 +202,77 @@ export function SessionsTable({
     sessions.find((s) => s.id === confirmUnlockId) ?? null;
 
   const handleAddColumn = () => {
-    const newId = `col-${Date.now()}`;
-    const newName = `Column ${customColumns.length + 1}`;
-    setCustomColumns((prev) => [...prev, { id: newId, name: newName }]);
-    setEditingHeaderId(newId);
+    setEditingHeaderId(onAddColumn());
   };
 
-  const handleRemoveColumn = (colId: string) => {
-    setCustomColumns((prev) => prev.filter((c) => c.id !== colId));
-  };
+  const [confirmDeleteColId, setConfirmDeleteColId] = useState<string | null>(null);
+  const columnPendingDelete =
+    customColumns.find((c) => c.id === confirmDeleteColId) ?? null;
 
-  const handleUpdateHeaderName = (colId: string, newName: string) => {
-    setCustomColumns((prev) =>
-      prev.map((c) => (c.id === colId ? { ...c, name: newName || "Column" } : c))
-    );
-  };
+  /** How many rows have something written in this column. */
+  const filledCells = (colId: string) =>
+    Object.values(customCellValues).filter((cells) => (cells?.[colId] ?? "").trim())
+      .length;
 
-  const handleUpdateCellValue = (
-    sessionId: string,
-    colId: string,
-    val: string
-  ) => {
-    setCustomCellValues((prev) => ({
-      ...prev,
-      [sessionId]: {
-        ...(prev[sessionId] || {}),
-        [colId]: val,
-      },
-    }));
-  };
+  /**
+   * An empty column is scaffolding — drop it. One with data in it is work, and
+   * deleting work silently is how people stop trusting a table.
+   */
+  function requestDeleteColumn(colId: string) {
+    if (filledCells(colId) === 0) onDeleteColumn(colId);
+    else setConfirmDeleteColId(colId);
+  }
 
   const dialogs = (
     <>
-      <ConfirmDialog
-        open={sessionPendingDelete !== null}
+      <DeleteContentDialog
+        session={sessionPendingDelete}
         onOpenChange={(open) => !open && setConfirmDeleteId(null)}
-        icon={AlertTriangle}
+        onConfirm={() => {
+          if (sessionPendingDelete) onDeleteSession(sessionPendingDelete.id);
+          setConfirmDeleteId(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={columnPendingDelete !== null}
+        onOpenChange={(open) => !open && setConfirmDeleteColId(null)}
+        icon={Trash2}
         tone="destructive"
         title={
-          sessionPendingDelete ? (
-            <>Delete &ldquo;{sessionPendingDelete.title}&rdquo;?</>
+          columnPendingDelete ? (
+            <>Delete the &ldquo;{columnPendingDelete.name}&rdquo; column?</>
           ) : (
             ""
           )
         }
-        description="This action cannot be undone. All content associated with this session will be permanently removed."
+        description={
+          columnPendingDelete ? (
+            <>
+              It holds values on{" "}
+              <span className="tabular-nums text-foreground/90">
+                {filledCells(columnPendingDelete.id)}
+              </span>{" "}
+              {filledCells(columnPendingDelete.id) === 1 ? "item" : "items"}. Those
+              go with it, and this can&rsquo;t be undone.
+            </>
+          ) : (
+            ""
+          )
+        }
         actions={[
-          {
-            label: "Delete session",
-            tone: "destructive",
-            onClick: () => {
-              if (sessionPendingDelete) onDeleteSession(sessionPendingDelete.id);
-              setConfirmDeleteId(null);
-            },
-          },
           {
             label: "Cancel",
             tone: "outline",
-            onClick: () => setConfirmDeleteId(null),
+            onClick: () => setConfirmDeleteColId(null),
+          },
+          {
+            label: "Delete column",
+            tone: "destructive",
+            onClick: () => {
+              if (columnPendingDelete) onDeleteColumn(columnPendingDelete.id);
+              setConfirmDeleteColId(null);
+            },
           },
         ]}
       />
@@ -309,6 +333,9 @@ export function SessionsTable({
     "grid-cols-[var(--cols-sm)] @[640px]:grid-cols-[var(--cols-md)] @[900px]:grid-cols-[var(--cols-lg)]";
   /** Columns that only earn their space at full width. */
   const wideOnly = "hidden @[900px]:block";
+  /** Same gate, for cells whose own layout is a flex row — `block` would win
+      over the component's `flex` and stack its children vertically instead. */
+  const wideOnlyRow = "hidden @[900px]:flex";
 
   const totalPages = Math.max(1, Math.ceil(sessions.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -414,38 +441,17 @@ export function SessionsTable({
               <span className={wideOnly}>Campaign</span>
 
               {customColumns.map((col) => (
-                <div key={col.id} className={cn("min-w-0", wideOnly)}>
-                  {editingHeaderId === col.id ? (
-                    <input
-                      autoFocus
-                      value={col.name}
-                      onChange={(e) => handleUpdateHeaderName(col.id, e.target.value)}
-                      onBlur={() => setEditingHeaderId(null)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === "Escape") setEditingHeaderId(null);
-                      }}
-                      className="h-6 w-full rounded-md bg-white/[0.06] px-1.5 text-[11px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50 outline-none"
-                    />
-                  ) : (
-                    <div className="group/col flex items-center justify-between gap-1">
-                      <span
-                        onClick={() => setEditingHeaderId(col.id)}
-                        title="Click to rename"
-                        className="cursor-pointer truncate transition-colors hover:text-foreground"
-                      >
-                        {col.name}
-                      </span>
-                      <button
-                        onClick={() => handleRemoveColumn(col.id)}
-                        title="Remove column"
-                        aria-label={`Remove ${col.name}`}
-                        className="shrink-0 text-muted-foreground opacity-0 transition-[opacity,color] hover:text-destructive group-hover/col:opacity-100"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <CustomColumnHeader
+                  key={col.id}
+                  column={col}
+                  variant="canvas"
+                  className={wideOnlyRow}
+                  editing={editingHeaderId === col.id}
+                  onStartRename={() => setEditingHeaderId(col.id)}
+                  onCommitRename={(name) => onRenameColumn(col.id, name)}
+                  onStopRename={() => setEditingHeaderId(null)}
+                  onDelete={() => requestDeleteColumn(col.id)}
+                />
               ))}
 
               {/* only offered where custom columns actually render */}
@@ -600,47 +606,24 @@ export function SessionsTable({
                       )}
                     </div>
 
-                    {customColumns.map((col) => {
-                      const cellVal = customCellValues[session.id]?.[col.id] || "";
-                      const isEditing =
-                        editingCell?.sessionId === session.id && editingCell?.colId === col.id;
-
-                      return (
-                        <div
-                          key={col.id}
-                          className={cn("min-w-0", wideOnly)}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {isEditing ? (
-                            <input
-                              autoFocus
-                              value={cellVal}
-                              onChange={(e) =>
-                                handleUpdateCellValue(session.id, col.id, e.target.value)
-                              }
-                              onBlur={() => setEditingCell(null)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === "Escape") setEditingCell(null);
-                              }}
-                              className="h-7 w-full rounded-md bg-white/[0.06] px-2 text-xs caret-violet-400 inset-ring-1 inset-ring-violet-400/50 outline-none"
-                            />
-                          ) : (
-                            <span
-                              onClick={() =>
-                                setEditingCell({ sessionId: session.id, colId: col.id })
-                              }
-                              title="Click to edit"
-                              className={cn(
-                                "inline-block max-w-full cursor-pointer truncate rounded-md px-1.5 py-0.5 text-xs transition-colors hover:bg-white/[0.06]",
-                                cellVal ? "font-medium" : "text-muted-foreground/60 italic",
-                              )}
-                            >
-                              {cellVal || "Empty"}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {customColumns.map((col) => (
+                      <CustomCell
+                        key={col.id}
+                        variant="canvas"
+                        className={wideOnly}
+                        columnName={col.name}
+                        value={customCellValues[session.id]?.[col.id] ?? ""}
+                        editing={
+                          editingCell?.sessionId === session.id &&
+                          editingCell?.colId === col.id
+                        }
+                        onStartEdit={() =>
+                          setEditingCell({ sessionId: session.id, colId: col.id })
+                        }
+                        onCommit={(value) => onSetCellValue(session.id, col.id, value)}
+                        onStopEdit={() => setEditingCell(null)}
+                      />
+                    ))}
 
                     <div
                       onClick={(e) => e.stopPropagation()}
@@ -780,37 +763,16 @@ export function SessionsTable({
 
           {/* Custom Column Headers */}
           {customColumns.map((col) => (
-            <div key={col.id} className="min-w-0">
-              {editingHeaderId === col.id ? (
-                <input
-                  autoFocus
-                  value={col.name}
-                  onChange={(e) => handleUpdateHeaderName(col.id, e.target.value)}
-                  onBlur={() => setEditingHeaderId(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === "Escape") setEditingHeaderId(null);
-                  }}
-                  className="h-6 w-full rounded border border-violet-500/50 bg-background px-1.5 text-xs text-foreground uppercase tracking-wide font-medium outline-none"
-                />
-              ) : (
-                <div className="group/col flex items-center justify-between gap-1 pr-1">
-                  <span
-                    onClick={() => setEditingHeaderId(col.id)}
-                    title="Click to rename column"
-                    className="truncate cursor-pointer hover:text-foreground font-medium transition-colors"
-                  >
-                    {col.name}
-                  </span>
-                  <button
-                    onClick={() => handleRemoveColumn(col.id)}
-                    title="Remove column"
-                    className="opacity-0 group-hover/col:opacity-100 text-muted-foreground hover:text-rose-400 transition-opacity"
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
-              )}
-            </div>
+            <CustomColumnHeader
+              key={col.id}
+              column={col}
+              variant="classic"
+              editing={editingHeaderId === col.id}
+              onStartRename={() => setEditingHeaderId(col.id)}
+              onCommitRename={(name) => onRenameColumn(col.id, name)}
+              onStopRename={() => setEditingHeaderId(null)}
+              onDelete={() => requestDeleteColumn(col.id)}
+            />
           ))}
 
           <span />
@@ -938,58 +900,23 @@ export function SessionsTable({
                 </div>
 
                 {/* Custom Column Cell Values */}
-                {customColumns.map((col) => {
-                  const cellVal =
-                    customCellValues[session.id]?.[col.id] || "Untitled";
-                  const isEditing =
-                    editingCell?.sessionId === session.id &&
-                    editingCell?.colId === col.id;
-
-                  return (
-                    <div key={col.id} className="min-w-0" onClick={(e) => e.stopPropagation()}>
-                      {isEditing ? (
-                        <input
-                          autoFocus
-                          value={
-                            customCellValues[session.id]?.[col.id] ??
-                            (cellVal === "Untitled" ? "" : cellVal)
-                          }
-                          onChange={(e) =>
-                            handleUpdateCellValue(
-                              session.id,
-                              col.id,
-                              e.target.value
-                            )
-                          }
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === "Escape")
-                              setEditingCell(null);
-                          }}
-                          className="h-7 w-full rounded border border-violet-500/50 bg-background px-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-violet-500"
-                        />
-                      ) : (
-                        <span
-                          onClick={() =>
-                            setEditingCell({
-                              sessionId: session.id,
-                              colId: col.id,
-                            })
-                          }
-                          title="Click to edit"
-                          className={cn(
-                            "inline-block max-w-full cursor-pointer truncate rounded px-1.5 py-0.5 text-xs transition-colors hover:bg-accent/60",
-                            cellVal === "Untitled"
-                              ? "text-muted-foreground/50 italic"
-                              : "text-foreground font-medium"
-                          )}
-                        >
-                          {cellVal}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                {customColumns.map((col) => (
+                  <CustomCell
+                    key={col.id}
+                    variant="classic"
+                    columnName={col.name}
+                    value={customCellValues[session.id]?.[col.id] ?? ""}
+                    editing={
+                      editingCell?.sessionId === session.id &&
+                      editingCell?.colId === col.id
+                    }
+                    onStartEdit={() =>
+                      setEditingCell({ sessionId: session.id, colId: col.id })
+                    }
+                    onCommit={(value) => onSetCellValue(session.id, col.id, value)}
+                    onStopEdit={() => setEditingCell(null)}
+                  />
+                ))}
 
                 {/* Actions column */}
                 <div
@@ -1098,6 +1025,285 @@ export function SessionsTable({
 
       {dialogs}
     </div>
+  );
+}
+
+/**
+ * A one-line field that lives only while it is being edited.
+ *
+ * The draft is local, which is the whole point: writing every keystroke straight
+ * through meant an empty field instantly refilled itself with its fallback, so a
+ * name could never be cleared and retyped — the thing that made these columns
+ * feel write-once. Enter and blur commit, Escape abandons.
+ */
+function InlineEdit({
+  initial,
+  ariaLabel,
+  className,
+  selectOnFocus,
+  onCommit,
+  onDone,
+}: {
+  initial: string;
+  ariaLabel: string;
+  className?: string;
+  selectOnFocus?: boolean;
+  onCommit: (value: string) => void;
+  onDone: () => void;
+}) {
+  const [draft, setDraft] = useState(initial);
+
+  function commit() {
+    onCommit(draft.trim());
+    onDone();
+  }
+
+  return (
+    <input
+      autoFocus
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={selectOnFocus ? (e) => e.currentTarget.select() : undefined}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+        else if (e.key === "Escape") {
+          // must not reach the page handler, which closes the whole view
+          e.stopPropagation();
+          onDone();
+        }
+      }}
+      aria-label={ariaLabel}
+      className={cn("w-full outline-none", className)}
+    />
+  );
+}
+
+/**
+ * A custom column's title. Renaming keeps a LOCAL draft: writing every keystroke
+ * straight to the column meant an empty field instantly refilled itself with
+ * "Column", so the name could never actually be cleared and retyped — which is
+ * what made these columns feel write-once.
+ *
+ * Rename and Delete also live in a menu, not only on a hover-X: an affordance
+ * you have to discover by accident is not an affordance.
+ */
+function CustomColumnHeader({
+  column,
+  variant,
+  className,
+  editing,
+  onStartRename,
+  onCommitRename,
+  onStopRename,
+  onDelete,
+}: {
+  column: CustomColumn;
+  variant: "canvas" | "classic";
+  className?: string;
+  editing: boolean;
+  onStartRename: () => void;
+  onCommitRename: (name: string) => void;
+  onStopRename: () => void;
+  onDelete: () => void;
+}) {
+  const isCanvas = variant === "canvas";
+
+  if (editing) {
+    return (
+      <div className={cn("min-w-0", className)}>
+        {/* Mounted only while renaming, so its draft starts from the current
+            name by construction — no effect re-seeding it after the fact. */}
+        <InlineEdit
+          initial={column.name}
+          selectOnFocus
+          ariaLabel="Column name"
+          onCommit={(next) => onCommitRename(next || column.name)}
+          onDone={onStopRename}
+          className={cn(
+            "h-6",
+            isCanvas
+              ? "rounded-md bg-white/[0.06] px-1.5 text-[11px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50"
+              : "rounded border border-violet-500/50 bg-background px-1.5 text-xs font-medium uppercase tracking-wide text-foreground",
+          )}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("group/col flex min-w-0 items-center gap-1", className)}>
+      <button
+        onClick={onStartRename}
+        title={`Rename “${column.name}”`}
+        className={cn(
+          "min-w-0 truncate text-left transition-colors hover:text-foreground",
+          !isCanvas && "font-medium",
+        )}
+      >
+        {column.name}
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button
+              aria-label={`${column.name} column options`}
+              title="Column options"
+              className={cn(
+                "flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-[opacity,background-color,color] duration-150 focus-visible:opacity-100 group-hover/col:opacity-100 data-[popup-open]:opacity-100",
+                isCanvas ? "hover:bg-white/[0.10] hover:text-foreground" : "hover:bg-accent",
+              )}
+            />
+          }
+        >
+          <MoreHorizontal className="size-3.5" />
+        </DropdownMenuTrigger>
+        {/* Sized to its items, not to the 20px trigger it is anchored to —
+            inheriting the anchor width wrapped "Delete column" onto two lines. */}
+        <DropdownMenuContent align="end" className="w-auto min-w-[172px]">
+          <DropdownMenuItem onClick={onStartRename} className="whitespace-nowrap">
+            <Pencil className="size-3.5 text-muted-foreground" />
+            <span className="flex-1">Rename</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onDelete} className="whitespace-nowrap">
+            <Trash2 className="size-3.5 text-destructive" />
+            <span className="flex-1 text-destructive">Delete column</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+/**
+ * One custom-column cell. Editable at any point in the row's life, not only at
+ * the moment the column is born: click (or Enter on the keyboard) opens it, blur
+ * or Enter commits, Escape reverts to what was there.
+ */
+function CustomCell({
+  variant,
+  className,
+  columnName,
+  value,
+  editing,
+  onStartEdit,
+  onCommit,
+  onStopEdit,
+}: {
+  variant: "canvas" | "classic";
+  className?: string;
+  columnName: string;
+  value: string;
+  editing: boolean;
+  onStartEdit: () => void;
+  onCommit: (value: string) => void;
+  onStopEdit: () => void;
+}) {
+  const isCanvas = variant === "canvas";
+
+  return (
+    <div className={cn("min-w-0", className)} onClick={(e) => e.stopPropagation()}>
+      {editing ? (
+        <InlineEdit
+          initial={value}
+          ariaLabel={columnName}
+          onCommit={onCommit}
+          onDone={onStopEdit}
+          className={cn(
+            "h-7",
+            isCanvas
+              ? "rounded-md bg-white/[0.06] px-2 text-xs caret-violet-400 inset-ring-1 inset-ring-violet-400/50"
+              : "rounded border border-violet-500/50 bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-violet-500",
+          )}
+        />
+      ) : (
+        <button
+          onClick={onStartEdit}
+          title={`Edit ${columnName}`}
+          className={cn(
+            "block max-w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs transition-colors",
+            isCanvas ? "hover:bg-white/[0.06]" : "hover:bg-accent/60",
+            value
+              ? "font-medium"
+              : // Nothing written yet: stay out of the way until the row is
+                // hovered, then offer. A column of italic "Empty" repeated 15
+                // times is noise pretending to be data.
+                "text-muted-foreground/60 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+          )}
+        >
+          {value || "Add…"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Deleting a piece of content, stated as the thing itself rather than as a
+ * generic alarm. Two problems with the old dialog: an amber warning triangle
+ * borrowed from an OS error, and body copy ("All content associated with this
+ * session will be permanently removed") that padded out one fact into a
+ * sentence. What actually matters is WHICH item this is, and whether it is live
+ * anywhere — so the item is shown, and the campaigns are counted.
+ */
+function DeleteContentDialog({
+  session,
+  onOpenChange,
+  onConfirm,
+}: {
+  session: Session | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  const sentCount = session?.sentToCampaignIds.length ?? 0;
+
+  return (
+    <ConfirmDialog
+      open={session !== null}
+      onOpenChange={onOpenChange}
+      icon={Trash2}
+      tone="destructive"
+      title="Delete this content?"
+      description={
+        sentCount > 0 ? (
+          <>
+            It is live on Wozku in{" "}
+            <span className="tabular-nums text-foreground/90">{sentCount}</span>{" "}
+            {sentCount === 1 ? "campaign" : "campaigns"} and will be removed from{" "}
+            {sentCount === 1 ? "it" : "them"} too. This can&rsquo;t be undone.
+          </>
+        ) : (
+          <>Its copy, assets and comments go with it. This can&rsquo;t be undone.</>
+        )
+      }
+      preview={
+        session && (
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13.5px] font-medium">
+                {session.title}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                <span>{session.postType}</span>
+                <span aria-hidden className="text-muted-foreground/30">
+                  ·
+                </span>
+                <span>
+                  {session.lastEditedBy
+                    ? `${session.lastEditedBy.name} · ${relativeTime(session.updatedAt)}`
+                    : "Not edited yet"}
+                </span>
+              </div>
+            </div>
+            <StatusBadge status={session.status} variant="dot" />
+          </div>
+        )
+      }
+      actions={[
+        { label: "Cancel", tone: "outline", onClick: () => onOpenChange(false) },
+        { label: "Delete", tone: "destructive", icon: Trash2, onClick: onConfirm },
+      ]}
+    />
   );
 }
 

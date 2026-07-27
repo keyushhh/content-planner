@@ -3,6 +3,7 @@ import type {
   MediaAsset,
   MediaFolder,
   Session,
+  SubAccount,
   User,
 } from "./types";
 
@@ -16,6 +17,51 @@ export const users: User[] = [
   currentUser,
   { id: "u-sarah", name: "Sarah Taylor" },
   { id: "u-john", name: "John M." },
+];
+
+/**
+ * Seats that already exist under the admin's Wozku account. Inviting somebody is
+ * picking one of these, not typing an address — the account decides who exists,
+ * so an email field could only ever be a way to get it wrong.
+ */
+export const subAccounts: SubAccount[] = [
+  {
+    id: "sa-sarah",
+    name: "Sarah Taylor",
+    email: "sarah.taylor@wozku.com",
+    jobTitle: "Content lead",
+  },
+  {
+    id: "sa-john",
+    name: "John M.",
+    email: "john.m@wozku.com",
+    jobTitle: "Social manager",
+    alreadyHasAccess: true,
+  },
+  {
+    id: "sa-priya",
+    name: "Priya R.",
+    email: "priya.r@wozku.com",
+    jobTitle: "Designer",
+  },
+  {
+    id: "sa-sam",
+    name: "Sam O.",
+    email: "sam.o@wozku.com",
+    jobTitle: "Copywriter",
+  },
+  {
+    id: "sa-mei",
+    name: "Mei Lin",
+    email: "mei.lin@wozku.com",
+    jobTitle: "Campaign analyst",
+  },
+  {
+    id: "sa-diego",
+    name: "Diego Alvarez",
+    email: "diego.alvarez@wozku.com",
+    jobTitle: "Brand manager",
+  },
 ];
 
 export const mediaFolders: MediaFolder[] = [
@@ -116,10 +162,10 @@ export const sessions: Session[] = [
     copy: "",
     variations: [],
     hashtags: "",
-    sentToCampaignId: null,
+    sentToCampaignIds: [],
     sentAt: null,
     tags: ["social"],
-    comments: [],
+    feedback: [],
     history: [],
   },
   {
@@ -135,10 +181,10 @@ export const sessions: Session[] = [
     copy: "",
     variations: [],
     hashtags: "",
-    sentToCampaignId: null,
+    sentToCampaignIds: [],
     sentAt: null,
     tags: ["email"],
-    comments: [],
+    feedback: [],
     history: [],
   },
   {
@@ -154,10 +200,10 @@ export const sessions: Session[] = [
     copy: "",
     variations: [],
     hashtags: "",
-    sentToCampaignId: null,
+    sentToCampaignIds: [],
     sentAt: null,
     tags: [],
-    comments: [],
+    feedback: [],
     history: [],
   },
   {
@@ -173,16 +219,27 @@ export const sessions: Session[] = [
     copy: "Announcing our biggest contest of the year! Enter now for a chance to win amazing prizes.",
     variations: [],
     hashtags: "#contest #giveaway",
-    sentToCampaignId: null,
+    sentToCampaignIds: [],
     sentAt: null,
     tags: ["contest", "giveaway"],
-    comments: [
+    feedback: [
       {
-        id: "c-1",
+        id: "fb-1",
         author: users[2],
-        fieldLabel: "Copy",
-        text: "Let's tighten this up before we send it out.",
+        sectionLabel: "Copy",
+        text: "Let's tighten this up before we send it out — the opening line buries the prize.",
         createdAt: "2026-07-21T12:30:00Z",
+        status: "open",
+      },
+      {
+        id: "fb-2",
+        author: users[1],
+        sectionLabel: "Assets",
+        text: "Swap the hero image for the one with the product in frame.",
+        createdAt: "2026-07-21T12:44:00Z",
+        status: "done",
+        resolvedBy: users[2],
+        resolvedAt: "2026-07-21T13:10:00Z",
       },
     ],
     history: [

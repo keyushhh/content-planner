@@ -16,7 +16,7 @@ import {
   FileText,
   Frame,
   Repeat2,
-  MessageCircle,
+  MessageSquare,
   Plus,
   Send,
   RefreshCw,
@@ -50,10 +50,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
+import { openFeedback } from "@/lib/feedback";
 import { MediaLibraryView } from "./media-library-view";
 import { MediaThumb } from "./media-thumb";
 import {
   COPY_LIMITS,
+  FeedbackButton,
   LIMIT_ZONE,
   limitZone,
   SessionComposer,
@@ -70,7 +72,7 @@ export function readStoredLayout(): ComposerLayout {
   return stored === "canvas" || stored === "split" ? stored : "split";
 }
 import type {
-  Comment,
+  Feedback,
   MediaAsset,
   MediaFolder,
   Platform,
@@ -106,9 +108,9 @@ interface SessionDetailPaneProps {
   mediaAssets: MediaAsset[];
   onUpdate: (patch: Partial<Session>) => void;
   onClose: () => void;
-  onOpenDiscussion: (fieldLabel?: string) => void;
-  isDiscussionOpen: boolean;
-  onToggleDiscussion: () => void;
+  onOpenFeedback: (sectionLabel?: string) => void;
+  isFeedbackOpen: boolean;
+  onToggleFeedback: () => void;
   onOpenSend: () => void;
   hidePlatforms?: boolean;
   hidePostType?: boolean;
@@ -124,9 +126,9 @@ export function SessionDetailPane({
   mediaAssets,
   onUpdate,
   onClose,
-  onOpenDiscussion,
-  isDiscussionOpen,
-  onToggleDiscussion,
+  onOpenFeedback,
+  isFeedbackOpen,
+  onToggleFeedback,
   onOpenSend,
   hidePlatforms = false,
   hidePostType = false,
@@ -136,7 +138,15 @@ export function SessionDetailPane({
   onComposerLayoutChange,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
-  const [variationDraft, setVariationDraft] = useState("");
+  /**
+   * Who asked for the media library, and therefore where the chosen asset goes.
+   * It used to always land on the post, so picking an image for a variation
+   * silently attached it to the primary and dropped you back on the form — the
+   * one flow in the pane that did something other than what it said.
+   */
+  const [mediaTarget, setMediaTarget] = useState<
+    { kind: "post" } | { kind: "variation"; id: string }
+  >({ kind: "post" });
   const [tagDraft, setTagDraft] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   // The table owns this now; fall back to the stored value if the pane is ever
@@ -215,8 +225,20 @@ export function SessionDetailPane({
           onChange={(variations) => onUpdate({ variations })}
           mediaAssets={mediaAssets}
           mediaFolders={mediaFolders}
-          onOpenMediaLibrary={() => setView("media-library")}
-          onClose={() => setView("form")}
+          primaryCopy={copyDraft}
+          primaryAssetIds={session.visualAssetIds}
+          // Reopens on the variation you were editing when you left for the library
+          initialVariationId={
+            mediaTarget.kind === "variation" ? mediaTarget.id : null
+          }
+          onOpenMediaLibrary={(variationId) => {
+            setMediaTarget({ kind: "variation", id: variationId });
+            setView("media-library");
+          }}
+          onClose={() => {
+            setMediaTarget({ kind: "post" });
+            setView("form");
+          }}
           disabled={isSessionLocked(session)}
         />
       </div>
@@ -224,16 +246,34 @@ export function SessionDetailPane({
   }
 
   if (view === "media-library") {
+    const forVariation = mediaTarget.kind === "variation";
     return (
       <div className="h-full w-full animate-in fade-in-50 slide-in-from-right-4 duration-200">
         <MediaLibraryView
           folders={mediaFolders}
           assets={mediaAssets}
-          selectedAssetIds={session.visualAssetIds}
-          restrictType={session.postType === "PDF" ? "pdf" : undefined}
+          selectedAssetIds={
+            forVariation
+              ? (session.variations.find((v) => v.id === mediaTarget.id)?.assetIds ?? [])
+              : session.visualAssetIds
+          }
+          // A variation carries images whatever the post type is; only the post
+          // itself is bound by the PDF-means-one-PDF rule.
+          restrictType={!forVariation && session.postType === "PDF" ? "pdf" : undefined}
           restrictReason="A PDF post carries one PDF, rendered as swipeable pages"
-          onClose={() => setView("form")}
+          onClose={() => setView(forVariation ? "variations" : "form")}
           onSelectAsset={(assetId) => {
+            if (forVariation) {
+              onUpdate({
+                variations: session.variations.map((v) =>
+                  v.id === mediaTarget.id && !v.assetIds.includes(assetId)
+                    ? { ...v, assetIds: [...v.assetIds, assetId] }
+                    : v,
+                ),
+              });
+              setView("variations");
+              return;
+            }
             if (!session.visualAssetIds.includes(assetId)) {
               onUpdate({
                 visualAssetIds: [...session.visualAssetIds, assetId],
@@ -246,8 +286,8 @@ export function SessionDetailPane({
     );
   }
 
-  const commentsFor = (fieldLabel: string) =>
-    session.comments.filter((c) => c.fieldLabel === fieldLabel);
+  const feedbackFor = (sectionLabel: string) =>
+    session.feedback.filter((f) => f.sectionLabel === sectionLabel);
 
   const sendReadinessIssues: string[] = [];
   if (!copyDraft.trim()) sendReadinessIssues.push("copy");
@@ -334,12 +374,17 @@ export function SessionDetailPane({
         onUpdate={onUpdate}
         onUpdateWithPendingSave={handleUpdateWithPendingSave}
         onClose={onClose}
-        onOpenDiscussion={onOpenDiscussion}
-        isDiscussionOpen={isDiscussionOpen}
-        onToggleDiscussion={onToggleDiscussion}
+        onOpenFeedback={onOpenFeedback}
+        isFeedbackOpen={isFeedbackOpen}
+        onToggleFeedback={onToggleFeedback}
         onOpenSend={onOpenSend}
         onOpenMediaLibrary={() => setView("media-library")}
-        onOpenVariations={() => setView("variations")}
+        onOpenVariations={() => {
+          // Entering from the composer starts at the table, never inside
+          // whichever variation last borrowed the media library.
+          setMediaTarget({ kind: "post" });
+          setView("variations");
+        }}
         onRequestUnlock={() => setShowUnlockDialog(true)}
         sendReadinessIssues={sendReadinessIssues}
         readyToSend={readyToSend}
@@ -390,30 +435,27 @@ export function SessionDetailPane({
             {saveStatus === "saving" ? (
               <>
                 <Loader2 className="size-3 animate-spin text-violet-400" />
-                <span className="text-muted-foreground">
-                  Saving{saveSource === "timer" ? " (30s timer)…" : saveSource === "blur" ? " (on blur)…" : "…"}
-                </span>
+                <span className="text-muted-foreground">Saving…</span>
               </>
             ) : (
               <>
                 <Check className="size-3 text-emerald-400" />
-                <span className="text-muted-foreground">
-                  Autosaved {saveSource === "timer" ? "(30s timer)" : saveSource === "blur" ? "(on blur)" : ""}
-                </span>
+                <span className="text-muted-foreground">Autosaved</span>
               </>
             )}
           </button>
           <Button
             size="sm"
-            variant={isDiscussionOpen ? "secondary" : "ghost"}
+            variant={isFeedbackOpen ? "secondary" : "ghost"}
             className="relative gap-1.5 text-sm text-muted-foreground data-[active=true]:text-foreground"
-            data-active={isDiscussionOpen}
-            onClick={onToggleDiscussion}
+            data-active={isFeedbackOpen}
+            onClick={onToggleFeedback}
+            aria-label="Feedback"
           >
-            <MessageCircle className="size-3.5" />
-            {session.comments.length > 0 && (
-              <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                {session.comments.length}
+            <MessageSquare className="size-3.5" />
+            {openFeedback(session.feedback).length > 0 && (
+              <span className="flex size-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold tabular-nums text-black/80">
+                {openFeedback(session.feedback).length}
               </span>
             )}
           </Button>
@@ -488,8 +530,8 @@ export function SessionDetailPane({
         {!hidePostType && (
           <Field
             label="Post Type"
-            comments={commentsFor("Post Type")}
-            onComment={() => onOpenDiscussion("Post Type")}
+            feedback={feedbackFor("Post Type")}
+            onFeedback={() => onOpenFeedback("Post Type")}
           >
             {postTypeAsSegmented ? (
               // Segmented control pill — compact single-line selector
@@ -555,8 +597,8 @@ export function SessionDetailPane({
         {!hidePlatforms && (
           <Field
             label="Platforms"
-            comments={commentsFor("Platforms")}
-            onComment={() => onOpenDiscussion("Platforms")}
+            feedback={feedbackFor("Platforms")}
+            onFeedback={() => onOpenFeedback("Platforms")}
           >
             <div className="overflow-hidden rounded-xl border border-border">
               {PLATFORMS.map((id, i) => {
@@ -624,8 +666,8 @@ export function SessionDetailPane({
 
         <Field
             label={isNewModel ? "Assets" : "Visual Assets"}
-            comments={commentsFor(isNewModel ? "Assets" : "Visual Assets")}
-            onComment={() => onOpenDiscussion(isNewModel ? "Assets" : "Visual Assets")}
+            feedback={feedbackFor(isNewModel ? "Assets" : "Visual Assets")}
+            onFeedback={() => onOpenFeedback(isNewModel ? "Assets" : "Visual Assets")}
           >
             {session.visualAssetIds.length === 0 ? (
               <button
@@ -691,13 +733,16 @@ export function SessionDetailPane({
 
         <Field
             label="Copy"
-            comments={commentsFor("Copy")}
-            onComment={() => onOpenDiscussion("Copy")}
+            feedback={feedbackFor("Copy")}
+            onFeedback={() => onOpenFeedback("Copy")}
             action={
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setView("variations")}
+                  onClick={() => {
+                    setMediaTarget({ kind: "post" });
+                    setView("variations");
+                  }}
                   className="flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:underline"
                 >
                   <Layers className="size-3.5 text-blue-400" />
@@ -751,7 +796,7 @@ export function SessionDetailPane({
 
 
 
-        <Field label="Hashtags" comments={commentsFor("Hashtags")} onComment={() => onOpenDiscussion("Hashtags")}>
+        <Field label="Hashtags" feedback={feedbackFor("Hashtags")} onFeedback={() => onOpenFeedback("Hashtags")}>
           <div className="space-y-2">
             <Input
               value={hashtagsDraft}
@@ -941,73 +986,37 @@ function Field({
   label,
   required,
   action,
-  comments,
-  onComment,
+  feedback,
+  onFeedback,
   children,
 }: {
   label: string;
   required?: boolean;
   action?: React.ReactNode;
-  comments?: Comment[];
-  onComment?: () => void;
+  feedback?: Feedback[];
+  onFeedback?: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <div className="group/field mb-7">
+    // group/row as well as group/field: FeedbackButton reveals on `group/row`,
+    // and this component is the "row" as far as the feedback control is concerned.
+    <div className="group/field group/row mb-7">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </span>
+          {/* Beside the label, not out in a reserved right-hand gutter */}
+          {onFeedback && (
+            <FeedbackButton items={feedback ?? []} onClick={onFeedback} />
+          )}
           {required && (
             <span className="text-xs font-medium text-violet-400">required</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          {action}
-          {onComment && (
-            <FieldCommentIndicator comments={comments ?? []} onClick={onComment} />
-          )}
-        </div>
+        {action && <div className="flex items-center gap-3">{action}</div>}
       </div>
       {children}
     </div>
-  );
-}
-
-function FieldCommentIndicator({
-  comments,
-  onClick,
-}: {
-  comments: Comment[];
-  onClick: () => void;
-}) {
-  if (comments.length === 0) {
-    return (
-      <button
-        onClick={onClick}
-        aria-label="Add comment"
-        className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground/40 transition-colors hover:bg-accent/60 hover:text-muted-foreground"
-      >
-        <MessageCircle className="size-3.5" />
-      </button>
-    );
-  }
-  const lastAuthor = comments[comments.length - 1].author;
-  return (
-    <button
-      onClick={onClick}
-      aria-label={`${comments.length} comments`}
-      className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-    >
-      <Avatar className="size-5">
-        <AvatarFallback className="text-[9px]">
-          {lastAuthor.name[0]}
-        </AvatarFallback>
-      </Avatar>
-      <span className="absolute -right-0.5 -bottom-0.5 flex size-3.5 items-center justify-center rounded-full bg-violet-500 text-[8px] font-semibold text-white ring-2 ring-background">
-        {comments.length}
-      </span>
-    </button>
   );
 }

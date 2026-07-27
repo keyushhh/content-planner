@@ -29,13 +29,37 @@ export interface PostVariation {
   assetIds: string[];
 }
 
-export interface Comment {
+/**
+ * Feedback replaced comments outright, threads included.
+ *
+ * A comment thread asks to be read; a piece of feedback asks to be acted on.
+ * Once every item carries a status, a reply is the wrong instrument — "fixed" is
+ * a state change, not a message, and two people typing "done?" / "yes" under a
+ * note is how a punch list turns back into a chat nobody reads. So: flat list,
+ * one status each, and a second point is a second piece of feedback.
+ */
+export type FeedbackStatus = "open" | "in_progress" | "done" | "wont_do";
+
+export interface Feedback {
   id: string;
   author: User;
-  fieldLabel?: string;
+  /** Which section of the post it is attached to, if any. */
+  sectionLabel?: string;
   text: string;
   createdAt: string;
-  replies?: Comment[];
+  status: FeedbackStatus;
+  /** Who moved it out of Open, and when. */
+  resolvedBy?: User | null;
+  resolvedAt?: string | null;
+}
+
+/** A person the admin can grant access to — seats that already exist on the
+    Wozku account, so inviting is picking a name rather than typing an address. */
+export interface SubAccount extends User {
+  /** What they do on the account, shown under the name in the picker. */
+  jobTitle: string;
+  /** Already has access to the thing being shared. */
+  alreadyHasAccess?: boolean;
 }
 
 export interface HistoryEntry {
@@ -58,12 +82,27 @@ export interface Session {
   copy: string;
   variations: PostVariation[];
   hashtags: string;
-  sentToCampaignId: string | null;
+  /** Every campaign this post has been sent to. One post can live in several
+      campaigns at once, so this is a list rather than a single id. */
+  sentToCampaignIds: string[];
   sentAt: string | null;
   tags: string[];
-  comments: Comment[];
+  feedback: Feedback[];
   history: HistoryEntry[];
 }
+
+/**
+ * A user-added column on the content table. Owned above the table so it
+ * survives filtering, sorting, paging and reloads — a column you can only fill
+ * in at the moment you create it is not a column.
+ */
+export interface CustomColumn {
+  id: string;
+  name: string;
+}
+
+/** sessionId → columnId → cell value. */
+export type CustomCellValues = Record<string, Record<string, string>>;
 
 export interface MediaFolder {
   id: string;

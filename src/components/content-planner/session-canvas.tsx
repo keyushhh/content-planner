@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   AlertCircle,
   AtSign,
-  ChevronDown,
   ChevronsRight,
   FileText,
   Layers,
@@ -12,21 +11,21 @@ import {
   Image as ImageIcon,
   Repeat2,
   Lock,
-  MessageCircle,
   RefreshCw,
   Send,
   UploadCloud,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn, countComments } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
 import {
   Banner,
   Chip,
   ChipRow,
-  CommentButton,
+  FeedbackButton,
+  FeedbackToolbarButton,
   EASE,
   GhostAction,
   CopyMeta,
@@ -35,15 +34,13 @@ import {
   SaveChip,
   Stagger,
   MEDIA_COPY,
-  assetsForType,
   TAG_SUGGESTIONS,
   formatDate,
   useComposerShortcuts,
   useTagFlash,
   type ComposerLayoutProps,
 } from "./session-composer";
-import { PostTypeModal } from "./post-type-modal";
-import type { PostType } from "@/lib/types";
+import type { Feedback, PostType } from "@/lib/types";
 
 /** Post types offered in the composer, matching the creation modal. */
 const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
@@ -72,15 +69,14 @@ export function SessionCanvas({
   tagDraft,
   onTagDraftChange,
   saveStatus,
-  saveSource,
   isDirty,
   savePendingChanges,
   onUpdate,
   onUpdateWithPendingSave,
   onClose,
-  onOpenDiscussion,
-  isDiscussionOpen,
-  onToggleDiscussion,
+  onOpenFeedback,
+  isFeedbackOpen,
+  onToggleFeedback,
   onOpenSend,
   onOpenMediaLibrary,
   onOpenVariations,
@@ -93,15 +89,13 @@ export function SessionCanvas({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [typeModalOpen, setTypeModalOpen] = useState(false);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
   const { flashedTag, flashTag } = useTagFlash();
 
-  const commentsFor = (fieldLabel: string) =>
-    session.comments.filter((c) => c.fieldLabel === fieldLabel);
-  // replies live inside their parent, so the raw length under-reports the thread
-  const totalComments = countComments(session.comments);
+  const feedbackFor = (sectionLabel: string) =>
+    session.feedback.filter((f) => f.sectionLabel === sectionLabel);
+  const openCount = openFeedback(session.feedback).length;
   const media = MEDIA_COPY[session.postType];
   const canAddMore = session.visualAssetIds.length < media.max;
 
@@ -174,30 +168,15 @@ export function SessionCanvas({
 
           <SaveChip
             saveStatus={saveStatus}
-            saveSource={saveSource}
             isDirty={isDirty}
             onClick={() => savePendingChanges("instant")}
           />
 
-          <button
-            onClick={onToggleDiscussion}
-            aria-label="Toggle discussion"
-            aria-pressed={isDiscussionOpen}
-            title="Discussion"
-            className={cn(
-              "relative flex size-8 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
-              isDiscussionOpen
-                ? "bg-white/[0.09] text-foreground"
-                : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
-            )}
-          >
-            <MessageCircle className="size-4" />
-            {totalComments > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-violet-500 text-[9px] font-semibold tabular-nums text-white ring-2 ring-background">
-                {totalComments}
-              </span>
-            )}
-          </button>
+          <FeedbackToolbarButton
+            openCount={openCount}
+            isOpen={isFeedbackOpen}
+            onClick={onToggleFeedback}
+          />
 
           <div className="mx-1 h-5 w-px bg-white/10" />
 
@@ -336,12 +315,18 @@ export function SessionCanvas({
                   line across the sheet — a hard rule where a hint belongs. */}
               <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
               <div className="group/row flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
-                <label
-                  htmlFor="canvas-copy"
-                  className="flex w-fit cursor-pointer items-center gap-1.5 text-[13px] font-medium text-muted-foreground"
-                >
-                  Copy
-                </label>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <label
+                    htmlFor="canvas-copy"
+                    className="w-fit cursor-pointer text-[13px] font-medium text-muted-foreground"
+                  >
+                    Copy
+                  </label>
+                  <FeedbackButton
+                    items={feedbackFor("Copy")}
+                    onClick={() => onOpenFeedback("Copy")}
+                  />
+                </span>
                 <div className="-mr-1.5 flex items-center gap-1">
                   <GhostAction onClick={onOpenVariations} icon={Layers}>
                     Post Variations
@@ -353,10 +338,6 @@ export function SessionCanvas({
                   </GhostAction>
                   <GhostAction icon={AtSign}>Add Mentions</GhostAction>
                   <AiAssistButton className="ml-1" />
-                  <CommentButton
-                    comments={commentsFor("Copy")}
-                    onClick={() => onOpenDiscussion("Copy")}
-                  />
                 </div>
               </div>
               {/* relative: hosts the stand-in caret below */}
@@ -389,22 +370,22 @@ export function SessionCanvas({
             </Stagger>
 
             {/* Settings-style rows: label left, control right */}
-            {/* Read-only: the type was chosen before this pane opened, and it
-                decides which rows exist here. Letting it change in place meant
-                the sheet rearranging itself under the cursor — so it states the
-                choice instead of re-offering it. */}
+            {/* Fixed for the life of the post. The type is chosen before this
+                pane opens and it decides which rows exist here — changing it
+                afterwards would rearrange the sheet under the cursor and quietly
+                drop attachments the new type cannot carry. So it is stated as a
+                fact, in plain text: no pill, no chevron, nothing that reads as a
+                control you are being denied. */}
             <SettingRow
               label="Post type"
-              comments={commentsFor("Post type")}
-              onComment={() => onOpenDiscussion("Post type")}
+              feedback={feedbackFor("Post type")}
+              onFeedback={() => onOpenFeedback("Post type")}
               staggerIndex={3}
               valueAlign="end"
             >
-              <button
-                disabled={isCampaignLocked}
-                onClick={() => setTypeModalOpen(true)}
-                title="Change post type"
-                className="group/type -mr-1.5 flex h-8 items-center gap-2 rounded-full bg-white/[0.04] pl-2.5 pr-2 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] hover:inset-ring-white/[0.14] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+              <span
+                title="Set when this content was created — it can’t be changed"
+                className="flex items-center gap-2 text-[13px] font-medium text-foreground/90"
               >
                 {(() => {
                   const Icon =
@@ -412,11 +393,7 @@ export function SessionCanvas({
                   return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
                 })()}
                 {session.postType}
-                {/* Always visible. Revealing it on hover meant the row looked
-                    like static text, so nobody would ever know it could change —
-                    a quiet affordance is right, an invisible one is a bug. */}
-                <ChevronDown className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors duration-150 group-hover/type:text-muted-foreground" />
-              </button>
+              </span>
             </SettingRow>
 
             {/* Reshare carries no media of its own — Wozku keeps the original
@@ -427,8 +404,8 @@ export function SessionCanvas({
               // imagery survives a switch between Image and Reshare
               <SettingRow
                 label="Media"
-                comments={commentsFor("Assets")}
-                onComment={() => onOpenDiscussion("Assets")}
+                feedback={feedbackFor("Assets")}
+                onFeedback={() => onOpenFeedback("Assets")}
                 staggerIndex={4}
                 valueAlign="end"
               >
@@ -440,8 +417,8 @@ export function SessionCanvas({
             ) : (
             <SettingRow
               label={media.section}
-              comments={commentsFor("Assets")}
-              onComment={() => onOpenDiscussion("Assets")}
+              feedback={feedbackFor("Assets")}
+              onFeedback={() => onOpenFeedback("Assets")}
               // a single pill sits right; a wrapping thumbnail grid must start
               // left, or the ragged edge lands on the wrong side
               align={session.visualAssetIds.length > 0 ? "start" : "center"}
@@ -509,8 +486,8 @@ export function SessionCanvas({
             <SettingRow
               label="Tags"
               htmlFor="canvas-tags"
-              comments={commentsFor("Tags")}
-              onComment={() => onOpenDiscussion("Tags")}
+              feedback={feedbackFor("Tags")}
+              onFeedback={() => onOpenFeedback("Tags")}
               align="start"
               staggerIndex={5}
             >
@@ -601,11 +578,13 @@ export function SessionCanvas({
                   </span>
                 </>
               )}
-              {totalComments > 0 && (
+              {session.feedback.length > 0 && (
                 <>
                   <span className="text-muted-foreground/30">·</span>
                   <span className="tabular-nums">
-                    {totalComments} comment{totalComments === 1 ? "" : "s"}
+                    {openCount > 0
+                      ? `${openCount} open feedback`
+                      : `${session.feedback.length} feedback, all closed`}
                   </span>
                 </>
               )}
@@ -614,32 +593,27 @@ export function SessionCanvas({
         </div>
       </div>
 
-      <PostTypeModal
-        open={typeModalOpen}
-        onOpenChange={setTypeModalOpen}
-        mode="change"
-        current={session.postType}
-        onSelect={(postType) => {
-          onUpdate({
-            postType,
-            visualAssetIds: assetsForType(session.visualAssetIds, mediaAssets, postType),
-          });
-          setTypeModalOpen(false);
-        }}
-      />
-
       {unlockDialog}
     </div>
   );
 }
 
+/**
+ * Label left, value right. Two columns, not three.
+ *
+ * The third column was a permanent 32px slot for a feedback button that only
+ * appeared on hover — a dead stripe running the height of the sheet, and the
+ * empty space a tooltip kept firing into. The control now rides beside the
+ * label, in room the label was never using, so the row loses the gutter without
+ * losing the affordance and the value column gains the width back.
+ */
 function SettingRow({
   label,
   htmlFor,
   align = "center",
   valueAlign = "end",
-  comments,
-  onComment,
+  feedback,
+  onFeedback,
   staggerIndex,
   children,
 }: {
@@ -648,8 +622,8 @@ function SettingRow({
   htmlFor?: string;
   align?: "center" | "start";
   valueAlign?: "start" | "end";
-  comments?: import("@/lib/types").Comment[];
-  onComment?: () => void;
+  feedback?: Feedback[];
+  onFeedback?: () => void;
   staggerIndex: number;
   children: React.ReactNode;
 }) {
@@ -659,24 +633,30 @@ function SettingRow({
       <div
         className={cn(
           "group/row grid gap-x-4 gap-y-2.5 border-t border-white/[0.06] px-9 py-4",
-          "grid-cols-1 @[560px]:grid-cols-[132px_minmax(0,1fr)_auto]",
+          "grid-cols-1 @[560px]:grid-cols-[168px_minmax(0,1fr)]",
           "transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]",
           align === "center" ? "items-center" : "items-start",
         )}
       >
-      <Label
-        htmlFor={htmlFor}
+      <span
         className={cn(
-          "flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground",
-          htmlFor && "w-fit cursor-pointer",
+          "flex items-center gap-1.5",
           align === "start" && "@[560px]:pt-2",
         )}
       >
-        {/* No presence dot: the comment button on the same row already shows the
-            author's avatar and a count when a thread exists, so the dot was the
-            same signal twice, four inches apart. */}
-        {label}
-      </Label>
+        <Label
+          htmlFor={htmlFor}
+          className={cn(
+            "text-[13px] font-medium text-muted-foreground",
+            htmlFor && "w-fit cursor-pointer",
+          )}
+        >
+          {label}
+        </Label>
+        {onFeedback && (
+          <FeedbackButton items={feedback ?? []} onClick={onFeedback} />
+        )}
+      </span>
       <div
         className={cn(
           "flex min-w-0 justify-start",
@@ -684,13 +664,6 @@ function SettingRow({
         )}
       >
         {children}
-      </div>
-      <div className={cn("hidden @[560px]:flex", align === "start" && "pt-0.5")}>
-        {onComment ? (
-          <CommentButton comments={comments ?? []} onClick={onComment} />
-        ) : (
-          <span className="size-8" aria-hidden />
-        )}
       </div>
       </div>
     </Stagger>

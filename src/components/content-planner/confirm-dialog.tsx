@@ -26,6 +26,12 @@ interface ConfirmDialogProps {
   tone?: Tone;
   title: React.ReactNode;
   description: React.ReactNode;
+  /**
+   * The thing being acted on, shown as its own inset row between the copy and
+   * the footer. A destructive confirmation that names nothing asks you to trust
+   * that the right row was clicked; this shows it.
+   */
+  preview?: React.ReactNode;
   actions: ConfirmDialogAction[];
 }
 
@@ -53,6 +59,7 @@ export function ConfirmDialog({
   tone = "violet",
   title,
   description,
+  preview,
   actions,
 }: ConfirmDialogProps) {
   const Icon = CustomIcon ?? (tone === "destructive" ? AlertTriangle : null);
@@ -74,7 +81,12 @@ export function ConfirmDialog({
           className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
         />
 
-        <div className="flex items-start gap-3.5 px-6 pb-6 pt-6">
+        <div
+          className={cn(
+            "flex items-start gap-3.5 px-6 pt-6",
+            preview ? "pb-5" : "pb-6",
+          )}
+        >
           {Icon && (
             <span
               className={cn(
@@ -95,6 +107,14 @@ export function ConfirmDialog({
             </DialogDescription>
           </div>
         </div>
+
+        {preview && (
+          <div className="px-6 pb-6">
+            <div className="rounded-[14px] bg-white/[0.035] px-3.5 py-3 inset-ring-1 inset-ring-white/[0.07]">
+              {preview}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] bg-black/[0.12] px-6 py-4">
           {orderedActions.map((action) => {

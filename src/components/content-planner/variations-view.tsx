@@ -1,35 +1,58 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  X,
-  Plus,
-  Trash2,
-  Search,
-  ImageIcon,
-  ImagePlus,
   ArrowLeft,
   Check,
+  Copy as CopyIcon,
+  ImagePlus,
   Layers,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PostVariation, MediaAsset, MediaFolder } from "@/lib/types";
+import type { MediaAsset, MediaFolder, PostVariation } from "@/lib/types";
 import { MediaThumb } from "./media-thumb";
-import { Stagger } from "./session-composer";
+import { COPY_LIMITS, LIMIT_ZONE, limitZone, Stagger } from "./session-composer";
 
 const MAX_ASSETS = 3;
+
+/** The budget the length column is measured against — the tightest one that matters. */
+const PRIMARY_LIMIT = COPY_LIMITS[0];
 
 interface VariationsViewProps {
   variations: PostVariation[];
   onChange: (variations: PostVariation[]) => void;
   mediaAssets: MediaAsset[];
   mediaFolders: MediaFolder[];
-  onOpenMediaLibrary?: () => void;
+  /** Opens the media library, targeted at one variation. */
+  onOpenMediaLibrary?: (variationId: string) => void;
   onClose: () => void;
   disabled?: boolean;
+  /** The post's own copy and assets, shown as the first row for comparison. */
+  primaryCopy?: string;
+  primaryAssetIds?: string[];
+  /** Set when returning from the media library, so the editor reopens where you left it. */
+  initialVariationId?: string | null;
 }
 
+/**
+ * Post variations, as a table.
+ *
+ * The old screen was a sidebar of cards next to one editor — which meant the
+ * only way to compare two alternates was to click between them and remember.
+ * Variations exist to be compared, so the list is now a real table: one row per
+ * alternate, with the copy, the images and the length side by side, and the
+ * post's own copy pinned at the top as the thing they are alternates OF.
+ *
+ * Long-form copy still cannot be written in a cell — a 3000-character LinkedIn
+ * post inside a 200px column is a joke — so the table hands off to a full editor
+ * for the writing, and keeps for itself what a table is good at: names, numbers
+ * and comparison. Names are editable in place, because that is a cell-sized job.
+ */
 export function VariationsView({
   variations,
   onChange,
@@ -37,47 +60,23 @@ export function VariationsView({
   onOpenMediaLibrary,
   onClose,
   disabled,
+  primaryCopy = "",
+  primaryAssetIds = [],
+  initialVariationId = null,
 }: VariationsViewProps) {
-  const [selectedId, setSelectedId] = useState<string>(variations[0]?.id || "");
+  const [editingId, setEditingId] = useState<string | null>(initialVariationId);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const currentVariation =
-    variations.find((v) => v.id === selectedId) || variations[0];
-  const activeId = currentVariation?.id;
+  const current = variations.find((v) => v.id === editingId) ?? null;
 
-  const [copyDraft, setCopyDraft] = useState(currentVariation?.copy || "");
-  const [labelDraft, setLabelDraft] = useState(currentVariation?.label || "");
-
-  useEffect(() => {
-    setCopyDraft(currentVariation?.copy || "");
-    setLabelDraft(currentVariation?.label || "");
-  }, [currentVariation?.id, currentVariation?.copy, currentVariation?.label]);
-
-  const saveCopyIfDirty = useCallback(() => {
-    if (!currentVariation || !activeId) return;
-    const copyChanged = copyDraft !== currentVariation.copy;
-    const labelChanged = labelDraft !== currentVariation.label;
-    if (!copyChanged && !labelChanged) return;
-    onChange(
-      variations.map((v) =>
-        v.id === activeId
-          ? { ...v, copy: copyDraft, label: labelDraft.trim() || v.label }
-          : v,
-      ),
-    );
-  }, [currentVariation, copyDraft, labelDraft, activeId, variations, onChange]);
-
-  useEffect(() => {
-    const interval = setInterval(saveCopyIfDirty, 30000);
-    return () => clearInterval(interval);
-  }, [saveCopyIfDirty]);
-
+  // Escape steps back one level — editor to table, table to the post — rather
+  // than closing the whole pane and losing the post being edited.
   const leave = useCallback(() => {
-    saveCopyIfDirty();
-    onClose();
-  }, [saveCopyIfDirty, onClose]);
+    if (editingId) setEditingId(null);
+    else onClose();
+  }, [editingId, onClose]);
 
-  // Escape returns to the composer rather than closing the whole pane.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
@@ -88,60 +87,84 @@ export function VariationsView({
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [leave]);
 
-  const filteredVariations = variations.filter((v) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return v.label.toLowerCase().includes(q) || v.copy.toLowerCase().includes(q);
-  });
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      q
+        ? variations.filter(
+            (v) =>
+              v.label.toLowerCase().includes(q) || v.copy.toLowerCase().includes(q),
+          )
+        : variations,
+    [variations, q],
+  );
 
-  const handleAddVariation = () => {
-    saveCopyIfDirty();
-    const newId = `var-${Date.now()}`;
+  function patch(id: string, next: Partial<PostVariation>) {
+    onChange(variations.map((v) => (v.id === id ? { ...v, ...next } : v)));
+  }
+
+  function addVariation(seedCopy = "") {
+    const id = `var-${Date.now()}`;
     onChange([
       ...variations,
       {
-        id: newId,
+        id,
         label: `Variation ${variations.length + 1}`,
-        copy: "",
+        copy: seedCopy,
         assetIds: [],
       },
     ]);
-    setSelectedId(newId);
     setSearchQuery("");
-  };
+    setEditingId(id);
+    return id;
+  }
 
-  const handleRemoveVariation = (id: string) => {
-    const next = variations.filter((v) => v.id !== id);
-    onChange(next);
-    if (activeId === id) {
-      const removedIndex = variations.findIndex((v) => v.id === id);
-      const nextActive = next[Math.max(0, removedIndex - 1)];
-      setSelectedId(nextActive ? nextActive.id : "");
-    }
-  };
+  function duplicate(v: PostVariation) {
+    const id = `var-${Date.now()}`;
+    onChange([
+      ...variations,
+      { ...v, id, label: `${v.label} (copy)` },
+    ]);
+  }
 
-  const handleRemoveAssetFromCurrent = (assetId: string) => {
-    if (!activeId) return;
-    onChange(
-      variations.map((v) =>
-        v.id === activeId
-          ? { ...v, assetIds: v.assetIds.filter((id) => id !== assetId) }
-          : v,
-      ),
+  function remove(id: string) {
+    onChange(variations.filter((v) => v.id !== id));
+    if (editingId === id) setEditingId(null);
+  }
+
+  // ---- Editor ---------------------------------------------------------------
+  if (current) {
+    return (
+      <VariationEditor
+        variation={current}
+        index={variations.findIndex((v) => v.id === current.id)}
+        total={variations.length}
+        mediaAssets={mediaAssets}
+        disabled={disabled}
+        onBack={() => setEditingId(null)}
+        onPatch={(next) => patch(current.id, next)}
+        onRemove={() => remove(current.id)}
+        onOpenMediaLibrary={
+          onOpenMediaLibrary ? () => onOpenMediaLibrary(current.id) : undefined
+        }
+      />
     );
-  };
+  }
 
-  const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
-  const isEmpty = variations.length === 0;
-  const hasAssets = (currentVariation?.assetIds.length ?? 0) > 0;
-  const canAddAsset = (currentVariation?.assetIds.length ?? 0) < MAX_ASSETS;
+  // ---- Table ----------------------------------------------------------------
+  const grid = {
+    "--cols-sm": "minmax(0,1.1fr) minmax(0,2fr) 76px",
+    "--cols-lg": "minmax(0,1.1fr) minmax(0,2fr) 96px 104px 76px",
+  } as React.CSSProperties;
+  const gridClass = "grid-cols-[var(--cols-sm)] @[720px]:grid-cols-[var(--cols-lg)]";
+  const wideOnly = "hidden @[720px]:block";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
-            onClick={leave}
+            onClick={onClose}
             aria-label="Back to post"
             title="Back to post (Esc)"
             className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
@@ -149,275 +172,567 @@ export function VariationsView({
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[15px] font-semibold tracking-tight">Post Variations</h2>
-              <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[11px] font-medium tabular-nums text-violet-200 inset-ring-1 inset-ring-violet-400/25">
-                {variations.length} alternate{variations.length === 1 ? "" : "s"}
-              </span>
-            </div>
+            <h2 className="text-[15px] font-semibold tracking-tight">Post variations</h2>
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-              Primary copy stays on the post · up to {MAX_ASSETS} images per variation
+              Alternates of the primary copy · up to {MAX_ASSETS} images each
             </p>
           </div>
         </div>
 
-        <Button
-          size="sm"
-          onClick={leave}
-          className="h-8 shrink-0 gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
-        >
-          <Check className="size-3.5" />
-          Done
-        </Button>
-      </div>
-
-      <div className="flex min-h-0 flex-1">
-        <aside className="flex w-[264px] shrink-0 flex-col gap-2.5 border-r border-white/[0.07] bg-black/[0.14] p-4">
-          {variations.length > 2 && (
-            <div className="relative">
+        <div className="flex shrink-0 items-center gap-1.5">
+          {variations.length > 3 && (
+            <div className="relative hidden @[560px]:block">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search variations…"
+                placeholder="Search…"
                 aria-label="Search variations"
-                className="h-9 w-full rounded-[10px] bg-white/[0.04] pl-8 pr-3 text-xs caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+                className="h-8 w-[168px] rounded-full bg-white/[0.035] pl-8 pr-3 text-[12.5px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
               />
             </div>
           )}
-
+          {!disabled && (
+            <button
+              onClick={() => addVariation()}
+              className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.04] px-3 text-[12.5px] font-medium inset-ring-1 inset-ring-white/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-100 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+            >
+              <Plus className="size-3.5" />
+              Add variation
+            </button>
+          )}
           <button
-            onClick={handleAddVariation}
-            disabled={disabled}
-            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] bg-white/[0.04] text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-200 hover:inset-ring-violet-400/40 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={onClose}
+            className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[12.5px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
           >
-            <Plus className="size-4" />
-            Add variation
+            <Check className="size-3.5" />
+            Done
           </button>
+        </div>
+      </div>
 
-          <div className="-mr-1 mt-0.5 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-            {filteredVariations.map((v, index) => {
-              const isSelected = v.id === activeId;
-              const preview = (isSelected ? copyDraft : v.copy).trim();
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => {
-                    saveCopyIfDirty();
-                    setSelectedId(v.id);
-                  }}
-                  aria-current={isSelected}
-                  className={cn(
-                    "group w-full rounded-xl px-3 py-2.5 text-left transition-[background-color,box-shadow,scale] duration-150 inset-ring-1 active:scale-[0.99]",
-                    isSelected
-                      ? "bg-violet-500/[0.12] inset-ring-violet-400/45"
-                      : "bg-white/[0.025] inset-ring-white/[0.06] hover:bg-white/[0.05]",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={cn(
-                        "truncate text-xs font-medium",
-                        isSelected ? "text-violet-200" : "text-foreground/90",
-                      )}
-                    >
-                      {(isSelected ? labelDraft : v.label) || `Variation ${index + 1}`}
-                    </span>
-                    {v.assetIds.length > 0 && (
-                      <span className="flex shrink-0 items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
-                        <ImageIcon className="size-3" />
-                        {v.assetIds.length}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
-                    {preview || <span className="italic">No copy yet</span>}
-                  </p>
-                </button>
-              );
-            })}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)] px-6 py-6 @container">
+        <Stagger
+          index={0}
+          className="mx-auto flex w-full max-w-[900px] flex-col overflow-hidden rounded-[20px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08] @container"
+        >
+          <div
+            aria-hidden
+            className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+          />
 
-            {variations.length > 0 && filteredVariations.length === 0 && (
-              <p className="px-1 py-6 text-center text-xs text-muted-foreground text-pretty">
-                Nothing matches &ldquo;{searchQuery}&rdquo;
-              </p>
+          <div
+            style={grid}
+            className={cn(
+              "grid shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[oklch(0.205_0_0)] px-5 py-2.5 text-[11px] font-medium text-muted-foreground",
+              gridClass,
             )}
+          >
+            <span className="min-w-0">Variation</span>
+            <span className="min-w-0">Copy</span>
+            <span className={cn("min-w-0", wideOnly)}>Images</span>
+            <span className={cn("min-w-0", wideOnly)}>Length</span>
+            <span className="text-right">{variations.length || ""}</span>
           </div>
-        </aside>
 
-        <main className="@container min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)]">
-          {currentVariation ? (
-            <div className="flex min-h-full items-start justify-center px-6 pb-12 pt-6">
-              <Stagger
-                index={0}
+          {/* The primary post, pinned. Without it the table is a list of
+              alternates to something you cannot see. */}
+          <div
+            style={grid}
+            className={cn(
+              "grid items-center gap-3 border-b border-white/[0.05] bg-violet-500/[0.045] px-5 py-3",
+              gridClass,
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-[13px] font-medium">Primary</span>
+              <span className="shrink-0 rounded-[5px] bg-violet-500/[0.18] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.06em] text-violet-200">
+                post
+              </span>
+            </span>
+            <span className="min-w-0 truncate text-[12.5px] text-muted-foreground">
+              {primaryCopy.trim() || <span className="italic">No copy yet</span>}
+            </span>
+            <span className={cn("min-w-0", wideOnly)}>
+              <ThumbStack assetIds={primaryAssetIds} mediaAssets={mediaAssets} />
+            </span>
+            <span className={cn("min-w-0", wideOnly)}>
+              <LengthCell count={primaryCopy.length} />
+            </span>
+            <span className="text-right text-[11px] text-muted-foreground/60">
+              &mdash;
+            </span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-8 py-14 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
+                <Layers className="size-4" />
+              </span>
+              <span className="mt-1 text-sm font-medium">
+                {variations.length === 0 ? "No variations yet" : "No matches"}
+              </span>
+              <span className="max-w-[420px] text-xs text-muted-foreground text-pretty">
+                {variations.length === 0
+                  ? "A variation is an alternate take on the same post — different copy, different images — without touching the primary."
+                  : `Nothing matches “${searchQuery.trim()}”.`}
+              </span>
+              {variations.length === 0 && !disabled && (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    onClick={() => addVariation()}
+                    className="flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+                  >
+                    <Plus className="size-4" />
+                    Add a variation
+                  </button>
+                  {primaryCopy.trim() && (
+                    // The commonest first move is "the primary, but shorter" —
+                    // starting from a blank sheet makes you paste it in by hand.
+                    <button
+                      onClick={() => addVariation(primaryCopy)}
+                      className="flex h-9 items-center gap-1.5 rounded-full bg-white/[0.04] px-3.5 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] active:scale-[0.97]"
+                    >
+                      <CopyIcon className="size-3.5" />
+                      Start from the primary
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            filtered.map((v, i) => (
+              <div
+                key={v.id}
+                style={grid}
+                onClick={() => setEditingId(v.id)}
                 className={cn(
-                  "flex w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] transition-[filter,box-shadow,background-color] duration-500",
-                  disabled
-                    ? "bg-white/[0.018] shadow-[0_1px_3px_rgba(0,0,0,0.45)] saturate-50 inset-ring-1 inset-ring-white/[0.05]"
-                    : "bg-white/[0.028] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]",
+                  "group grid cursor-pointer items-center gap-3 border-b border-white/[0.05] px-5 py-3 transition-colors duration-150 last:border-b-0 hover:bg-white/[0.035]",
+                  gridClass,
                 )}
               >
-                <div className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
-
-                <div className="flex flex-wrap items-start justify-between gap-3 px-9 pb-7 pt-8">
-                  <div className="min-w-0 flex-1">
-                    <input
-                      value={labelDraft}
-                      onChange={(e) => setLabelDraft(e.target.value)}
-                      onBlur={saveCopyIfDirty}
-                      disabled={disabled}
-                      aria-label="Variation name"
-                      placeholder="Untitled variation"
-                      className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[22px] font-semibold leading-tight tracking-[-0.02em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+                <div className="min-w-0" onClick={(e) => e.stopPropagation()}>
+                  {renamingId === v.id ? (
+                    <VariationNameEdit
+                      initial={v.label}
+                      onCommit={(label) => patch(v.id, { label: label || v.label })}
+                      onDone={() => setRenamingId(null)}
                     />
-                    <p className="mt-2 text-[13px] text-muted-foreground">
-                      Alternate {variations.findIndex((v) => v.id === activeId) + 1} of{" "}
-                      <span className="tabular-nums">{variations.length}</span>
-                    </p>
-                  </div>
-
-                  {!disabled && (
+                  ) : (
                     <button
-                      onClick={() => handleRemoveVariation(currentVariation.id)}
-                      className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-[0.96]"
+                      onClick={() => !disabled && setRenamingId(v.id)}
+                      title={disabled ? undefined : "Rename"}
+                      className="group/name flex min-w-0 max-w-full items-center gap-1.5 text-left"
                     >
-                      <Trash2 className="size-3.5" />
-                      Remove
+                      <span className="truncate text-[13px] font-medium">
+                        {v.label || `Variation ${i + 1}`}
+                      </span>
+                      {!disabled && (
+                        <Pencil className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover/name:opacity-100" />
+                      )}
                     </button>
                   )}
                 </div>
 
-                <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
-                  <div className="flex min-h-11 items-center px-9 py-2">
-                    <label
-                      htmlFor="variation-copy"
-                      className="w-fit cursor-pointer text-[13px] font-medium text-muted-foreground"
-                    >
-                      Alternate copy
-                    </label>
-                  </div>
-                  <textarea
-                    id="variation-copy"
-                    value={copyDraft}
-                    onChange={(e) => setCopyDraft(e.target.value)}
-                    onBlur={saveCopyIfDirty}
-                    disabled={disabled}
-                    placeholder="Write the alternate version…"
-                    className="block min-h-[200px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[15px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                  <div className="px-9 pb-4 text-[11px] tabular-nums text-muted-foreground">
-                    {wordCount} {wordCount === 1 ? "word" : "words"}
-                    <span className="mx-1.5 text-muted-foreground/40">·</span>
-                    {copyDraft.length} characters
-                  </div>
-                </div>
-
-                {/* Mirrors the Assets section on the post: label left, one affordance
-                    that opens the media library directly. */}
-                <div
-                  className={cn(
-                    "grid grid-cols-1 gap-x-4 gap-y-3 border-t border-white/[0.06] px-9 py-4",
-                    "@[560px]:grid-cols-[132px_minmax(0,1fr)]",
-                    hasAssets ? "items-start" : "items-center",
+                <div className="min-w-0 text-[12.5px] leading-snug text-muted-foreground">
+                  {v.copy.trim() ? (
+                    <span className="line-clamp-2">{v.copy}</span>
+                  ) : (
+                    <span className="italic text-muted-foreground/60">
+                      No copy yet
+                    </span>
                   )}
-                >
-                  <span
-                    className={cn(
-                      "text-[13px] font-medium text-muted-foreground",
-                      hasAssets && "@[560px]:pt-2",
-                    )}
-                  >
-                    Images
-                    {hasAssets && (
-                      <span className="ml-1.5 tabular-nums text-muted-foreground/70">
-                        {currentVariation.assetIds.length}/{MAX_ASSETS}
-                      </span>
-                    )}
-                  </span>
-
-                  <div
-                    className={cn(
-                      "flex min-w-0 flex-wrap gap-2.5",
-                      hasAssets ? "justify-start" : "@[560px]:justify-end",
-                    )}
-                  >
-                    {currentVariation.assetIds.map((assetId) => {
-                      const asset = mediaAssets.find((a) => a.id === assetId);
-                      return (
-                        <div
-                          key={assetId}
-                          className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
-                        >
-                          <MediaThumb
-                            assetId={assetId}
-                            type={asset?.type}
-                            className="size-full !rounded-[10px]"
-                          />
-                          {!disabled && (
-                            <button
-                              onClick={() => handleRemoveAssetFromCurrent(assetId)}
-                              aria-label="Remove image"
-                              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-[0.96] group-hover:opacity-100"
-                            >
-                              <X className="size-3" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {!disabled && canAddAsset && onOpenMediaLibrary && (
-                      hasAssets ? (
-                        <button
-                          onClick={onOpenMediaLibrary}
-                          title="Pick from Media Library"
-                          aria-label="Add another image"
-                          className="flex size-20 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-white/15 text-muted-foreground transition-[background-color,border-color,color,scale] duration-200 hover:border-violet-400/50 hover:bg-violet-500/[0.06] hover:text-violet-300 active:scale-[0.97]"
-                        >
-                          <ImagePlus className="size-5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={onOpenMediaLibrary}
-                          className="group flex items-center gap-2.5 rounded-full bg-white/[0.04] py-1.5 pl-1.5 pr-3.5 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/10 hover:inset-ring-violet-400/40 active:scale-[0.97]"
-                        >
-                          <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
-                            <ImagePlus className="size-3.5" />
-                          </span>
-                          Add an image from the library
-                        </button>
-                      )
-                    )}
-                  </div>
                 </div>
 
-              </Stagger>
-            </div>
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-              <span className="flex size-12 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
-                <Layers className="size-5" />
-              </span>
-              <h3 className="mt-4 text-[15px] font-semibold">
-                {isEmpty ? "No variations yet" : "No variation selected"}
-              </h3>
-              <p className="mt-1.5 max-w-[340px] text-[13px] text-muted-foreground text-pretty">
-                {isEmpty
-                  ? "Variations let you test alternate copy and images without touching the primary post."
-                  : "Pick one from the list to start editing."}
-              </p>
-              {isEmpty && !disabled && (
-                <button
-                  onClick={handleAddVariation}
-                  className="mt-5 flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+                <div className={cn("min-w-0", wideOnly)}>
+                  <ThumbStack assetIds={v.assetIds} mediaAssets={mediaAssets} />
+                </div>
+
+                <div className={cn("min-w-0", wideOnly)}>
+                  <LengthCell count={v.copy.length} />
+                </div>
+
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-end gap-0.5"
                 >
-                  <Plus className="size-4" />
-                  Add your first variation
-                </button>
-              )}
-            </div>
+                  {!disabled && (
+                    <>
+                      <RowAction
+                        label="Duplicate"
+                        onClick={() => duplicate(v)}
+                        icon={CopyIcon}
+                      />
+                      <RowAction
+                        label="Delete"
+                        destructive
+                        onClick={() => remove(v.id)}
+                        icon={Trash2}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
           )}
-        </main>
+        </Stagger>
+      </div>
+    </div>
+  );
+}
+
+function RowAction({
+  label,
+  icon: Icon,
+  destructive,
+  onClick,
+}: {
+  label: string;
+  icon: typeof CopyIcon;
+  destructive?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
+      className={cn(
+        "flex size-8 translate-x-1.5 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-[0.94] group-hover:translate-x-0 group-hover:opacity-100",
+        destructive
+          ? "hover:bg-destructive/15 hover:text-destructive"
+          : "hover:bg-white/[0.08] hover:text-foreground",
+      )}
+    >
+      <Icon className="size-3.5" />
+    </button>
+  );
+}
+
+/** Up to three overlapping thumbs, then a count. Reads as "how much art is here". */
+function ThumbStack({
+  assetIds,
+  mediaAssets,
+}: {
+  assetIds: string[];
+  mediaAssets: MediaAsset[];
+}) {
+  if (assetIds.length === 0) {
+    return <span className="text-[11px] text-muted-foreground/50">None</span>;
+  }
+  return (
+    <span className="flex items-center">
+      {assetIds.slice(0, 3).map((id, i) => (
+        <span
+          key={id}
+          className="size-7 shrink-0 overflow-hidden rounded-[7px] shadow-[0_1px_2px_rgba(0,0,0,0.35)] outline outline-1 -outline-offset-1 outline-white/10 ring-2 ring-[oklch(0.185_0_0)]"
+          style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i }}
+        >
+          <MediaThumb
+            compact
+            assetId={id}
+            type={mediaAssets.find((a) => a.id === id)?.type}
+            className="size-full !rounded-[7px]"
+          />
+        </span>
+      ))}
+      {assetIds.length > 3 && (
+        <span className="ml-1.5 text-[11px] tabular-nums text-muted-foreground">
+          +{assetIds.length - 3}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Characters against the tightest platform budget, in the app's traffic light. */
+function LengthCell({ count }: { count: number }) {
+  const zone = limitZone(count, PRIMARY_LIMIT.limit);
+  const pct = Math.min(100, (count / PRIMARY_LIMIT.limit) * 100);
+  return (
+    <span className="flex items-center gap-2">
+      <span className="relative h-1 w-8 shrink-0 overflow-hidden rounded-full bg-white/10">
+        <span
+          className={cn("absolute inset-y-0 left-0 rounded-full", LIMIT_ZONE[zone].bar)}
+          style={{ width: `${pct}%` }}
+        />
+      </span>
+      <span className={cn("text-[11px] tabular-nums", LIMIT_ZONE[zone].text)}>
+        {count}
+      </span>
+    </span>
+  );
+}
+
+function VariationNameEdit({
+  initial,
+  onCommit,
+  onDone,
+}: {
+  initial: string;
+  onCommit: (value: string) => void;
+  onDone: () => void;
+}) {
+  const [draft, setDraft] = useState(initial);
+  return (
+    <input
+      autoFocus
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={(e) => e.currentTarget.select()}
+      onBlur={() => {
+        onCommit(draft.trim());
+        onDone();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          onCommit(draft.trim());
+          onDone();
+        } else if (e.key === "Escape") {
+          e.stopPropagation();
+          onDone();
+        }
+      }}
+      aria-label="Variation name"
+      className="h-7 w-full rounded-md bg-white/[0.06] px-2 text-[13px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50 outline-none"
+    />
+  );
+}
+
+/**
+ * The writing surface for one variation — the same document sheet as the post
+ * itself, so switching between them does not feel like changing application.
+ */
+function VariationEditor({
+  variation,
+  index,
+  total,
+  mediaAssets,
+  disabled,
+  onBack,
+  onPatch,
+  onRemove,
+  onOpenMediaLibrary,
+}: {
+  variation: PostVariation;
+  index: number;
+  total: number;
+  mediaAssets: MediaAsset[];
+  disabled?: boolean;
+  onBack: () => void;
+  onPatch: (next: Partial<PostVariation>) => void;
+  onRemove: () => void;
+  onOpenMediaLibrary?: () => void;
+}) {
+  const [copyDraft, setCopyDraft] = useState(variation.copy);
+  const [labelDraft, setLabelDraft] = useState(variation.label);
+
+  // Drafts belong to THIS variation; remounting on id change is what keeps them
+  // from following you into the next row.
+  const flush = useCallback(() => {
+    const next: Partial<PostVariation> = {};
+    if (copyDraft !== variation.copy) next.copy = copyDraft;
+    if (labelDraft.trim() && labelDraft !== variation.label) next.label = labelDraft.trim();
+    if (Object.keys(next).length > 0) onPatch(next);
+  }, [copyDraft, labelDraft, variation.copy, variation.label, onPatch]);
+
+  useEffect(() => {
+    const interval = setInterval(flush, 30000);
+    return () => clearInterval(interval);
+  }, [flush]);
+
+  const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
+  const hasAssets = variation.assetIds.length > 0;
+  const canAddAsset = variation.assetIds.length < MAX_ASSETS;
+
+  function back() {
+    flush();
+    onBack();
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            onClick={back}
+            aria-label="Back to all variations"
+            title="Back to all variations (Esc)"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <div className="min-w-0">
+            <h2 className="truncate text-[15px] font-semibold tracking-tight">
+              {labelDraft || `Variation ${index + 1}`}
+            </h2>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              Alternate <span className="tabular-nums">{index + 1}</span> of{" "}
+              <span className="tabular-nums">{total}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          {!disabled && (
+            <button
+              onClick={onRemove}
+              className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-[0.96]"
+            >
+              <Trash2 className="size-3.5" />
+              Remove
+            </button>
+          )}
+          <button
+            onClick={back}
+            className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[12.5px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+          >
+            <Check className="size-3.5" />
+            Done
+          </button>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)] @container">
+        <div className="flex min-h-full items-start justify-center px-6 pb-12 pt-6">
+          <Stagger
+            index={0}
+            className={cn(
+              "flex w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] transition-[filter,box-shadow,background-color] duration-500",
+              disabled
+                ? "bg-white/[0.018] shadow-[0_1px_3px_rgba(0,0,0,0.45)] saturate-50 inset-ring-1 inset-ring-white/[0.05]"
+                : "bg-white/[0.028] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]",
+            )}
+          >
+            <div
+              aria-hidden
+              className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+            />
+
+            <div className="px-9 pb-7 pt-8">
+              <input
+                value={labelDraft}
+                onChange={(e) => setLabelDraft(e.target.value)}
+                onBlur={flush}
+                disabled={disabled}
+                aria-label="Variation name"
+                placeholder="Untitled variation"
+                className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[22px] font-semibold leading-tight tracking-[-0.02em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+              />
+            </div>
+
+            <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
+              <div className="flex min-h-11 items-center px-9 py-2">
+                <label
+                  htmlFor="variation-copy"
+                  className="w-fit cursor-pointer text-[13px] font-medium text-muted-foreground"
+                >
+                  Alternate copy
+                </label>
+              </div>
+              <textarea
+                id="variation-copy"
+                value={copyDraft}
+                onChange={(e) => setCopyDraft(e.target.value)}
+                onBlur={flush}
+                disabled={disabled}
+                placeholder="Write the alternate version…"
+                className="block min-h-[220px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[15px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+              <div className="px-9 pb-4 text-[11px] tabular-nums text-muted-foreground">
+                {wordCount} {wordCount === 1 ? "word" : "words"}
+                <span className="mx-1.5 text-muted-foreground/40">·</span>
+                {copyDraft.length} characters
+              </div>
+            </div>
+
+            <div
+              className={cn(
+                "grid grid-cols-1 gap-x-4 gap-y-3 border-t border-white/[0.06] px-9 py-4",
+                "@[560px]:grid-cols-[132px_minmax(0,1fr)]",
+                hasAssets ? "items-start" : "items-center",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-[13px] font-medium text-muted-foreground",
+                  hasAssets && "@[560px]:pt-2",
+                )}
+              >
+                Images
+                {hasAssets && (
+                  <span className="ml-1.5 tabular-nums text-muted-foreground/70">
+                    {variation.assetIds.length}/{MAX_ASSETS}
+                  </span>
+                )}
+              </span>
+
+              <div
+                className={cn(
+                  "flex min-w-0 flex-wrap gap-2.5",
+                  hasAssets ? "justify-start" : "@[560px]:justify-end",
+                )}
+              >
+                {variation.assetIds.map((assetId) => (
+                  <div
+                    key={assetId}
+                    className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
+                  >
+                    <MediaThumb
+                      assetId={assetId}
+                      type={mediaAssets.find((a) => a.id === assetId)?.type}
+                      className="size-full !rounded-[10px]"
+                    />
+                    {!disabled && (
+                      <button
+                        onClick={() =>
+                          onPatch({
+                            assetIds: variation.assetIds.filter((id) => id !== assetId),
+                          })
+                        }
+                        aria-label="Remove image"
+                        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-[0.96] group-hover:opacity-100"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {!disabled &&
+                  canAddAsset &&
+                  onOpenMediaLibrary &&
+                  (hasAssets ? (
+                    <button
+                      onClick={() => {
+                        flush();
+                        onOpenMediaLibrary();
+                      }}
+                      title="Pick from Media Library"
+                      aria-label="Add another image"
+                      className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+                    >
+                      <ImagePlus className="size-5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        flush();
+                        onOpenMediaLibrary();
+                      }}
+                      className="group flex items-center gap-2.5 rounded-full bg-white/[0.04] py-1.5 pl-1.5 pr-3.5 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/10 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+                    >
+                      <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
+                        <ImagePlus className="size-3.5" />
+                      </span>
+                      Add an image from the library
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </Stagger>
+        </div>
       </div>
     </div>
   );

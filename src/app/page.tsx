@@ -11,7 +11,7 @@ import {
   LAYOUT_STORAGE_KEY,
   type ComposerLayout,
 } from "@/components/content-planner/session-detail-pane";
-import { DiscussionPanel } from "@/components/content-planner/discussion-panel";
+import { FeedbackPanel } from "@/components/content-planner/feedback-panel";
 import { TableStyleToggle } from "@/components/content-planner/table-style-toggle";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { InviteModal } from "@/components/content-planner/invite-modal";
@@ -26,7 +26,65 @@ import {
   mediaFolders,
   sessions as initialSessions,
 } from "@/lib/mock-data";
-import type { HistoryEntry, PostType, Session } from "@/lib/types";
+import type {
+  CustomCellValues,
+  CustomColumn,
+  Feedback,
+  FeedbackStatus,
+  PostType,
+  Session,
+} from "@/lib/types";
+import { feedbackStatusMeta } from "@/lib/feedback";
+
+const COLUMNS_STORAGE_KEY = "cp_custom_columns";
+const CELLS_STORAGE_KEY = "cp_custom_cells";
+
+/**
+ * Sessions saved by earlier builds carry a single `sentToCampaignId`. Reading
+ * them back without this leaves `sentToCampaignIds` undefined, and every call
+ * that asks "is this sent?" throws on the missing array.
+ */
+type LegacyComment = {
+  id: string;
+  author: Session["lastEditedBy"];
+  fieldLabel?: string;
+  text: string;
+  createdAt: string;
+  replies?: LegacyComment[];
+};
+
+function migrateSession(
+  s: Session & { sentToCampaignId?: string | null; comments?: LegacyComment[] },
+): Session {
+  const next = { ...s };
+
+  if (!Array.isArray(next.sentToCampaignIds)) {
+    const legacy = s.sentToCampaignId;
+    next.sentToCampaignIds = legacy ? [legacy] : [];
+  }
+
+  // Comments became feedback, and threads went away with them: a reply carries
+  // the same weight as the note it answered, so it is flattened into its own
+  // item rather than silently dropped.
+  if (!Array.isArray(next.feedback)) {
+    const flat: Feedback[] = [];
+    const visit = (c: LegacyComment, section?: string) => {
+      flat.push({
+        id: c.id,
+        author: c.author ?? currentUser,
+        sectionLabel: c.fieldLabel ?? section,
+        text: c.text,
+        createdAt: c.createdAt,
+        status: "open",
+      });
+      c.replies?.forEach((r) => visit(r, c.fieldLabel));
+    };
+    (s.comments ?? []).forEach((c) => visit(c));
+    next.feedback = flat;
+  }
+
+  return next;
+}
 
 function createBlankSession(id: string, postType: PostType = "Image"): Session {
   const now = new Date().toISOString();
@@ -43,10 +101,10 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
     copy: "",
     variations: [],
     hashtags: "",
-    sentToCampaignId: null,
+    sentToCampaignIds: [],
     sentAt: null,
     tags: [],
-    comments: [],
+    feedback: [],
     history: [],
   };
 }
@@ -60,12 +118,62 @@ export default function Home() {
   const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0].id);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [discussionOpen, setDiscussionOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [showPostType, setShowPostType] = useState(false);
-  const [discussionField, setDiscussionField] = useState<string | undefined>(undefined);
+  const [feedbackSection, setFeedbackSection] = useState<string | undefined>(undefined);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
+
+  // Custom table columns live here, above the table, so adding a column, naming
+  // it and filling cells all survive filtering, sorting, paging and reloads.
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+  const [customCellValues, setCustomCellValues] = useState<CustomCellValues>({});
+
+  function addColumn() {
+    const id = `col-${Date.now()}`;
+    setCustomColumns((prev) => [
+      ...prev,
+      { id, name: `Column ${prev.length + 1}` },
+    ]);
+    return id;
+  }
+
+  function renameColumn(colId: string, name: string) {
+    setCustomColumns((prev) =>
+      prev.map((c) => (c.id === colId ? { ...c, name: name || "Column" } : c)),
+    );
+  }
+
+  /** Deleting a column takes its cell values with it — leaving them behind
+      would silently resurrect old text under a new column of the same id. */
+  function deleteColumn(colId: string) {
+    setCustomColumns((prev) => prev.filter((c) => c.id !== colId));
+    setCustomCellValues((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([sessionId, cells]) => {
+          const { [colId]: _removed, ...rest } = cells;
+          return [sessionId, rest];
+        }),
+      ),
+    );
+  }
+
+  function setCellValue(sessionId: string, colId: string, value: string) {
+    setCustomCellValues((prev) => ({
+      ...prev,
+      [sessionId]: { ...(prev[sessionId] ?? {}), [colId]: value },
+    }));
+  }
+
+  const customColumnProps = {
+    customColumns,
+    customCellValues,
+    onAddColumn: addColumn,
+    onRenameColumn: renameColumn,
+    onDeleteColumn: deleteColumn,
+    onSetCellValue: setCellValue,
+  };
 
   // One switch drives the table style and the detail-pane layout together.
   function changeTableStyle(next: ComposerLayout) {
@@ -98,8 +206,22 @@ export default function Home() {
         const parsed: Session[] = JSON.parse(savedSessions);
         const seen = new Set<string>();
         setSessions(
-          parsed.filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true))),
+          parsed
+            .filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true)))
+            .map(migrateSession),
         );
+      } catch (e) {}
+    }
+    const savedColumns = localStorage.getItem(COLUMNS_STORAGE_KEY);
+    if (savedColumns) {
+      try {
+        setCustomColumns(JSON.parse(savedColumns));
+      } catch (e) {}
+    }
+    const savedCells = localStorage.getItem(CELLS_STORAGE_KEY);
+    if (savedCells) {
+      try {
+        setCustomCellValues(JSON.parse(savedCells));
       } catch (e) {}
     }
   }, []);
@@ -121,6 +243,18 @@ export default function Home() {
       localStorage.setItem("cp_sessions", JSON.stringify(sessions));
     }
   }, [sessions, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(customColumns));
+    }
+  }, [customColumns, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(CELLS_STORAGE_KEY, JSON.stringify(customCellValues));
+    }
+  }, [customCellValues, mounted]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -229,38 +363,80 @@ export default function Home() {
     );
   }
 
-  function addComment(id: string, text: string, parentId?: string, fieldLabel?: string) {
-    const newComment = {
-      id: `comment-${Date.now()}`,
+  function addFeedback(id: string, text: string, sectionLabel?: string) {
+    const item: Feedback = {
+      id: `fb-${Date.now()}`,
       author: currentUser,
       text,
-      // Which field the comment anchor was clicked on, so it lands attached
-      // instead of floating at the top level.
-      ...(fieldLabel ? { fieldLabel } : {}),
+      // Which section the affordance was clicked on, so it lands attached
+      // instead of floating against the whole post.
+      ...(sectionLabel ? { sectionLabel } : {}),
       createdAt: new Date().toISOString(),
+      status: "open",
     };
     setSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, feedback: [...s.feedback, item] } : s)),
+    );
+  }
+
+  /**
+   * Moving a piece of feedback is a real event in the life of the post, so it is
+   * logged — otherwise "who closed this, and when" is unanswerable, which is
+   * exactly the question a status invites.
+   */
+  function setFeedbackStatus(
+    sessionId: string,
+    feedbackId: string,
+    status: FeedbackStatus,
+  ) {
+    const now = new Date().toISOString();
+    setSessions((prev) =>
       prev.map((s) => {
-        if (s.id !== id) return s;
-        if (!parentId) {
-          return { ...s, comments: [...s.comments, newComment] };
-        }
-        // Append reply to the parent comment's replies array
+        if (s.id !== sessionId) return s;
+        const target = s.feedback.find((f) => f.id === feedbackId);
+        if (!target || target.status === status) return s;
+        const resolved = !feedbackStatusMeta(status).active;
         return {
           ...s,
-          comments: s.comments.map((c) =>
-            c.id === parentId
-              ? { ...c, replies: [...(c.replies ?? []), newComment] }
-              : c
+          feedback: s.feedback.map((f) =>
+            f.id === feedbackId
+              ? {
+                  ...f,
+                  status,
+                  resolvedBy: resolved ? currentUser : null,
+                  resolvedAt: resolved ? now : null,
+                }
+              : f,
           ),
+          history: [
+            ...s.history,
+            {
+              id: `hist-${Date.now()}-feedback`,
+              actor: currentUser,
+              action: `marked feedback “${
+                target.text.length > 40 ? `${target.text.slice(0, 40)}…` : target.text
+              }” as ${feedbackStatusMeta(status).label}`,
+              createdAt: now,
+            },
+          ],
         };
       }),
     );
   }
 
-  function shareSessionToCampaign(sessionId: string, campaignId: string) {
+  /**
+   * Sending is additive: a post already live in one campaign stays there when it
+   * is also sent to another, so the ids are merged rather than replaced.
+   */
+  function shareSessionToCampaigns(sessionId: string, campaignIds: string[]) {
+    if (campaignIds.length === 0) return;
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    const merged = Array.from(
+      new Set([...session.sentToCampaignIds, ...campaignIds]),
+    );
     updateSession(sessionId, {
-      sentToCampaignId: campaignId,
+      sentToCampaignIds: merged,
       sentAt: new Date().toISOString(),
     });
   }
@@ -284,8 +460,11 @@ export default function Home() {
   // campaign's own platform/scheduling settings, not straight to Approved.
   function importSessionsToCampaign(sessionIds: string[], campaignId: string) {
     sessionIds.forEach((id) => {
+      const session = sessions.find((s) => s.id === id);
       updateSession(id, {
-        sentToCampaignId: campaignId,
+        sentToCampaignIds: Array.from(
+          new Set([...(session?.sentToCampaignIds ?? []), campaignId]),
+        ),
         sentAt: null,
         status: "wip",
       });
@@ -294,6 +473,10 @@ export default function Home() {
 
   function deleteSession(id: string) {
     setSessions((prev) => prev.filter((s) => s.id !== id));
+    setCustomCellValues((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
     setCampaigns((prev) =>
       prev.map((c) => ({
         ...c,
@@ -326,7 +509,7 @@ export default function Home() {
       id: newId,
       title: `${source.title} (Copy)`,
       status: "draft",
-      sentToCampaignId: null,
+      sentToCampaignIds: [],
       sentAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -409,10 +592,10 @@ export default function Home() {
             : `${topic} copy for item ${i + 1}. Sharing what we shipped and why it matters.`,
         variations: [],
         hashtags: i % 4 === 0 ? "#product #launch" : "",
-        sentToCampaignId: null,
+        sentToCampaignIds: [],
         sentAt: null,
         tags: [TAGS[i % TAGS.length], TAGS[(i + 3) % TAGS.length]],
-        comments: [],
+        feedback: [],
         history: [],
       };
     });
@@ -587,6 +770,7 @@ export default function Home() {
                       onOpenSend={setSendSheetSessionId}
                       onDeleteSession={deleteSession}
                       onUnlockSession={unlockSession}
+                      {...customColumnProps}
                     />
                   </div>
                 ) : (
@@ -597,6 +781,7 @@ export default function Home() {
                   onOpenSend={setSendSheetSessionId}
                   onDeleteSession={deleteSession}
                   onUnlockSession={unlockSession}
+                  {...customColumnProps}
                 />
                 )}
               </div>
@@ -631,6 +816,7 @@ export default function Home() {
             onImportToCampaign={importSessionsToCampaign}
             onCreateCampaign={createCampaign}
             tableStyle={composerLayout}
+            {...customColumnProps}
           />
         )}
       </div>
@@ -665,14 +851,14 @@ export default function Home() {
                     mediaAssets={mediaAssets}
                     onUpdate={(patch) => updateSession(selectedSession.id, patch)}
                     onClose={() => setSelectedSessionId(null)}
-                    isDiscussionOpen={discussionOpen}
-                    onToggleDiscussion={() => {
-                      setDiscussionOpen((v) => !v);
-                      setDiscussionField(undefined);
+                    isFeedbackOpen={feedbackOpen}
+                    onToggleFeedback={() => {
+                      setFeedbackOpen((v) => !v);
+                      setFeedbackSection(undefined);
                     }}
-                    onOpenDiscussion={(fieldLabel) => {
-                      setDiscussionOpen(true);
-                      setDiscussionField(fieldLabel);
+                    onOpenFeedback={(sectionLabel) => {
+                      setFeedbackOpen(true);
+                      setFeedbackSection(sectionLabel);
                     }}
                     onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
                     hidePlatforms={true}
@@ -682,19 +868,22 @@ export default function Home() {
                     composerLayout={composerLayout}
                   />
                 </div>
-                <DiscussionPanel
+                <FeedbackPanel
                   session={selectedSession}
-                  isOpen={discussionOpen}
+                  isOpen={feedbackOpen}
                   onClose={() => {
-                    setDiscussionOpen(false);
-                    setDiscussionField(undefined);
+                    setFeedbackOpen(false);
+                    setFeedbackSection(undefined);
                   }}
-                  onAddComment={(text, parentId, fieldLabel) =>
-                    addComment(selectedSession.id, text, parentId, fieldLabel)
+                  onAddFeedback={(text, sectionLabel) =>
+                    addFeedback(selectedSession.id, text, sectionLabel)
+                  }
+                  onSetStatus={(feedbackId, status) =>
+                    setFeedbackStatus(selectedSession.id, feedbackId, status)
                   }
                   onClearHistory={() => clearHistory(selectedSession.id)}
-                  pendingFieldLabel={discussionField}
-                  onClearPendingField={() => setDiscussionField(undefined)}
+                  pendingSectionLabel={feedbackSection}
+                  onClearPendingSection={() => setFeedbackSection(undefined)}
                 />
               </div>
             )}
@@ -708,9 +897,15 @@ export default function Home() {
           if (!open) setSendSheetSessionId(null);
         }}
         campaigns={campaigns}
-        onShare={(campaignId) => {
+        session={sessions.find((s) => s.id === sendSheetSessionId) ?? null}
+        // Which campaigns it is already in, so the sheet can mark them as sent
+        // rather than offering them again as a fresh destination.
+        alreadySentTo={
+          sessions.find((s) => s.id === sendSheetSessionId)?.sentToCampaignIds ?? []
+        }
+        onShare={(campaignIds) => {
           if (sendSheetSessionId) {
-            shareSessionToCampaign(sendSheetSessionId, campaignId);
+            shareSessionToCampaigns(sendSheetSessionId, campaignIds);
           }
         }}
         allowCreateCampaign={mode === "new"}

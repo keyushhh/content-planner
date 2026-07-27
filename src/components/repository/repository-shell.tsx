@@ -33,9 +33,19 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import type { Campaign, Session } from "@/lib/types";
+import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
-interface RepositoryShellProps {
+/** Custom-column state is owned by the page, so it travels as one bundle. */
+export interface CustomColumnProps {
+  customColumns: CustomColumn[];
+  customCellValues: CustomCellValues;
+  onAddColumn: () => string;
+  onRenameColumn: (colId: string, name: string) => void;
+  onDeleteColumn: (colId: string) => void;
+  onSetCellValue: (sessionId: string, colId: string, value: string) => void;
+}
+
+interface RepositoryShellProps extends CustomColumnProps {
   sessions: Session[];
   campaigns: Campaign[];
   selectedSessionId: string | null;
@@ -104,6 +114,7 @@ export function RepositoryShell({
   onImportToCampaign,
   onCreateCampaign,
   tableStyle,
+  ...columnProps
 }: RepositoryShellProps) {
   const [view, setView] = useState<View>("repository");
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -151,7 +162,9 @@ export function RepositoryShell({
   const scopedSessions =
     view === "repository"
       ? sessions
-      : sessions.filter((s) => s.sentToCampaignId === activeCampaign?.id);
+      : sessions.filter((s) =>
+          activeCampaign ? s.sentToCampaignIds.includes(activeCampaign.id) : false,
+        );
 
   const allTags = Array.from(new Set(sessions.flatMap((s) => s.tags))).sort();
 
@@ -190,7 +203,9 @@ export function RepositoryShell({
   );
   const isFiltered = q.length > 0 || activeTags.length > 0 || statusFilter.length > 0;
 
-  const importCandidates = sessions.filter((s) => s.sentToCampaignId === null);
+  const importCandidates = sessions.filter(
+    (s) => !activeCampaign || !s.sentToCampaignIds.includes(activeCampaign.id),
+  );
   const isCanvas = tableStyle === "canvas";
 
   const title = view === "repository" ? "Repository" : activeCampaign?.name ?? "";
@@ -397,6 +412,7 @@ export function RepositoryShell({
               onDeleteSession={onDeleteSession}
               onUnlockSession={onUnlockSession}
               onDuplicateSession={onDuplicateSession}
+              {...columnProps}
               emptyState={
                 isFiltered
                   ? {
@@ -534,6 +550,7 @@ export function RepositoryShell({
             onDeleteSession={onDeleteSession}
             onUnlockSession={onUnlockSession}
             onDuplicateSession={onDuplicateSession}
+            {...columnProps}
             emptyState={
               view === "repository"
                 ? {
