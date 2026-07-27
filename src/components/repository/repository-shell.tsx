@@ -29,6 +29,7 @@ import {
   Search,
   X,
   ArrowUpDown,
+  CircleDot,
   ChevronDown,
   Check,
 } from "lucide-react";
@@ -51,11 +52,30 @@ interface RepositoryShellProps {
 
 type View = "repository" | { campaignId: string };
 
-type SortKey = "edited" | "created" | "name" | "status";
+type SortKey = "edited" | "created" | "name";
 
-// approved first — most actionable at the top
-const STATUS_RANK: Record<Session["status"], number> = { approved: 0, wip: 1, draft: 2 };
+const SORT_MENU: SortKey[] = ["edited", "created", "name"];
 
+/**
+ * Cycle order for clicking the Status column header: off, then each status in
+ * workflow order. `null` is the "All" stop, so one more click always gets you
+ * back to everything rather than trapping you in a filter.
+ */
+const STATUS_CYCLE: (Session["status"] | null)[] = [null, "approved", "wip", "draft"];
+
+/** Filterable statuses, in workflow order. */
+const STATUSES: { id: Session["status"]; label: string }[] = [
+  { id: "approved", label: "Approved" },
+  { id: "wip", label: "WIP" },
+  { id: "draft", label: "Draft" },
+];
+
+/**
+ * Status is a FILTER, not a sort. "Sort by status" only ever answered "which
+ * bucket is at the top" — nobody wants that; they want to see the approved ones
+ * and nothing else. So the Status column header filters too, rather than
+ * offering an ordering nobody asked for.
+ */
 const SORTS: Record<SortKey, { label: string; compare: (a: Session, b: Session) => number }> = {
   edited: {
     label: "Recently edited",
@@ -68,12 +88,6 @@ const SORTS: Record<SortKey, { label: string; compare: (a: Session, b: Session) 
   name: {
     label: "Name A\u2013Z",
     compare: (a, b) => a.title.localeCompare(b.title),
-  },
-  status: {
-    label: "Status",
-    compare: (a, b) =>
-      STATUS_RANK[a.status] - STATUS_RANK[b.status] ||
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   },
 };
 
@@ -97,6 +111,39 @@ export function RepositoryShell({
   const [showInvite, setShowInvite] = useState(false);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("edited");
+  // Each SORTS compare defines its own natural order; `reversed` flips it, which
+  // is what a second click on an already-active column header means.
+  const [reversed, setReversed] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<Session["status"][]>([]);
+
+  /** What the Status control currently reads as. */
+  const statusLabel =
+    statusFilter.length === 0
+      ? "Status"
+      : statusFilter.length === 1
+      ? STATUSES.find((s) => s.id === statusFilter[0])!.label
+      : `${statusFilter.length} statuses`;
+
+  /** Clicking the Status column header steps through the cycle above. */
+  function cycleStatus() {
+    const current = statusFilter.length === 1 ? statusFilter[0] : null;
+    const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
+    setStatusFilter(next ? [next] : []);
+  }
+
+  function toggleStatus(status: Session["status"]) {
+    setStatusFilter((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status],
+    );
+  }
+
+  function requestSort(key: SortKey) {
+    if (key === sort) setReversed((r) => !r);
+    else {
+      setSort(key);
+      setReversed(false);
+    }
+  }
 
   const activeCampaign =
     typeof view === "object" ? campaigns.find((c) => c.id === view.campaignId) ?? null : null;
@@ -118,10 +165,15 @@ export function RepositoryShell({
     }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
-  const visibleSessions =
+  const taggedSessions =
     activeTags.length === 0
       ? scopedSessions
       : scopedSessions.filter((s) => s.tags.some((t) => activeTags.includes(t)));
+
+  const visibleSessions =
+    statusFilter.length === 0
+      ? taggedSessions
+      : taggedSessions.filter((s) => statusFilter.includes(s.status));
 
   const q = search.trim().toLowerCase();
   const searched = q
@@ -133,8 +185,10 @@ export function RepositoryShell({
       )
     : visibleSessions;
 
-  const sorted = [...searched].sort(SORTS[sort].compare);
-  const isFiltered = q.length > 0 || activeTags.length > 0;
+  const sorted = [...searched].sort(
+    reversed ? (a, b) => SORTS[sort].compare(b, a) : SORTS[sort].compare,
+  );
+  const isFiltered = q.length > 0 || activeTags.length > 0 || statusFilter.length > 0;
 
   const importCandidates = sessions.filter((s) => s.sentToCampaignId === null);
   const isCanvas = tableStyle === "canvas";
@@ -226,6 +280,53 @@ export function RepositoryShell({
               />
 
               <div className="ml-auto flex items-center gap-1.5">
+                {/* Status filter — multi-select, so "Approved + WIP" is one step.
+                    Lights violet while narrowing, the same signal the tag chips
+                    use, so you can never forget a filter is on. */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <button
+                        title="Filter by status"
+                        className={cn(
+                          "flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
+                          statusFilter.length > 0
+                            ? "bg-violet-500/[0.16] text-violet-100 inset-ring-violet-400/45"
+                            : "bg-white/[0.035] text-muted-foreground inset-ring-white/[0.08] hover:text-foreground",
+                        )}
+                      />
+                    }
+                  >
+                    <CircleDot className="size-3.5" />
+                    {statusLabel}
+                    <ChevronDown className="size-3.5 opacity-60" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {/* "All" is the no-filter state stated out loud. Without it the
+                        only way back was unticking whatever you had ticked, which
+                        is not something you should have to reason about. */}
+                    <DropdownMenuItem onClick={() => setStatusFilter([])}>
+                      <span className="flex-1">All</span>
+                      {statusFilter.length === 0 && (
+                        <Check className="size-3.5 text-violet-300" />
+                      )}
+                    </DropdownMenuItem>
+                    {STATUSES.map(({ id, label }) => (
+                      <DropdownMenuItem
+                        key={id}
+                        // keep the menu open: picking statuses is usually plural
+                        closeOnClick={false}
+                        onClick={() => toggleStatus(id)}
+                      >
+                        <span className="flex-1">{label}</span>
+                        {statusFilter.includes(id) && (
+                          <Check className="size-3.5 text-violet-300" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
@@ -240,8 +341,8 @@ export function RepositoryShell({
                     <ChevronDown className="size-3.5 opacity-60" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {(Object.keys(SORTS) as SortKey[]).map((key) => (
-                      <DropdownMenuItem key={key} onClick={() => setSort(key)}>
+                    {SORT_MENU.map((key) => (
+                      <DropdownMenuItem key={key} onClick={() => requestSort(key)}>
                         <span className="flex-1">{SORTS[key].label}</span>
                         {sort === key && <Check className="size-3.5 text-violet-300" />}
                       </DropdownMenuItem>
@@ -280,9 +381,15 @@ export function RepositoryShell({
 
             <SessionsTable
               // remount on filter change so the row window restarts at page 1
-              key={`${q}|${activeTags.join(",")}|${sort}`}
+              key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}|${sort}|${reversed}`}
               variant="canvas"
               pageSize={15}
+              sortKey={sort}
+              sortReversed={reversed}
+              onSort={(key) => requestSort(key as SortKey)}
+              statusLabel={statusLabel}
+              statusFiltered={statusFilter.length > 0}
+              onCycleStatus={cycleStatus}
               sessions={sorted}
               selectedSessionId={selectedSessionId}
               onSelectSession={onSelectSession}
@@ -419,7 +526,7 @@ export function RepositoryShell({
         <div className="min-h-0 flex-1">
           <SessionsTable
             // remount on filter change so the row window restarts at page 1
-            key={`${q}|${activeTags.join(",")}`}
+            key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}`}
             sessions={sorted}
             selectedSessionId={selectedSessionId}
             onSelectSession={onSelectSession}

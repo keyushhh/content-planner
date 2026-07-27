@@ -33,13 +33,23 @@ const THEMES: Record<string, { bg: string; border: string; iconBg: string; textC
   },
 };
 
+/**
+ * `compact` is the composer's reading. The full tile packs a 44px icon well and
+ * an uppercase "PNG IMAGE" caption into whatever box it is given — at the 80px
+ * the composer uses, that is a cramped label crushed under an oversized icon,
+ * and the per-type gradient makes a thumbnail shout louder than the post. Small
+ * tiles get the glyph alone on a neutral surface; the media library keeps the
+ * labelled version, where there is room for it and naming the format helps.
+ */
 export function MediaThumb({
   assetId,
   type = "image",
+  compact = false,
   className,
 }: {
   assetId: string;
   type?: MediaAssetType;
+  compact?: boolean;
   className?: string;
 }) {
   const isEmbed = type === "embed";
@@ -47,6 +57,22 @@ export function MediaThumb({
 
   const key = isEmbed ? "embed" : isPdf ? "pdf" : assetId.includes("logo") ? "png" : "jpg";
   const theme = THEMES[key] || THEMES.png;
+
+  const Glyph = isEmbed ? Link2 : isPdf ? FileText : ImageIcon;
+
+  if (compact) {
+    return (
+      <div
+        title={theme.label}
+        className={cn(
+          "flex items-center justify-center rounded-xl bg-white/[0.05] text-muted-foreground",
+          className,
+        )}
+      >
+        <Glyph className="size-5" />
+      </div>
+    );
+  }
 
   return (
     <div

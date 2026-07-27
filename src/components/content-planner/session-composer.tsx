@@ -5,8 +5,12 @@ import {
   AlertCircle,
   AtSign,
   Check,
+  ChevronDown,
   ChevronsRight,
   Layers,
+  Layers2,
+  Image as ImageIcon,
+  Repeat2,
   Loader2,
   Lock,
   MessageCircle,
@@ -20,7 +24,15 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn, countComments } from "@/lib/utils";
 import { MediaThumb } from "./media-thumb";
-import type { Comment, MediaAsset, Platform, Session } from "@/lib/types";
+import { PostTypeModal } from "./post-type-modal";
+import type { Comment, MediaAsset, Platform, PostType, Session } from "@/lib/types";
+
+/** Post types offered in the composer, matching the creation modal. */
+export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
+  { id: "Image", icon: ImageIcon },
+  { id: "Frames", icon: Layers2 },
+  { id: "Reshare", icon: Repeat2 },
+];
 
 export const HASHTAG_SUGGESTIONS = [
   "#product",
@@ -140,8 +152,6 @@ export function SessionComposer({
   onTitleChange,
   copyDraft,
   onCopyChange,
-  hashtagsDraft,
-  onHashtagsChange,
   tagDraft,
   onTagDraftChange,
   saveStatus,
@@ -166,6 +176,7 @@ export function SessionComposer({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [typeModalOpen, setTypeModalOpen] = useState(false);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
 
@@ -176,8 +187,14 @@ export function SessionComposer({
 
   const checklist = [
     { label: "Copy written", done: copyDraft.trim().length > 0, required: true },
-    { label: "Asset attached", done: session.visualAssetIds.length > 0 },
-    { label: "Hashtags added", done: hashtagsDraft.trim().length > 0 },
+    ...(session.postType === "Reshare"
+      ? []
+      : [
+          {
+            label: session.postType === "Frames" ? "Frame attached" : "Asset attached",
+            done: session.visualAssetIds.length > 0,
+          },
+        ]),
     { label: "Tagged", done: session.tags.length > 0 },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
@@ -228,6 +245,8 @@ export function SessionComposer({
           )}
 
           {layoutToggle}
+
+          <Byline session={session} />
 
           <SaveChip
             saveStatus={saveStatus}
@@ -322,26 +341,6 @@ export function SessionComposer({
                   placeholder="Untitled session"
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
-                <div className="mt-2 flex items-center gap-2 pl-0.5 text-[13px] text-muted-foreground">
-                  <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
-                    <AvatarFallback className="text-[9px]">
-                      {session.lastEditedBy?.name?.[0] ?? "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-foreground/80">
-                    {session.lastEditedBy?.name ?? "Unknown"}
-                  </span>
-                  <Dot />
-                  <span className="tabular-nums">
-                    Edited{" "}
-                    {new Date(session.updatedAt).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
               </Stagger>
 
               {/* Copy leads — it is the artifact. Assets support it and sit below. */}
@@ -366,24 +365,85 @@ export function SessionComposer({
                       </div>
                     }
                   />
-                  <textarea
-                    value={copyDraft}
-                    onChange={(e) => onCopyChange(e.target.value)}
-                    onBlur={() => savePendingChanges("blur")}
-                    placeholder="Write your post…"
-                    disabled={isCampaignLocked}
-                    className="block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
-                  />
+                  {/* relative: hosts the stand-in caret below */}
+                  <div className="relative">
+                    <textarea
+                      value={copyDraft}
+                      onChange={(e) => onCopyChange(e.target.value)}
+                      onBlur={() => savePendingChanges("blur")}
+                      placeholder="Write your post…"
+                      disabled={isCampaignLocked}
+                      className="peer block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-70"
+                    />
+                    {!copyDraft && !isCampaignLocked && (
+                      <span
+                        aria-hidden
+                        style={{ animation: "copy-caret-blink 1.1s steps(1, end) infinite" }}
+                        className="pointer-events-none absolute left-[12px] top-[19px] h-[18px] w-px bg-violet-400 peer-focus:!opacity-0"
+                      />
+                    )}
+                  </div>
                   <div className="border-t border-white/[0.06] px-4 py-2.5">
                     <CopyMeta words={wordCount} count={copyDraft.length} />
                   </div>
                 </Card>
               </Stagger>
 
-              <Stagger index={2}>
+              {/* Read-only: chosen before the pane opened, and it decides which
+                  cards appear below — changing it in place would rearrange the
+                  column under the cursor. */}
+              <Stagger index={2} className="mb-4">
+                <Card>
+                  <div className="group/row flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <span className="text-[13px] font-medium text-muted-foreground">
+                      Post type
+                    </span>
+                    <div className="flex items-center gap-1">
+                    <button
+                      disabled={isCampaignLocked}
+                      onClick={() => setTypeModalOpen(true)}
+                      title="Change post type"
+                      className="group/type -mr-1.5 flex h-8 items-center gap-2 rounded-full bg-white/[0.04] pl-2.5 pr-2 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] hover:inset-ring-white/[0.14] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+                    >
+                      {(() => {
+                        const Icon =
+                          POST_TYPES.find((t) => t.id === session.postType)?.icon ?? ImageIcon;
+                        return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
+                      })()}
+                      {session.postType}
+                      {/* always visible — see note in session-canvas.tsx */}
+                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors duration-150 group-hover/type:text-muted-foreground" />
+                    </button>
+                    <CommentButton
+                      comments={commentsFor("Post type")}
+                      onClick={() => onOpenDiscussion("Post type")}
+                    />
+                    </div>
+                  </div>
+                </Card>
+              </Stagger>
+
+              {/* Reshare keeps the original post's media, so there is nothing to
+                  pick — the row says so rather than offering a dead picker. */}
+              {session.postType === "Reshare" ? (
+                <Stagger index={3}>
+                  <Card>
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                      <span className="text-[13px] font-medium text-muted-foreground">
+                        Media
+                      </span>
+                      <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                        <Repeat2 className="size-3.5 shrink-0" />
+                        Comes from the post you&rsquo;re resharing
+                      </span>
+                    </div>
+                  </Card>
+                </Stagger>
+              ) : (
+              <Stagger index={3}>
                 <Card>
                   <CardHeader
-                    label="Assets"
+                    label={session.postType === "Frames" ? "Frames" : "Assets"}
                     comments={commentsFor("Assets")}
                     onComment={() => onOpenDiscussion("Assets")}
                     action={
@@ -406,9 +466,13 @@ export function SessionComposer({
                           <UploadCloud className="size-4" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[13px] font-medium">Add assets</span>
+                          <span className="block text-[13px] font-medium">
+                            {session.postType === "Frames" ? "Add frames" : "Add assets"}
+                          </span>
                           <span className="block truncate text-[11px] text-muted-foreground">
-                            Image, video or an embed code
+                            {session.postType === "Frames"
+                              ? "Several images, swiped in order"
+                              : "An image or a video"}
                           </span>
                         </span>
                       </button>
@@ -420,6 +484,7 @@ export function SessionComposer({
                             className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
                           >
                             <MediaThumb
+                              compact
                               assetId={assetId}
                               type={mediaAssets.find((a) => a.id === assetId)?.type}
                               className="size-full !rounded-[10px]"
@@ -456,6 +521,7 @@ export function SessionComposer({
                   </div>
                 </Card>
               </Stagger>
+              )}
             </div>
           </main>
 
@@ -520,42 +586,6 @@ export function SessionComposer({
               )}
 
               <Stagger index={2}>
-                <RailCard
-                  label="Hashtags"
-                  comments={commentsFor("Hashtags")}
-                  onComment={() => onOpenDiscussion("Hashtags")}
-                >
-                  <input
-                    value={hashtagsDraft}
-                    onChange={(e) => onHashtagsChange(e.target.value)}
-                    onBlur={() => savePendingChanges("blur")}
-                    placeholder="#product #launch"
-                    disabled={isCampaignLocked}
-                    className="h-10 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
-                  {!isCampaignLocked && (
-                    <ChipRow>
-                      {HASHTAG_SUGGESTIONS.filter((ht) => !hashtagsDraft.includes(ht))
-                        .slice(0, 5)
-                        .map((ht) => (
-                          <Chip
-                            key={ht}
-                            onClick={() => {
-                              const trimmed = hashtagsDraft.trim();
-                              const next = trimmed ? `${trimmed} ${ht}` : ht;
-                              onHashtagsChange(next);
-                              onUpdateWithPendingSave({ hashtags: next });
-                            }}
-                          >
-                            {ht}
-                          </Chip>
-                        ))}
-                    </ChipRow>
-                  )}
-                </RailCard>
-              </Stagger>
-
-              <Stagger index={3}>
                 <RailCard label="Tags">
                   <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
                     {session.tags.map((tag) => (
@@ -618,11 +648,12 @@ export function SessionComposer({
                 </RailCard>
               </Stagger>
 
-              <Stagger index={4}>
+              <Stagger index={3}>
                 <RailCard label="Details">
                   <dl className="divide-y divide-white/[0.06]">
+                    {/* "Last edited" lived here and in the toolbar byline — the
+                        same fact twice, six inches apart. */}
                     <DetailRow label="Created" value={formatDate(session.createdAt)} />
-                    <DetailRow label="Last edited" value={formatDate(session.updatedAt)} />
                     <DetailRow
                       label="Variations"
                       value={
@@ -642,6 +673,18 @@ export function SessionComposer({
           </aside>
         </div>
       </div>
+
+      <PostTypeModal
+        open={typeModalOpen}
+        onOpenChange={setTypeModalOpen}
+        mode="change"
+        current={session.postType}
+        onSelect={(postType) => {
+          // assets are kept, just unused while Reshare — nothing is destroyed
+          onUpdate({ postType });
+          setTypeModalOpen(false);
+        }}
+      />
 
       {unlockDialog}
     </div>
@@ -686,8 +729,9 @@ function Card({
       className={cn(
         "overflow-hidden rounded-2xl bg-white/[0.025] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_12px_28px_-20px_rgba(0,0,0,0.8)] inset-ring-1 inset-ring-white/[0.07] transition-[box-shadow] duration-200",
         fill && "flex min-h-0 flex-1 flex-col",
-        focusable &&
-          "focus-within:inset-ring-violet-400/40 focus-within:shadow-[0_1px_2px_rgba(0,0,0,0.25),0_0_0_4px_rgba(139,92,246,0.09)]",
+        // A lit hairline is enough. The 4px violet halo this used to add read as
+        // an error state stacked on top of a focus state.
+        focusable && "focus-within:inset-ring-violet-400/30",
       )}
     >
       {children}
@@ -707,7 +751,7 @@ function CardHeader({
   onComment?: () => void;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-1.5">
+    <div className="group/row flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-1.5">
       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </span>
@@ -752,12 +796,19 @@ export function CommentButton({
   comments: Comment[];
   onClick: () => void;
 }) {
+  // Empty state hides until you are actually in the section. Five identical grey
+  // bubbles down the sheet said "no comments here" five times — the same non-fact
+  // repeated, and it read as chrome rather than as an invitation. Once a thread
+  // exists the button is always visible, because then it carries real content.
+  //
+  // Requires `group/row` on the section that contains it.
   if (comments.length === 0) {
     return (
       <button
         onClick={onClick}
         aria-label="Add comment"
-        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/65 transition-[background-color,color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] hover:text-muted-foreground active:scale-[0.96]"
+        title="Comment on this section"
+        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/65 opacity-0 transition-[opacity,background-color,color,scale] duration-200 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] hover:text-muted-foreground focus-visible:opacity-100 active:scale-[0.96] group-hover/row:opacity-100 group-focus-within/row:opacity-100"
       >
         <MessageCircle className="size-3.5" />
       </button>
@@ -780,6 +831,29 @@ export function CommentButton({
   );
 }
 
+/**
+ * Who touched it last, and when. It sat under the post title, where it competed
+ * with the title for the eye and pushed the readiness line further down. It is
+ * provenance, not content — so it belongs in the toolbar beside the save state,
+ * which is the other thing on screen reporting on the file rather than in it.
+ */
+export function Byline({ session }: { session: Session }) {
+  return (
+    <span className="hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
+      <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-white/10">
+        <AvatarFallback className="text-[8px]">
+          {session.lastEditedBy?.name?.[0] ?? "?"}
+        </AvatarFallback>
+      </Avatar>
+      <span className="max-w-[120px] truncate">
+        {session.lastEditedBy?.name ?? "Unknown"}
+      </span>
+      <span aria-hidden className="size-1 shrink-0 rounded-full bg-muted-foreground/40" />
+      <span className="shrink-0 tabular-nums">{formatDate(session.updatedAt)}</span>
+    </span>
+  );
+}
+
 export function GhostAction({
   icon: Icon,
   onClick,
@@ -793,7 +867,10 @@ export function GhostAction({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-7 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+      // Link blue: these two navigate away from the copy field rather than
+      // acting on it, and blue is the one colour the web already reads as "goes
+      // somewhere". It also keeps them out of the violet the app spends on state.
+      className="flex h-7 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-[#60a5fa] transition-[background-color,color,scale] duration-150 hover:bg-[#60a5fa]/10 hover:text-[#93c5fd] active:scale-[0.96]"
     >
       <Icon className="size-3.5" />
       {children}
@@ -810,7 +887,7 @@ export function LimitMeter({
   count: number;
   limit: number;
 }) {
-  const over = count > limit;
+  const zone = limitZone(count, limit);
   const pct = Math.min(100, (count / limit) * 100);
   return (
     <div className="flex items-center gap-2">
@@ -819,22 +896,55 @@ export function LimitMeter({
         <span
           className={cn(
             "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-300",
-            over ? "bg-amber-400" : "bg-violet-400/85",
+            LIMIT_ZONE[zone].bar,
           )}
           style={{ width: `${pct}%`, transitionTimingFunction: EASE }}
         />
       </span>
-      <span
-        className={cn(
-          "text-[11px] tabular-nums",
-          over ? "font-medium text-amber-400" : "text-muted-foreground",
-        )}
-      >
+      <span className={cn("text-[11px] tabular-nums", LIMIT_ZONE[zone].text)}>
         {count}/{limit}
       </span>
     </div>
   );
 }
+
+/**
+ * Character budgets read as a traffic light rather than as brand colour: violet
+ * said nothing about whether you were safe, and the whole app is violet anyway,
+ * so the meter was decoration. Green / amber / red is the one colour language
+ * everybody already knows without a legend.
+ *
+ * The amber band starts at 90%, not 80% — warn too early and the warning stops
+ * meaning anything.
+ */
+export type LimitZone = "safe" | "near" | "over";
+
+export function limitZone(count: number, limit: number): LimitZone {
+  if (count >= limit) return "over";
+  if (count >= limit * 0.9) return "near";
+  return "safe";
+}
+
+export const LIMIT_ZONE: Record<
+  LimitZone,
+  { bar: string; text: string; chip: string }
+> = {
+  safe: {
+    bar: "bg-emerald-400/85",
+    text: "text-muted-foreground",
+    chip: "border-border/60 text-muted-foreground",
+  },
+  near: {
+    bar: "bg-amber-400",
+    text: "font-medium text-amber-400",
+    chip: "border-amber-500/50 bg-amber-500/10 text-amber-400",
+  },
+  over: {
+    bar: "bg-red-400",
+    text: "font-medium text-red-400",
+    chip: "border-red-500/50 bg-red-500/10 text-red-400",
+  },
+};
 
 /** Character budgets shown under the copy field, in reading order. */
 export const COPY_LIMITS: { label: string; limit: number }[] = [
@@ -882,7 +992,7 @@ export function AiAssistButton({ className }: { className?: string }) {
     <button
       title="AI Assist"
       className={cn(
-        "flex h-7 items-center gap-1.5 rounded-full bg-black px-2.5 text-xs font-medium text-white inset-ring-1 inset-ring-white/[0.13] transition-[background-color,scale] duration-150 hover:bg-[oklch(0.22_0_0)] active:scale-[0.96]",
+        "flex h-7 items-center gap-1.5 rounded-full bg-[oklch(0.19_0_0)] px-2.5 text-xs font-medium text-foreground/90 inset-ring-1 inset-ring-white/[0.12] transition-[background-color,color,scale] duration-150 hover:bg-[oklch(0.24_0_0)] hover:text-foreground active:scale-[0.96]",
         className,
       )}
     >

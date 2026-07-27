@@ -151,12 +151,16 @@
 
 /* Keyboard focus must be visible on every control, including the ones that
    suppress the default ring. :where() keeps specificity at zero so a component
-   can still opt out with its own layered rule if it ever needs to. */
+   can still opt out with its own layered rule if it ever needs to.
+
+   Text fields are deliberately EXCLUDED. Browsers treat them as focus-visible
+   even on a plain mouse click, so this rule drew a hard outline every time
+   anyone typed — full-bleed fields turned it into a stripe across the sheet.
+   Every field in the app already expresses focus its own way (violet caret,
+   lit hairline, background lift), which is the quieter and correct answer. */
 :where(
   a[href],
   button,
-  input,
-  textarea,
   select,
   summary,
   [role="button"],
@@ -203,4 +207,31 @@
 
 ::-webkit-scrollbar-thumb:active {
   background-color: oklch(1 0 0 / 32%);
+}
+
+/* Fake caret for the empty copy field. A textarea shows no caret until it is
+   focused, so an empty writing surface gives no sign that it is a writing
+   surface — this stands in until the real one takes over. */
+@keyframes copy-caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Post-type rows enter staggered, so the three options read as a short list
+   being offered rather than three buttons appearing at once. */
+@keyframes post-type-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

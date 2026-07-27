@@ -16,6 +16,7 @@ import { TableStyleToggle } from "@/components/content-planner/table-style-toggl
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
+import { PostTypeModal } from "@/components/content-planner/post-type-modal";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { cn } from "@/lib/utils";
 import {
@@ -25,9 +26,9 @@ import {
   mediaFolders,
   sessions as initialSessions,
 } from "@/lib/mock-data";
-import type { HistoryEntry, Session } from "@/lib/types";
+import type { HistoryEntry, PostType, Session } from "@/lib/types";
 
-function createBlankSession(id: string): Session {
+function createBlankSession(id: string, postType: PostType = "Image"): Session {
   const now = new Date().toISOString();
   return {
     id,
@@ -36,7 +37,7 @@ function createBlankSession(id: string): Session {
     updatedAt: now,
     lastEditedBy: null,
     status: "draft",
-    postType: "Image",
+    postType,
     platforms: ["linkedin"],
     visualAssetIds: [],
     copy: "",
@@ -60,6 +61,7 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [discussionOpen, setDiscussionOpen] = useState(false);
+  const [showPostType, setShowPostType] = useState(false);
   const [discussionField, setDiscussionField] = useState<string | undefined>(undefined);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -89,7 +91,15 @@ export default function Home() {
     const savedSessions = localStorage.getItem("cp_sessions");
     if (savedSessions) {
       try {
-        setSessions(JSON.parse(savedSessions));
+        // Dedupe on the way in: earlier builds restarted the id counter at 1000
+        // on every reload, so saved state can already hold two `session-1000`
+        // entries. The generator no longer creates them, but it cannot undo the
+        // ones already written to localStorage.
+        const parsed: Session[] = JSON.parse(savedSessions);
+        const seen = new Set<string>();
+        setSessions(
+          parsed.filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true))),
+        );
       } catch (e) {}
     }
   }, []);
@@ -293,10 +303,24 @@ export default function Home() {
     if (selectedSessionId === id) setSelectedSessionId(null);
   }
 
+  /**
+   * Sessions persist to localStorage but this counter does not, so after a reload
+   * it restarted at 1000 while `session-1000` was still in the saved list — two
+   * children with the same key. Skipping ids that are already taken makes the
+   * generator safe no matter what state was restored.
+   */
+  function makeSessionId() {
+    const taken = new Set(sessions.map((s) => s.id));
+    let n = nextId.current;
+    while (taken.has(`session-${n}`)) n++;
+    nextId.current = n + 1;
+    return `session-${n}`;
+  }
+
   function duplicateSession(id: string) {
     const source = sessions.find((s) => s.id === id);
     if (!source) return;
-    const newId = `session-${nextId.current++}`;
+    const newId = makeSessionId();
     const copyItem: Session = {
       ...source,
       id: newId,
@@ -313,7 +337,7 @@ export default function Home() {
   }
 
   function handleNewSession() {
-    const id = `session-${nextId.current++}`;
+    const id = makeSessionId();
     setSessions((prev) => [...prev, createBlankSession(id)]);
     setCampaigns((prev) =>
       prev.map((c) =>
@@ -327,10 +351,25 @@ export default function Home() {
 
   // New Model: content is created standalone, campaign-agnostic — no
   // campaign.sessionIds membership at all, unlike the legacy handleNewSession.
+  /**
+   * New model asks for the post type first: the type decides which fields the
+   * composer shows, so choosing it inside the composer would mean the composer
+   * rearranging itself under you. The current model keeps its old behaviour —
+   * it has always carried Post Type as a field in the pane.
+   */
   function handleNewContent() {
-    const id = `session-${nextId.current++}`;
-    setSessions((prev) => [...prev, createBlankSession(id)]);
+    if (mode === "new") {
+      setShowPostType(true);
+      return;
+    }
+    createContent("Image");
+  }
+
+  function createContent(postType: PostType) {
+    const id = makeSessionId();
+    setSessions((prev) => [...prev, createBlankSession(id, postType)]);
     setSelectedSessionId(id);
+    setShowPostType(false);
   }
 
   // Dev helper: generate a realistically sized repository so the table can be
@@ -682,6 +721,12 @@ export default function Home() {
         open={showInviteModal}
         onOpenChange={setShowInviteModal}
         contextName={selectedCampaign.name}
+      />
+
+      <PostTypeModal
+        open={showPostType}
+        onOpenChange={setShowPostType}
+        onSelect={createContent}
       />
     </div>
   );

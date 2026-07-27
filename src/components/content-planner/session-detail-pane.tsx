@@ -51,7 +51,12 @@ import {
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
 import { MediaLibraryView } from "./media-library-view";
 import { MediaThumb } from "./media-thumb";
-import { COPY_LIMITS, SessionComposer } from "./session-composer";
+import {
+  COPY_LIMITS,
+  LIMIT_ZONE,
+  limitZone,
+  SessionComposer,
+} from "./session-composer";
 import { SessionCanvas } from "./session-canvas";
 
 export type ComposerLayout = "split" | "canvas";
@@ -728,10 +733,9 @@ export function SessionDetailPane({
                   <span
                     key={label}
                     className={cn(
-                      "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums",
-                      copyDraft.length > limit
-                        ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                        : "border-border/60 text-muted-foreground",
+                      "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums transition-colors duration-300",
+                      // same green / amber / red language as the new-model meters
+                      LIMIT_ZONE[limitZone(copyDraft.length, limit)].chip,
                     )}
                   >
                     {label}: {copyDraft.length}/{limit}

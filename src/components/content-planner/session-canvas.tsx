@@ -4,8 +4,12 @@ import { useState } from "react";
 import {
   AlertCircle,
   AtSign,
+  ChevronDown,
   ChevronsRight,
   Layers,
+  Layers2,
+  Image as ImageIcon,
+  Repeat2,
   Lock,
   MessageCircle,
   RefreshCw,
@@ -24,9 +28,9 @@ import {
   CommentButton,
   EASE,
   GhostAction,
-  HASHTAG_SUGGESTIONS,
   CopyMeta,
   AiAssistButton,
+  Byline,
   SaveChip,
   Stagger,
   TAG_SUGGESTIONS,
@@ -35,6 +39,15 @@ import {
   useTagFlash,
   type ComposerLayoutProps,
 } from "./session-composer";
+import { PostTypeModal } from "./post-type-modal";
+import type { PostType } from "@/lib/types";
+
+/** Post types offered in the composer, matching the creation modal. */
+const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
+  { id: "Image", icon: ImageIcon },
+  { id: "Frames", icon: Layers2 },
+  { id: "Reshare", icon: Repeat2 },
+];
 
 /**
  * Canvas layout — the single-column alternative to SessionComposer.
@@ -52,8 +65,6 @@ export function SessionCanvas({
   onTitleChange,
   copyDraft,
   onCopyChange,
-  hashtagsDraft,
-  onHashtagsChange,
   tagDraft,
   onTagDraftChange,
   saveStatus,
@@ -78,6 +89,7 @@ export function SessionCanvas({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [typeModalOpen, setTypeModalOpen] = useState(false);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
   const { flashedTag, flashTag } = useTagFlash();
@@ -89,8 +101,16 @@ export function SessionCanvas({
 
   const checklist = [
     { label: "copy", done: copyDraft.trim().length > 0 },
-    { label: "an asset", done: session.visualAssetIds.length > 0 },
-    { label: "hashtags", done: hashtagsDraft.trim().length > 0 },
+    // Reshare has no media of its own, so requiring an asset would make it
+    // permanently incomplete.
+    ...(session.postType === "Reshare"
+      ? []
+      : [
+          {
+            label: session.postType === "Frames" ? "a frame" : "an asset",
+            done: session.visualAssetIds.length > 0,
+          },
+        ]),
     { label: "tags", done: session.tags.length > 0 },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
@@ -143,6 +163,8 @@ export function SessionCanvas({
           )}
 
           {layoutToggle}
+
+          <Byline session={session} />
 
           <SaveChip
             saveStatus={saveStatus}
@@ -272,32 +294,17 @@ export function SessionCanvas({
                   placeholder="Untitled session"
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
+                {/* Byline moved to the toolbar, so this line now carries one
+                    thought only: how close this post is to being sendable. */}
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-0.5 text-[13px] text-muted-foreground">
-                  <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
-                    <AvatarFallback className="text-[9px]">
-                      {session.lastEditedBy?.name?.[0] ?? "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-foreground/80">
-                    {session.lastEditedBy?.name ?? "Unknown"}
-                  </span>
-                  <span className="size-1 rounded-full bg-muted-foreground/40" />
-                  <span className="tabular-nums">Edited {formatDate(session.updatedAt)}</span>
-                  {/* Readiness lives here as words. The hairline above shows progress;
-                      this says what is actually missing, which dots never could.
-                      When locked, the same slot carries the reason it cannot change. */}
                   {isCampaignLocked && (
-                    <>
-                      <span className="size-1 rounded-full bg-muted-foreground/40" />
-                      <span className="inline-flex items-center gap-1.5">
-                        <Lock className="size-3 shrink-0" />
-                        Locked — live on Wozku
-                      </span>
-                    </>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Lock className="size-3 shrink-0" />
+                      Locked — live on Wozku
+                    </span>
                   )}
                   {!isCampaignLocked && (
                     <>
-                      <span className="size-1 rounded-full bg-muted-foreground/40" />
                       {missing.length === 0 ? (
                         <span className="text-emerald-300/90">Ready to send</span>
                       ) : (
@@ -318,16 +325,16 @@ export function SessionCanvas({
                 Focus is expressed as the section lighting up rather than a ring,
                 which would contradict the flush treatment. */}
             <Stagger index={2}>
-              <div className="flex flex-col border-t border-white/[0.06] transition-[background-color,border-color] duration-300 focus-within:border-violet-400/45 focus-within:bg-violet-500/[0.022]">
-              <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
+              {/* Focus is a barely-there warming of the whole section, nothing
+                  more. Tinting the section's own border violet drew a full-width
+                  line across the sheet — a hard rule where a hint belongs. */}
+              <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
+              <div className="group/row flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
                 <label
                   htmlFor="canvas-copy"
                   className="flex w-fit cursor-pointer items-center gap-1.5 text-[13px] font-medium text-muted-foreground"
                 >
                   Copy
-                  {commentsFor("Copy").length > 0 && (
-                    <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-violet-400" />
-                  )}
                 </label>
                 <div className="-mr-1.5 flex items-center gap-1">
                   <GhostAction onClick={onOpenVariations} icon={Layers}>
@@ -346,15 +353,29 @@ export function SessionCanvas({
                   />
                 </div>
               </div>
-              <textarea
-                id="canvas-copy"
-                value={copyDraft}
-                onChange={(e) => onCopyChange(e.target.value)}
-                onBlur={() => savePendingChanges("blur")}
-                placeholder="Write your post…"
-                disabled={isCampaignLocked}
-                className="block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
-              />
+              {/* relative: hosts the stand-in caret below */}
+              <div className="relative">
+                <textarea
+                  id="canvas-copy"
+                  value={copyDraft}
+                  onChange={(e) => onCopyChange(e.target.value)}
+                  onBlur={() => savePendingChanges("blur")}
+                  placeholder="Write your post…"
+                  disabled={isCampaignLocked}
+                  className="peer block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-70"
+                />
+                {/* Empty and unfocused, the field looked inert — no caret, and a
+                    placeholder alone does not say "type here". This blinks in the
+                    gutter just ahead of the text origin, so nothing shifts when
+                    the real caret takes over on focus. */}
+                {!copyDraft && !isCampaignLocked && (
+                  <span
+                    aria-hidden
+                    style={{ animation: "copy-caret-blink 1.1s steps(1, end) infinite" }}
+                    className="pointer-events-none absolute left-[32px] top-[8px] h-[19px] w-px bg-violet-400 transition-opacity duration-150 peer-focus:!opacity-0"
+                  />
+                )}
+              </div>
               <div className="px-9 pb-4">
                 <CopyMeta words={wordCount} count={copyDraft.length} />
               </div>
@@ -362,15 +383,64 @@ export function SessionCanvas({
             </Stagger>
 
             {/* Settings-style rows: label left, control right */}
+            {/* Read-only: the type was chosen before this pane opened, and it
+                decides which rows exist here. Letting it change in place meant
+                the sheet rearranging itself under the cursor — so it states the
+                choice instead of re-offering it. */}
             <SettingRow
-              label="Assets"
+              label="Post type"
+              comments={commentsFor("Post type")}
+              onComment={() => onOpenDiscussion("Post type")}
+              staggerIndex={3}
+              valueAlign="end"
+            >
+              <button
+                disabled={isCampaignLocked}
+                onClick={() => setTypeModalOpen(true)}
+                title="Change post type"
+                className="group/type -mr-1.5 flex h-8 items-center gap-2 rounded-full bg-white/[0.04] pl-2.5 pr-2 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] hover:inset-ring-white/[0.14] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+              >
+                {(() => {
+                  const Icon =
+                    POST_TYPES.find((t) => t.id === session.postType)?.icon ?? ImageIcon;
+                  return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
+                })()}
+                {session.postType}
+                {/* Always visible. Revealing it on hover meant the row looked
+                    like static text, so nobody would ever know it could change —
+                    a quiet affordance is right, an invisible one is a bug. */}
+                <ChevronDown className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors duration-150 group-hover/type:text-muted-foreground" />
+              </button>
+            </SettingRow>
+
+            {/* Reshare carries no media of its own — Wozku keeps the original
+                post's. So the row states that instead of offering a picker that
+                would not do anything. */}
+            {session.postType === "Reshare" ? (
+              // anchored to "Assets", not "Media", so a comment about the post's
+              // imagery survives a switch between Image and Reshare
+              <SettingRow
+                label="Media"
+                comments={commentsFor("Assets")}
+                onComment={() => onOpenDiscussion("Assets")}
+                staggerIndex={4}
+                valueAlign="end"
+              >
+                <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                  <Repeat2 className="size-3.5 shrink-0" />
+                  Comes from the post you&rsquo;re resharing
+                </span>
+              </SettingRow>
+            ) : (
+            <SettingRow
+              label={session.postType === "Frames" ? "Frames" : "Assets"}
               comments={commentsFor("Assets")}
               onComment={() => onOpenDiscussion("Assets")}
               // a single pill sits right; a wrapping thumbnail grid must start
               // left, or the ragged edge lands on the wrong side
               align={session.visualAssetIds.length > 0 ? "start" : "center"}
               valueAlign={session.visualAssetIds.length > 0 ? "start" : "end"}
-              staggerIndex={3}
+              staggerIndex={4}
             >
               {session.visualAssetIds.length === 0 ? (
                 <button
@@ -381,7 +451,9 @@ export function SessionCanvas({
                   <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
                     <UploadCloud className="size-3.5" />
                   </span>
-                  Add an image, video or embed
+                  {session.postType === "Frames"
+                    ? "Add the first frame"
+                    : "Add an image or video"}
                 </button>
               ) : (
                 <div className="flex flex-wrap gap-2.5">
@@ -391,6 +463,7 @@ export function SessionCanvas({
                       className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
                     >
                       <MediaThumb
+                        compact
                         assetId={assetId}
                         type={mediaAssets.find((a) => a.id === assetId)?.type}
                         className="size-full !rounded-[10px]"
@@ -427,46 +500,7 @@ export function SessionCanvas({
                 </div>
               )}
             </SettingRow>
-
-            <SettingRow
-              label="Hashtags"
-              comments={commentsFor("Hashtags")}
-              onComment={() => onOpenDiscussion("Hashtags")}
-              htmlFor="canvas-hashtags"
-              align="start"
-              staggerIndex={4}
-            >
-              <div className="group/field w-full">
-                <input
-                  id="canvas-hashtags"
-                  value={hashtagsDraft}
-                  onChange={(e) => onHashtagsChange(e.target.value)}
-                  onBlur={() => savePendingChanges("blur")}
-                  placeholder="#product #launch"
-                  disabled={isCampaignLocked}
-                  className="h-9 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
-                />
-                {!isCampaignLocked && (
-                  <ChipRow collapsible>
-                    {HASHTAG_SUGGESTIONS.filter((ht) => !hashtagsDraft.includes(ht))
-                      .slice(0, 5)
-                      .map((ht) => (
-                        <Chip
-                          key={ht}
-                          onClick={() => {
-                            const trimmed = hashtagsDraft.trim();
-                            const next = trimmed ? `${trimmed} ${ht}` : ht;
-                            onHashtagsChange(next);
-                            onUpdateWithPendingSave({ hashtags: next });
-                          }}
-                        >
-                          {ht}
-                        </Chip>
-                      ))}
-                  </ChipRow>
-                )}
-              </div>
-            </SettingRow>
+            )}
 
             <SettingRow
               label="Tags"
@@ -551,26 +585,42 @@ export function SessionCanvas({
               index={6}
               className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] bg-white/[0.012] px-9 py-3 text-[11px] text-muted-foreground"
             >
+              {/* Only facts that exist. "No variations · No comments" was two
+                  lines of nothing, stated every time. */}
               <span className="tabular-nums">Created {formatDate(session.createdAt)}</span>
-              <span className="text-muted-foreground/30">·</span>
-              <span className="tabular-nums">
-                {session.variations.length === 0
-                  ? "No variations"
-                  : `${session.variations.length} variation${session.variations.length === 1 ? "" : "s"}`}
-              </span>
-              <span className="text-muted-foreground/30">·</span>
-              {/* totalComments, not comments.length — replies nest inside their
-                  parent, so the raw length called a 5-message thread "1 comment"
-                  while the toolbar badge right above said 5. */}
-              <span className="tabular-nums">
-                {totalComments === 0
-                  ? "No comments"
-                  : `${totalComments} comment${totalComments === 1 ? "" : "s"}`}
-              </span>
+              {session.variations.length > 0 && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="tabular-nums">
+                    {session.variations.length} variation
+                    {session.variations.length === 1 ? "" : "s"}
+                  </span>
+                </>
+              )}
+              {totalComments > 0 && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="tabular-nums">
+                    {totalComments} comment{totalComments === 1 ? "" : "s"}
+                  </span>
+                </>
+              )}
             </Stagger>
           </Stagger>
         </div>
       </div>
+
+      <PostTypeModal
+        open={typeModalOpen}
+        onOpenChange={setTypeModalOpen}
+        mode="change"
+        current={session.postType}
+        onSelect={(postType) => {
+          // assets are kept, just unused while Reshare — nothing is destroyed
+          onUpdate({ postType });
+          setTypeModalOpen(false);
+        }}
+      />
 
       {unlockDialog}
     </div>
@@ -602,9 +652,9 @@ function SettingRow({
     <Stagger index={staggerIndex}>
       <div
         className={cn(
-          "grid gap-x-4 gap-y-2.5 border-t border-white/[0.06] px-9 py-4",
+          "group/row grid gap-x-4 gap-y-2.5 border-t border-white/[0.06] px-9 py-4",
           "grid-cols-1 @[560px]:grid-cols-[132px_minmax(0,1fr)_auto]",
-          "transition-[background-color,border-color] duration-300 focus-within:border-violet-400/45 focus-within:bg-violet-500/[0.022]",
+          "transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]",
           align === "center" ? "items-center" : "items-start",
         )}
       >
@@ -616,14 +666,10 @@ function SettingRow({
           align === "start" && "@[560px]:pt-2",
         )}
       >
+        {/* No presence dot: the comment button on the same row already shows the
+            author's avatar and a count when a thread exists, so the dot was the
+            same signal twice, four inches apart. */}
         {label}
-        {/* the header badge counts comments; this says which section holds them */}
-        {comments && comments.length > 0 && (
-          <span
-            aria-hidden
-            className="size-1.5 shrink-0 rounded-full bg-violet-400"
-          />
-        )}
       </Label>
       <div
         className={cn(

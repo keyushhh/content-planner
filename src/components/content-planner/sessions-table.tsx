@@ -26,6 +26,8 @@ import {
   Inbox,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ListFilter,
 } from "lucide-react";
 import type { Session } from "@/lib/types";
 
@@ -47,6 +49,63 @@ interface SessionsTableProps {
   variant?: "classic" | "canvas";
   /** Canvas only: rows per page. */
   pageSize?: number;
+  /** Canvas only: makes the column headers clickable sort controls. */
+  sortKey?: string;
+  sortReversed?: boolean;
+  onSort?: (key: string) => void;
+  /** Canvas only: Status header cycles the status filter. */
+  statusLabel?: string;
+  statusFiltered?: boolean;
+  onCycleStatus?: () => void;
+}
+
+/**
+ * A column title that sorts. Inactive headers stay plain text with the arrow
+ * held back until hover, so the header row does not turn into a row of controls
+ * — the affordance appears when you go looking for it.
+ */
+function SortableHeader({
+  label,
+  columnKey,
+  sortKey,
+  sortReversed,
+  onSort,
+  className,
+}: {
+  label: string;
+  columnKey: string;
+  sortKey?: string;
+  sortReversed?: boolean;
+  onSort?: (key: string) => void;
+  className?: string;
+}) {
+  if (!onSort) return <span className={className}>{label}</span>;
+  const active = sortKey === columnKey;
+
+  return (
+    <div className={className}>
+      <button
+        onClick={() => onSort(columnKey)}
+        aria-label={`Sort by ${label}`}
+        className={cn(
+          "group/sort -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-white/[0.06]",
+          active ? "text-foreground" : "hover:text-foreground",
+        )}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronUp
+          className={cn(
+            "size-3 shrink-0 transition-[opacity,rotate] duration-200",
+            active
+              ? "opacity-100"
+              : "opacity-0 group-hover/sort:opacity-40",
+            active && !sortReversed && "rotate-180",
+          )}
+          style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
+        />
+      </button>
+    </div>
+  );
 }
 
 function initials(name: string) {
@@ -72,6 +131,12 @@ export function SessionsTable({
   },
   variant = "classic",
   pageSize = 15,
+  sortKey,
+  sortReversed,
+  onSort,
+  statusLabel = "Status",
+  statusFiltered = false,
+  onCycleStatus,
 }: SessionsTableProps) {
   const [page, setPage] = useState(1);
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -301,9 +366,51 @@ export function SessionsTable({
                   : "border-white/[0.06]",
               )}
             >
-              <span>Name</span>
-              <span className="hidden @[640px]:block">Last edited by</span>
-              <span>Status</span>
+              <SortableHeader
+                label="Name"
+                columnKey="name"
+                sortKey={sortKey}
+                sortReversed={sortReversed}
+                onSort={onSort}
+                className="min-w-0"
+              />
+              <SortableHeader
+                label="Last edited by"
+                columnKey="edited"
+                sortKey={sortKey}
+                sortReversed={sortReversed}
+                onSort={onSort}
+                className="hidden min-w-0 @[640px]:block"
+              />
+              {/* Status filters rather than sorts: ordering by bucket answers a
+                  question nobody asks, where "show me only the approved ones"
+                  is the whole reason to touch this column. Each click steps to
+                  the next status and then back to All. */}
+              <div className="min-w-0">
+                {onCycleStatus ? (
+                  <button
+                    onClick={onCycleStatus}
+                    title="Filter by status"
+                    aria-label={`Filter by status — currently ${statusLabel}`}
+                    className={cn(
+                      "group/status -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-white/[0.06]",
+                      statusFiltered ? "text-violet-200" : "hover:text-foreground",
+                    )}
+                  >
+                    <span className="truncate">{statusLabel}</span>
+                    <ListFilter
+                      className={cn(
+                        "size-3 shrink-0 transition-opacity duration-200",
+                        statusFiltered
+                          ? "opacity-100"
+                          : "opacity-0 group-hover/status:opacity-40",
+                      )}
+                    />
+                  </button>
+                ) : (
+                  <span>Status</span>
+                )}
+              </div>
               <span className={wideOnly}>Campaign</span>
 
               {customColumns.map((col) => (

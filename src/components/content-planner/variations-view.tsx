@@ -287,7 +287,7 @@ export function VariationsView({
                   )}
                 </div>
 
-                <div className="flex flex-col border-t border-white/[0.06] transition-[background-color,border-color] duration-300 focus-within:border-violet-400/45 focus-within:bg-violet-500/[0.022]">
+                <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
                   <div className="flex min-h-11 items-center px-9 py-2">
                     <label
                       htmlFor="variation-copy"
