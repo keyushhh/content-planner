@@ -213,7 +213,9 @@ export function SessionComposer({
           {readyToSend && (
             <Button
               size="sm"
-              className="h-8 gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+              // Appears the instant the last checklist item lands — the sheet's
+              // most triumphant moment, so it arrives rather than blinking in.
+              className="h-8 animate-in gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-white/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-[0.96]"
               onClick={onOpenSend}
             >
               {needsResend ? (
@@ -398,7 +400,7 @@ export function SessionComposer({
                       <button
                         disabled={isCampaignLocked}
                         onClick={onOpenMediaLibrary}
-                        className="group flex w-full items-center gap-3 rounded-[12px] border border-dashed border-violet-400/25 bg-violet-500/[0.02] px-3 py-2.5 text-left transition-[background-color,border-color,scale] duration-200 hover:border-violet-400/55 hover:bg-violet-500/[0.06] active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-violet-400/25 disabled:hover:bg-violet-500/[0.02]"
+                        className="group flex w-full items-center gap-3 rounded-[12px] bg-white/[0.03] px-3 py-2.5 text-left inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500/[0.06] hover:inset-ring-violet-400/40 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25 transition-transform duration-200 group-hover:scale-[1.06]">
                           <UploadCloud className="size-4" />
@@ -444,7 +446,7 @@ export function SessionComposer({
                             onClick={onOpenMediaLibrary}
                             title="Pick from Media Library"
                             aria-label="Add another asset"
-                            className="flex size-20 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-white/15 text-muted-foreground transition-[background-color,border-color,color,scale] duration-200 hover:border-violet-400/50 hover:bg-violet-500/[0.06] hover:text-violet-300 active:scale-[0.97]"
+                            className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-[0.97]"
                           >
                             <UploadCloud className="size-5" />
                           </button>
@@ -813,7 +815,7 @@ export function LimitMeter({
   return (
     <div className="flex items-center gap-2">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
-      <span className="relative h-1 w-10 overflow-hidden rounded-full bg-white/10">
+      <span className="relative hidden h-1 w-10 overflow-hidden rounded-full bg-white/10 @[460px]:block">
         <span
           className={cn(
             "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-300",
@@ -858,7 +860,10 @@ export function CopyLimits({ count }: { count: number }) {
  */
 export function CopyMeta({ words, count }: { words: number; count: number }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+    // @container so the meters answer the pane's width: with the discussion
+    // panel open they used to wrap onto a second line. Below 460px the bars drop
+    // and the numbers stay, which is the part that actually carries the meaning.
+    <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 @container">
       <span className="text-[11px] tabular-nums text-muted-foreground">
         {words} {words === 1 ? "word" : "words"}
       </span>
@@ -887,13 +892,42 @@ export function AiAssistButton({ className }: { className?: string }) {
   );
 }
 
-export function ChipRow({ children }: { children: React.ReactNode }) {
+/**
+ * Suggestions, optionally revealed on demand.
+ *
+ * Always-on, two of these rows sat permanently in the lower third of the sheet —
+ * a wall of chips you are mostly not using. With `collapsible`, the row grows
+ * out of the field when it takes focus: a 0fr→1fr grid row, with the content in
+ * a min-h-0 clip box so the collapsed track actually reaches zero. Focus stays
+ * inside while you click a chip, so the row does not shut under your cursor.
+ *
+ * Requires `group/field` on the wrapper that holds both the input and this row.
+ */
+export function ChipRow({
+  children,
+  collapsible = false,
+}: {
+  children: React.ReactNode;
+  collapsible?: boolean;
+}) {
   const items = Array.isArray(children) ? children.filter(Boolean) : children;
   if (Array.isArray(items) && items.length === 0) return null;
-  return (
-    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+
+  const row = (
+    <div className="flex flex-wrap items-center gap-1.5 pt-2.5">
       <span className="text-[11px] text-muted-foreground">Suggested</span>
       {items}
+    </div>
+  );
+
+  if (!collapsible) return <div className="mt-2.5">{row}</div>;
+
+  return (
+    <div
+      className="grid grid-rows-[0fr] transition-[grid-template-rows,opacity] duration-250 opacity-0 group-focus-within/field:grid-rows-[1fr] group-focus-within/field:opacity-100"
+      style={{ transitionTimingFunction: EASE }}
+    >
+      <div className="min-h-0 overflow-clip">{row}</div>
     </div>
   );
 }

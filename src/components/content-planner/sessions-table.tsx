@@ -395,7 +395,18 @@ export function SessionsTable({
                     )}
                   >
                     <div className="min-w-0 pr-4">
-                      <div className="truncate text-[13.5px] font-medium">{session.title}</div>
+                      {/* title brightens on row hover — the row answers the
+                          cursor instead of merely being highlighted */}
+                      <div
+                        className={cn(
+                          "truncate text-[13.5px] font-medium transition-colors duration-150",
+                          isSelected
+                            ? "text-foreground"
+                            : "text-foreground/85 group-hover:text-foreground",
+                        )}
+                      >
+                        {session.title}
+                      </div>
                       {/* Tags as quiet text, not pills. Filled chips here put a
                           second chip treatment on screen competing with the
                           filter bar, and they out-weighted the title itself. */}
@@ -444,7 +455,7 @@ export function SessionsTable({
                     </div>
 
                     <div className="min-w-0">
-                      <StatusBadge status={session.status} />
+                      <StatusBadge status={session.status} variant="dot" />
                     </div>
 
                     <div className={wideOnly} onClick={(e) => e.stopPropagation()}>

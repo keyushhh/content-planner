@@ -1,8 +1,37 @@
 import { Badge } from "@/components/ui/badge";
 import { Circle, CheckCircle2, PencilLine } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { SessionStatus } from "@/lib/types";
 
-export function StatusBadge({ status }: { status: SessionStatus }) {
+const DOT: Record<SessionStatus, { label: string; dot: string; text: string }> = {
+  approved: { label: "Approved", dot: "bg-emerald-400", text: "text-emerald-300" },
+  wip: { label: "WIP", dot: "bg-violet-400", text: "text-violet-300" },
+  draft: { label: "Draft", dot: "bg-muted-foreground/60", text: "text-muted-foreground" },
+};
+
+/**
+ * `variant="dot"` is the Canvas table's reading. The ringed pill is tuned for
+ * the classic table, where every cell already carries a border — dropped into a
+ * Canvas row it became the densest thing there and out-weighted the title. A dot
+ * plus a word carries the same information at a fraction of the ink.
+ */
+export function StatusBadge({
+  status,
+  variant = "pill",
+}: {
+  status: SessionStatus;
+  variant?: "pill" | "dot";
+}) {
+  if (variant === "dot") {
+    const { label, dot, text } = DOT[status];
+    return (
+      <span className={cn("inline-flex items-center gap-2 text-xs font-medium", text)}>
+        <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", dot)} />
+        {label}
+      </span>
+    );
+  }
+
   if (status === "approved") {
     return (
       <Badge

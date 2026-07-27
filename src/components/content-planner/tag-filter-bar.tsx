@@ -83,7 +83,7 @@ export function TagFilterBar({
                 aria-label={`Filter by tag — ${panelTags.length} tags`}
                 title={`All ${panelTags.length} tags`}
                 className={cn(
-                  "flex h-7 items-center gap-1 rounded-full pl-2 pr-2.5 text-xs font-medium transition-[background-color,color,box-shadow,scale] duration-150 inset-ring-1 active:scale-[0.96]",
+                  "flex h-8 items-center gap-1 rounded-full pl-2.5 pr-3 text-xs font-medium transition-[background-color,color,box-shadow,scale] duration-150 inset-ring-1 active:scale-[0.96]",
                   open
                     ? "bg-white/[0.09] text-foreground inset-ring-white/[0.14]"
                     : "bg-white/[0.035] text-muted-foreground inset-ring-white/[0.08] hover:text-foreground",
@@ -163,7 +163,7 @@ export function TagFilterBar({
       {active.length > 0 && (
         <button
           onClick={onClear}
-          className="h-7 rounded-full px-2.5 text-xs text-muted-foreground transition-[background-color,color] duration-150 hover:bg-white/[0.06] hover:text-foreground"
+          className="h-8 rounded-full px-2.5 text-xs text-muted-foreground transition-[background-color,color] duration-150 hover:bg-white/[0.06] hover:text-foreground"
         >
           Clear
         </button>
@@ -186,7 +186,8 @@ function TagChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex h-7 items-center rounded-full px-2.5 text-xs font-medium transition-[background-color,color,box-shadow,scale] duration-150 inset-ring-1 active:scale-[0.96]",
+        // h-8 to match the search field and the action buttons sharing this row
+        "flex h-8 items-center rounded-full px-3 text-xs font-medium transition-[background-color,color,box-shadow,scale] duration-150 inset-ring-1 active:scale-[0.96]",
         active
           ? "bg-violet-500/[0.16] text-violet-100 inset-ring-violet-400/45"
           : "bg-white/[0.035] text-muted-foreground inset-ring-white/[0.08] hover:text-foreground",

@@ -127,7 +127,9 @@ export function SessionCanvas({
           {readyToSend && (
             <Button
               size="sm"
-              className="h-8 gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+              // Appears the instant the last checklist item lands — the sheet's
+              // most triumphant moment, so it arrives rather than blinking in.
+              className="h-8 animate-in gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-white/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-[0.96]"
               onClick={onOpenSend}
               title={`${needsResend ? "Send update" : "Send to campaign"} (⌘↵)`}
             >
@@ -415,7 +417,9 @@ export function SessionCanvas({
                       onClick={onOpenMediaLibrary}
                       title="Pick from Media Library"
                       aria-label="Add another asset"
-                      className="flex size-20 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-white/15 text-muted-foreground transition-[background-color,border-color,color,scale] duration-200 hover:border-violet-400/50 hover:bg-violet-500/[0.06] hover:text-violet-300 active:scale-[0.97]"
+                      // solid hairline, not dashed — a dashed edge reads as a
+                      // wireframe placeholder rather than a real control
+                      className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-[0.97]"
                     >
                       <UploadCloud className="size-5" />
                     </button>
@@ -432,7 +436,7 @@ export function SessionCanvas({
               align="start"
               staggerIndex={4}
             >
-              <div className="w-full">
+              <div className="group/field w-full">
                 <input
                   id="canvas-hashtags"
                   value={hashtagsDraft}
@@ -443,7 +447,7 @@ export function SessionCanvas({
                   className="h-9 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
                 />
                 {!isCampaignLocked && (
-                  <ChipRow>
+                  <ChipRow collapsible>
                     {HASHTAG_SUGGESTIONS.filter((ht) => !hashtagsDraft.includes(ht))
                       .slice(0, 5)
                       .map((ht) => (
@@ -464,8 +468,15 @@ export function SessionCanvas({
               </div>
             </SettingRow>
 
-            <SettingRow label="Tags" htmlFor="canvas-tags" align="start" staggerIndex={5}>
-              <div className="w-full">
+            <SettingRow
+              label="Tags"
+              htmlFor="canvas-tags"
+              comments={commentsFor("Tags")}
+              onComment={() => onOpenDiscussion("Tags")}
+              align="start"
+              staggerIndex={5}
+            >
+              <div className="group/field w-full">
                 <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
                   {session.tags.map((tag) => (
                     <span
@@ -519,7 +530,7 @@ export function SessionCanvas({
                   />
                 </div>
                 {!isCampaignLocked && (
-                  <ChipRow>
+                  <ChipRow collapsible>
                     {TAG_SUGGESTIONS.filter((t) => !session.tags.includes(t))
                       .slice(0, 5)
                       .map((tag) => (
@@ -548,10 +559,13 @@ export function SessionCanvas({
                   : `${session.variations.length} variation${session.variations.length === 1 ? "" : "s"}`}
               </span>
               <span className="text-muted-foreground/30">·</span>
+              {/* totalComments, not comments.length — replies nest inside their
+                  parent, so the raw length called a 5-message thread "1 comment"
+                  while the toolbar badge right above said 5. */}
               <span className="tabular-nums">
-                {session.comments.length === 0
+                {totalComments === 0
                   ? "No comments"
-                  : `${session.comments.length} comment${session.comments.length === 1 ? "" : "s"}`}
+                  : `${totalComments} comment${totalComments === 1 ? "" : "s"}`}
               </span>
             </Stagger>
           </Stagger>
