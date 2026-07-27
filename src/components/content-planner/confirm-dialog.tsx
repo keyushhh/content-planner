@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Tone = "violet" | "destructive" | "success";
@@ -30,6 +29,23 @@ interface ConfirmDialogProps {
   actions: ConfirmDialogAction[];
 }
 
+/** Icon-well treatment per tone: tinted fill + matching hairline. */
+const TONE_WELL: Record<Tone, string> = {
+  destructive: "text-red-300 bg-red-500/[0.13] inset-ring-red-400/25",
+  violet: "text-violet-300 bg-violet-500/[0.13] inset-ring-violet-400/25",
+  success: "text-emerald-300 bg-emerald-500/[0.13] inset-ring-emerald-400/25",
+};
+
+/**
+ * Built as a small Canvas sheet, so a confirmation looks like it belongs to this
+ * product rather than to the browser: specular top edge, hairline-divided
+ * footer, and the actions side by side on one row.
+ *
+ * Two things the stacked full-width version got wrong. The buttons were equal
+ * slabs, which made "Delete session" and "Cancel" read as equally likely — a
+ * destructive default by layout. And the icon sat alone on the surface at
+ * red-600, a light-mode red that goes muddy on a dark sheet.
+ */
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -39,65 +55,71 @@ export function ConfirmDialog({
   description,
   actions,
 }: ConfirmDialogProps) {
-  // Default to AlertTriangle for destructive tone if no custom icon provided
   const Icon = CustomIcon ?? (tone === "destructive" ? AlertTriangle : null);
 
-  // Separate destructive/primary action from outline action for stacked ordering
-  const mainActions = actions.filter((a) => a.tone !== "outline");
+  // Cancel-style actions read first, the committing action lands last on the
+  // right — the position the eye finishes on and the thumb expects.
   const outlineActions = actions.filter((a) => a.tone === "outline");
-  const orderedActions = [...mainActions, ...outlineActions];
+  const mainActions = actions.filter((a) => a.tone !== "outline");
+  const orderedActions = [...outlineActions, ...mainActions];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[380px] gap-0 rounded-2xl p-5 text-center shadow-2xl border border-border">
-        {Icon && (
-          <div className="mx-auto mb-3 flex items-center justify-center pointer-events-none select-none">
-            <Icon
+      <DialogContent
+        showCloseButton={false}
+        className="w-[440px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[440px]"
+      >
+        <div
+          aria-hidden
+          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+        />
+
+        <div className="flex items-start gap-3.5 px-6 pb-6 pt-6">
+          {Icon && (
+            <span
               className={cn(
-                "size-8 stroke-[1.75]",
-                tone === "destructive"
-                  ? "text-red-600"
-                  : tone === "violet"
-                  ? "text-violet-400"
-                  : "text-emerald-400"
+                "flex size-10 shrink-0 select-none items-center justify-center rounded-full inset-ring-1",
+                TONE_WELL[tone],
               )}
-            />
+            >
+              <Icon className="size-[18px] stroke-[1.75]" />
+            </span>
+          )}
+
+          <div className="min-w-0 flex-1 pt-0.5">
+            <DialogTitle className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-balance">
+              {title}
+            </DialogTitle>
+            <DialogDescription className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground text-pretty">
+              {description}
+            </DialogDescription>
           </div>
-        )}
+        </div>
 
-        <DialogTitle className="text-center text-lg font-bold tracking-tight text-foreground">
-          {title}
-        </DialogTitle>
-
-        <DialogDescription className="mt-1.5 text-center text-xs sm:text-sm text-muted-foreground leading-relaxed">
-          {description}
-        </DialogDescription>
-
-        <div className="mt-5 flex flex-col gap-2.5 w-full">
+        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] bg-black/[0.12] px-6 py-4">
           {orderedActions.map((action) => {
             const ActionIcon = action.icon;
-            const isDestructive = action.tone === "destructive";
-            const isPrimary = action.tone === "primary";
             const isOutline = action.tone === "outline";
+            const isDestructive = action.tone === "destructive";
 
             return (
-              <Button
+              <button
                 key={action.label}
-                variant={isOutline ? "outline" : isDestructive ? "destructive" : "default"}
-                className={cn(
-                  "h-10 w-full gap-2 rounded-xl text-sm font-semibold transition-all shadow-none",
-                  isDestructive &&
-                    "bg-red-600 text-white hover:bg-red-500 active:bg-red-700 border-0 shadow-sm",
-                  isPrimary &&
-                    "bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-700 border-0 shadow-sm",
-                  isOutline &&
-                    "border-border bg-transparent text-foreground hover:bg-accent/60 font-medium"
-                )}
                 onClick={action.onClick}
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-full text-[13px] font-medium transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
+                  isOutline
+                    ? "px-3.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+                    : "px-4 text-white inset-ring-1 inset-ring-white/15",
+                  isDestructive &&
+                    "bg-red-600 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(220,38,38,0.75)] hover:bg-red-500",
+                  action.tone === "primary" &&
+                    "bg-violet-600 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] hover:bg-violet-500",
+                )}
               >
-                {ActionIcon && <ActionIcon className="size-4" />}
+                {ActionIcon && <ActionIcon className="size-3.5" />}
                 {action.label}
-              </Button>
+              </button>
             );
           })}
         </div>

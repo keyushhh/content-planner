@@ -360,10 +360,7 @@ export function SessionComposer({
                           )}
                         </GhostAction>
                         <GhostAction icon={AtSign}>Add Mentions</GhostAction>
-                        <button className="ml-1 flex h-7 items-center gap-1.5 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600 px-2.5 text-xs font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.35),0_6px_16px_-10px_rgba(139,92,246,0.9)] inset-ring-1 inset-ring-white/20 transition-[filter,scale] duration-150 hover:brightness-110 active:scale-[0.96]">
-                          <Sparkles className="size-3.5" />
-                          AI Assist
-                        </button>
+                        <AiAssistButton className="ml-1" />
                       </div>
                     }
                   />
@@ -375,13 +372,8 @@ export function SessionComposer({
                     disabled={isCampaignLocked}
                     className="block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
                   />
-                  <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-white/[0.06] px-4 py-2.5">
-                    <span className="text-[11px] tabular-nums text-muted-foreground">
-                      {wordCount} {wordCount === 1 ? "word" : "words"}
-                      <span className="mx-1.5 text-muted-foreground/40">·</span>
-                      {copyDraft.length} characters
-                    </span>
-                    <CopyLimits count={copyDraft.length} platforms={session.platforms} />
+                  <div className="border-t border-white/[0.06] px-4 py-2.5">
+                    <CopyMeta words={wordCount} count={copyDraft.length} />
                   </div>
                 </Card>
               </Stagger>
@@ -811,27 +803,21 @@ export function LimitMeter({
   label,
   count,
   limit,
-  targeted = true,
 }: {
   label: string;
   count: number;
   limit: number;
-  /** False when the post does not target this platform — shown, but not claimed. */
-  targeted?: boolean;
 }) {
-  const over = count > limit && targeted;
+  const over = count > limit;
   const pct = Math.min(100, (count / limit) * 100);
   return (
-    <div
-      className={cn("flex items-center gap-2", !targeted && "opacity-45")}
-      title={targeted ? undefined : `${label} is not connected for this post`}
-    >
+    <div className="flex items-center gap-2">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
       <span className="relative h-1 w-10 overflow-hidden rounded-full bg-white/10">
         <span
           className={cn(
             "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-300",
-            over ? "bg-amber-400" : targeted ? "bg-violet-400/85" : "bg-white/25",
+            over ? "bg-amber-400" : "bg-violet-400/85",
           )}
           style={{ width: `${pct}%`, transitionTimingFunction: EASE }}
         />
@@ -848,36 +834,56 @@ export function LimitMeter({
   );
 }
 
-/** Character budgets, ordered so the targeted platform reads first. */
-export const COPY_LIMITS: { id: Platform; label: string; limit: number }[] = [
-  { id: "linkedin", label: "LinkedIn", limit: 3000 },
-  { id: "x", label: "X", limit: 280 },
-  { id: "instagram", label: "IG", limit: 2200 },
+/** Character budgets shown under the copy field, in reading order. */
+export const COPY_LIMITS: { label: string; limit: number }[] = [
+  { label: "LinkedIn", limit: 3000 },
+  { label: "X", limit: 280 },
+  { label: "Slack", limit: 4000 },
 ];
 
-export function CopyLimits({
-  count,
-  platforms,
-}: {
-  count: number;
-  platforms: Platform[];
-}) {
-  const ordered = [
-    ...COPY_LIMITS.filter((p) => platforms.includes(p.id)),
-    ...COPY_LIMITS.filter((p) => !platforms.includes(p.id)),
-  ];
+export function CopyLimits({ count }: { count: number }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      {ordered.map((p) => (
-        <LimitMeter
-          key={p.id}
-          label={p.label}
-          count={count}
-          limit={p.limit}
-          targeted={platforms.includes(p.id)}
-        />
+      {COPY_LIMITS.map((p) => (
+        <LimitMeter key={p.label} label={p.label} count={count} limit={p.limit} />
       ))}
     </div>
+  );
+}
+
+/**
+ * One footer line under the copy field. The standalone "340 characters" that
+ * used to sit here restated what all three meters already say — and said it a
+ * fourth time. Word count is the only number the meters do not carry.
+ */
+export function CopyMeta({ words, count }: { words: number; count: number }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+      <span className="text-[11px] tabular-nums text-muted-foreground">
+        {words} {words === 1 ? "word" : "words"}
+      </span>
+      <CopyLimits count={count} />
+    </div>
+  );
+}
+
+/**
+ * Flat black pill with a hairline stroke. Nothing else — no gradient, no sheen,
+ * no glow. It stays discoverable without outranking Send, which is the button
+ * that actually publishes.
+ */
+export function AiAssistButton({ className }: { className?: string }) {
+  return (
+    <button
+      title="AI Assist"
+      className={cn(
+        "flex h-7 items-center gap-1.5 rounded-full bg-black px-2.5 text-xs font-medium text-white inset-ring-1 inset-ring-white/[0.13] transition-[background-color,scale] duration-150 hover:bg-[oklch(0.22_0_0)] active:scale-[0.96]",
+        className,
+      )}
+    >
+      <Sparkles className="size-3.5" />
+      AI Assist
+    </button>
   );
 }
 

@@ -51,7 +51,7 @@ import {
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
 import { MediaLibraryView } from "./media-library-view";
 import { MediaThumb } from "./media-thumb";
-import { SessionComposer } from "./session-composer";
+import { COPY_LIMITS, SessionComposer } from "./session-composer";
 import { SessionCanvas } from "./session-canvas";
 
 export type ComposerLayout = "split" | "canvas";
@@ -132,17 +132,10 @@ export function SessionDetailPane({
   const [variationDraft, setVariationDraft] = useState("");
   const [tagDraft, setTagDraft] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
-  // The page owns this so the sheet width can respond to it; fall back to local
-  // state if the pane is ever rendered uncontrolled.
-  const [fallbackLayout, setFallbackLayout] = useState<ComposerLayout>(readStoredLayout);
-  const layout = composerLayout ?? fallbackLayout;
+  // The table owns this now; fall back to the stored value if the pane is ever
+  // rendered uncontrolled.
+  const layout = composerLayout ?? readStoredLayout();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const changeLayout = (next: ComposerLayout) => {
-    window.localStorage.setItem(LAYOUT_STORAGE_KEY, next);
-    if (onComposerLayoutChange) onComposerLayoutChange(next);
-    else setFallbackLayout(next);
-  };
 
   // Local draft states for blur & 30-second timer autosave
   const [titleDraft, setTitleDraft] = useState(session.title);
@@ -298,35 +291,9 @@ export function SessionDetailPane({
     />
   );
 
-  const layoutToggle = (
-    <div
-      role="group"
-      aria-label="Layout"
-      className="flex items-center gap-0.5 rounded-full bg-white/[0.03] p-0.5 inset-ring-1 inset-ring-white/[0.08]"
-    >
-      {(
-        [
-          { id: "split", label: "Split" },
-          { id: "canvas", label: "Canvas" },
-        ] as const
-      ).map((option) => (
-        <button
-          key={option.id}
-          onClick={() => changeLayout(option.id)}
-          aria-pressed={layout === option.id}
-          title={`${option.label} layout`}
-          className={cn(
-            "h-7 rounded-full px-2.5 text-[11px] font-medium transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
-            layout === option.id
-              ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
+  // The design style is chosen at the table level now, so the pane shows no
+  // layout switcher of its own.
+  const layoutToggle = null;
 
   // The "new" model gets the polished composer layouts (Split / Canvas). The
   // "current" model keeps the original single-column form below, unchanged.
@@ -334,7 +301,12 @@ export function SessionDetailPane({
     const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
     return (
       <LayoutComponent
-        key={layout}
+        // Keyed on the session too, not just the layout: the stagger is what
+        // makes the sheet feel authored, and without a remount it only ever
+        // played on the first open. Clicking row after row swapped the text in
+        // place and the whole choreography went missing. Drafts live in THIS
+        // component, so remounting the layout costs nothing but the animation.
+        key={`${layout}:${session.id}`}
         session={session}
         mediaAssets={mediaAssets}
         isCampaignLocked={isCampaignLocked}
@@ -750,37 +722,21 @@ export function SessionDetailPane({
               <span className="font-mono text-muted-foreground">
                 {copyDraft.length} characters
               </span>
-              <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
-                    copyDraft.length > 280
-                      ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                      : "border-border/60 text-muted-foreground"
-                  )}
-                >
-                  X: {copyDraft.length}/280
-                </span>
-                <span
-                  className={cn(
-                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
-                    copyDraft.length > 3000
-                      ? "border-red-500/50 bg-red-500/10 text-red-400"
-                      : "border-border/60 text-muted-foreground"
-                  )}
-                >
-                  LinkedIn: {copyDraft.length}/3000
-                </span>
-                <span
-                  className={cn(
-                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border",
-                    copyDraft.length > 2200
-                      ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                      : "border-border/60 text-muted-foreground"
-                  )}
-                >
-                  IG: {copyDraft.length}/2200
-                </span>
+              {/* same four platforms as the new-model layouts */}
+              <div className="flex flex-wrap items-center gap-2">
+                {COPY_LIMITS.map(({ label, limit }) => (
+                  <span
+                    key={label}
+                    className={cn(
+                      "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums",
+                      copyDraft.length > limit
+                        ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                        : "border-border/60 text-muted-foreground",
+                    )}
+                  >
+                    {label}: {copyDraft.length}/{limit}
+                  </span>
+                ))}
               </div>
             </div>
           </Field>

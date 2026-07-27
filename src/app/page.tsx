@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, PlusCircle, Settings2, LayoutGrid, UserPlus } from "lucide-react";
+import { CalendarDays, PlusCircle, Settings2, LayoutGrid, UserPlus, FlaskConical } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import {
   SessionDetailPane,
   readStoredLayout,
+  LAYOUT_STORAGE_KEY,
   type ComposerLayout,
 } from "@/components/content-planner/session-detail-pane";
 import { DiscussionPanel } from "@/components/content-planner/discussion-panel";
+import { TableStyleToggle } from "@/components/content-planner/table-style-toggle";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
@@ -62,6 +64,12 @@ export default function Home() {
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
+
+  // One switch drives the table style and the detail-pane layout together.
+  function changeTableStyle(next: ComposerLayout) {
+    setComposerLayout(next);
+    localStorage.setItem(LAYOUT_STORAGE_KEY, next);
+  }
   const nextId = useRef(1000);
 
   // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
@@ -325,17 +333,95 @@ export default function Home() {
     setSelectedSessionId(id);
   }
 
+  // Dev helper: generate a realistically sized repository so the table can be
+  // demoed at scale (sticky header, windowing, search, sort).
+  function seedDemoContent() {
+    const TOPICS = [
+      "Product launch", "Feature spotlight", "Customer story", "Behind the scenes",
+      "Hiring update", "Webinar recap", "Case study", "Release notes",
+      "Team spotlight", "Industry roundup", "Tips & tricks", "Partner announcement",
+      "Milestone", "Event invite", "Founder note", "Changelog",
+    ];
+    const TAGS = ["social", "product", "launch", "giveaway", "contest", "email", "announcement"];
+    const AUTHORS = [currentUser, { id: "u-john", name: "John M." }, { id: "u-priya", name: "Priya R." }, { id: "u-sam", name: "Sam O." }];
+    const STATUSES: Session["status"][] = ["draft", "wip", "approved"];
+
+    const now = Date.now();
+    const seeded: Session[] = Array.from({ length: 450 }, (_, i) => {
+      const topic = TOPICS[i % TOPICS.length];
+      const status = STATUSES[i % STATUSES.length];
+      // spread edits across ~90 days so "recently edited" sorting is meaningful
+      const editedAt = new Date(now - i * 4.8 * 3600 * 1000).toISOString();
+      const createdAt = new Date(now - (i + 30) * 6.2 * 3600 * 1000).toISOString();
+      const author = AUTHORS[i % AUTHORS.length];
+      return {
+        id: `seed-${i}`,
+        title: `${topic} \u2014 ${String(i + 1).padStart(3, "0")}`,
+        createdAt,
+        updatedAt: editedAt,
+        lastEditedBy: i % 7 === 0 ? null : author,
+        status,
+        postType: "Image",
+        platforms: ["linkedin"],
+        visualAssetIds: i % 3 === 0 ? ["asset-1"] : [],
+        copy:
+          i % 5 === 0
+            ? ""
+            : `${topic} copy for item ${i + 1}. Sharing what we shipped and why it matters.`,
+        variations: [],
+        hashtags: i % 4 === 0 ? "#product #launch" : "",
+        sentToCampaignId: null,
+        sentAt: null,
+        tags: [TAGS[i % TAGS.length], TAGS[(i + 3) % TAGS.length]],
+        comments: [],
+        history: [],
+      };
+    });
+
+    setSessions((prev) => {
+      const withoutSeeds = prev.filter((s) => !s.id.startsWith("seed-"));
+      // second click clears instead of stacking another 450
+      return prev.some((s) => s.id.startsWith("seed-")) ? withoutSeeds : [...withoutSeeds, ...seeded];
+    });
+  }
+
+  const isCanvas = composerLayout === "canvas";
+
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-card/40 px-4">
+    <div
+      className={cn(
+        "flex h-screen w-full flex-col overflow-hidden bg-background text-foreground",
+        // the whole page picks up the canvas wash, not just the table
+        isCanvas &&
+          "bg-[radial-gradient(140%_90%_at_50%_0%,rgba(139,92,246,0.055),transparent_55%)]",
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-10 shrink-0 items-center justify-between px-4",
+          isCanvas
+            ? "border-b border-white/[0.06] bg-black/[0.14]"
+            : "border-b border-border bg-card/40",
+        )}
+      >
         <span className="text-xs font-medium text-muted-foreground">Content Planner</span>
-        <div className="flex items-center gap-0.5 rounded-full border border-border bg-background p-0.5 text-xs font-medium">
+        <div className="flex items-center gap-1.5">
+        <div
+          className={cn(
+            "flex items-center gap-0.5 rounded-full p-0.5 text-xs font-medium",
+            isCanvas
+              ? "bg-white/[0.03] inset-ring-1 inset-ring-white/[0.08]"
+              : "border border-border bg-background",
+          )}
+        >
           <button
             onClick={() => setMode("current")}
             className={cn(
-              "rounded-full px-3 py-1 transition-colors",
+              "rounded-full px-3 py-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
               mode === "current"
-                ? "bg-foreground text-background"
+                ? isCanvas
+                  ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                  : "bg-foreground text-background"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -344,14 +430,35 @@ export default function Home() {
           <button
             onClick={() => setMode("new")}
             className={cn(
-              "rounded-full px-3 py-1 transition-colors",
+              "rounded-full px-3 py-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
               mode === "new"
-                ? "bg-violet-600 text-white"
+                ? isCanvas
+                  ? "bg-violet-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_5px_14px_-8px_rgba(139,92,246,0.8)] inset-ring-1 inset-ring-white/15"
+                  : "bg-violet-600 text-white"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             New Model
           </button>
+        </div>
+
+        <div className="mx-1 h-5 w-px bg-white/10" />
+        <TableStyleToggle value={composerLayout} onChange={changeTableStyle} />
+
+        {/* Dev only: stress the table so the demo shows a realistic repository */}
+        <button
+          onClick={seedDemoContent}
+          title="Dev: add 450 sample items"
+          className={cn(
+            "ml-1 flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+            isCanvas
+              ? "bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] hover:text-foreground"
+              : "border border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <FlaskConical className="size-3.5" />
+          Seed 450
+        </button>
         </div>
       </div>
 
@@ -370,12 +477,26 @@ export default function Home() {
             />
 
             <div className="flex min-w-0 flex-1 flex-col">
-              <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-md bg-violet-600">
-                    <CalendarDays className="size-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm">{selectedCampaign.name}</span>
+              <header
+                className={cn(
+                  "flex shrink-0 items-center justify-between gap-4 px-5",
+                  isCanvas ? "h-16 border-b border-white/[0.06]" : "h-14 border-b border-border px-4",
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      "flex items-center justify-center",
+                      isCanvas
+                        ? "size-9 rounded-full bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25"
+                        : "size-7 rounded-md bg-violet-600 text-white",
+                    )}
+                  >
+                    <CalendarDays className="size-4" />
+                  </span>
+                  <span className={cn("font-semibold", isCanvas ? "text-[15px] tracking-tight" : "text-sm")}>
+                    {selectedCampaign.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -403,7 +524,33 @@ export default function Home() {
                 </div>
               </header>
 
-              <div className="min-h-0 flex-1">
+              <div
+                className={cn(
+                  "min-h-0 flex-1",
+                  isCanvas && "overflow-y-auto",
+                )}
+              >
+                {isCanvas ? (
+                  <div className="mx-auto w-full max-w-[1280px] px-6 pb-16">
+                    <div className="pb-6 pt-7">
+                      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em]">
+                        {selectedCampaign.name}
+                      </h1>
+                      <p className="mt-1.5 text-[13px] text-muted-foreground">
+                        Content scheduled for this campaign.
+                      </p>
+                    </div>
+                    <SessionsTable
+                      variant="canvas"
+                      sessions={campaignSessions}
+                      selectedSessionId={selectedSessionId}
+                      onSelectSession={setSelectedSessionId}
+                      onOpenSend={setSendSheetSessionId}
+                      onDeleteSession={deleteSession}
+                      onUnlockSession={unlockSession}
+                    />
+                  </div>
+                ) : (
                 <SessionsTable
                   sessions={campaignSessions}
                   selectedSessionId={selectedSessionId}
@@ -412,10 +559,18 @@ export default function Home() {
                   onDeleteSession={deleteSession}
                   onUnlockSession={unlockSession}
                 />
+                )}
               </div>
 
-              <footer className="flex h-8 shrink-0 items-center justify-between border-t border-border px-4 text-xs text-muted-foreground">
-                <span>{campaignSessions.length} sessions</span>
+              <footer
+                className={cn(
+                  "flex shrink-0 items-center justify-between text-muted-foreground",
+                  isCanvas
+                    ? "h-9 border-t border-white/[0.06] px-5 text-[11px]"
+                    : "h-8 border-t border-border px-4 text-xs",
+                )}
+              >
+                <span className="tabular-nums">{campaignSessions.length} sessions</span>
                 <span className="flex items-center gap-1.5">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
                   Synced to Wozku
@@ -436,6 +591,7 @@ export default function Home() {
             onNewContent={handleNewContent}
             onImportToCampaign={importSessionsToCampaign}
             onCreateCampaign={createCampaign}
+            tableStyle={composerLayout}
           />
         )}
       </div>
@@ -485,7 +641,6 @@ export default function Home() {
                     postTypeAsSegmented={mode === "current"}
                     isNewModel={mode === "new"}
                     composerLayout={composerLayout}
-                    onComposerLayoutChange={setComposerLayout}
                   />
                 </div>
                 <DiscussionPanel

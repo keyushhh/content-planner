@@ -10,7 +10,6 @@ import {
   MessageCircle,
   RefreshCw,
   Send,
-  Sparkles,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -26,7 +25,8 @@ import {
   EASE,
   GhostAction,
   HASHTAG_SUGGESTIONS,
-  CopyLimits,
+  CopyMeta,
+  AiAssistButton,
   SaveChip,
   Stagger,
   TAG_SUGGESTIONS,
@@ -337,10 +337,7 @@ export function SessionCanvas({
                     )}
                   </GhostAction>
                   <GhostAction icon={AtSign}>Add Mentions</GhostAction>
-                  <button className="ml-1 flex h-7 items-center gap-1.5 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600 px-2.5 text-xs font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.35),0_6px_16px_-10px_rgba(139,92,246,0.9)] inset-ring-1 inset-ring-white/20 transition-[filter,scale] duration-150 hover:brightness-110 active:scale-[0.96]">
-                    <Sparkles className="size-3.5" />
-                    AI Assist
-                  </button>
+                  <AiAssistButton className="ml-1" />
                   <CommentButton
                     comments={commentsFor("Copy")}
                     onClick={() => onOpenDiscussion("Copy")}
@@ -356,13 +353,8 @@ export function SessionCanvas({
                 disabled={isCampaignLocked}
                 className="block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
               />
-              <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-9 pb-4">
-                <span className="text-[11px] tabular-nums text-muted-foreground">
-                  {wordCount} {wordCount === 1 ? "word" : "words"}
-                  <span className="mx-1.5 text-muted-foreground/40">·</span>
-                  {copyDraft.length} characters
-                </span>
-                <CopyLimits count={copyDraft.length} platforms={session.platforms} />
+              <div className="px-9 pb-4">
+                <CopyMeta words={wordCount} count={copyDraft.length} />
               </div>
               </div>
             </Stagger>
