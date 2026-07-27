@@ -51,6 +51,18 @@ import {
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
 import { MediaLibraryView } from "./media-library-view";
 import { MediaThumb } from "./media-thumb";
+import { SessionComposer } from "./session-composer";
+import { SessionCanvas } from "./session-canvas";
+
+export type ComposerLayout = "split" | "canvas";
+export const LAYOUT_STORAGE_KEY = "content-planner:composer-layout";
+
+/** Lazy initialiser shared with the page, which owns the pane's width. */
+export function readStoredLayout(): ComposerLayout {
+  if (typeof window === "undefined") return "split";
+  const stored = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+  return stored === "canvas" || stored === "split" ? stored : "split";
+}
 import type {
   Comment,
   MediaAsset,
@@ -95,6 +107,8 @@ interface SessionDetailPaneProps {
   hidePostType?: boolean;
   postTypeAsSegmented?: boolean;
   isNewModel?: boolean;
+  composerLayout?: ComposerLayout;
+  onComposerLayoutChange?: (layout: ComposerLayout) => void;
 }
 
 export function SessionDetailPane({
@@ -111,12 +125,24 @@ export function SessionDetailPane({
   hidePostType = false,
   postTypeAsSegmented = false,
   isNewModel = false,
+  composerLayout,
+  onComposerLayoutChange,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
   const [variationDraft, setVariationDraft] = useState("");
   const [tagDraft, setTagDraft] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  // The page owns this so the sheet width can respond to it; fall back to local
+  // state if the pane is ever rendered uncontrolled.
+  const [fallbackLayout, setFallbackLayout] = useState<ComposerLayout>(readStoredLayout);
+  const layout = composerLayout ?? fallbackLayout;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const changeLayout = (next: ComposerLayout) => {
+    window.localStorage.setItem(LAYOUT_STORAGE_KEY, next);
+    if (onComposerLayoutChange) onComposerLayoutChange(next);
+    else setFallbackLayout(next);
+  };
 
   // Local draft states for blur & 30-second timer autosave
   const [titleDraft, setTitleDraft] = useState(session.title);
@@ -229,6 +255,113 @@ export function SessionDetailPane({
   const readyToSend = session.status === "approved" && sendReadinessIssues.length === 0;
   const needsResend = sessionNeedsResend(session);
 
+  const statusMenu = (
+    <StatusMenu
+      status={session.status}
+      onChange={(status) => handleUpdateWithPendingSave({ status })}
+      disabled={isCampaignLocked}
+      canApprove={canApprove}
+    />
+  );
+
+  const unlockDialog = (
+    <ConfirmDialog
+      open={showUnlockDialog}
+      onOpenChange={setShowUnlockDialog}
+      icon={LockOpen}
+      tone="violet"
+      title="Unlock this post?"
+      description="This moves it back to WIP so you can edit it. It stays sent to Wozku as-is until you re-approve and send the update — nothing changes there until then."
+      actions={[
+        {
+          label: "Cancel",
+          tone: "outline",
+          onClick: () => setShowUnlockDialog(false),
+        },
+        {
+          label: "Unlock",
+          icon: LockOpen,
+          tone: "primary",
+          onClick: () => {
+            setShowUnlockDialog(false);
+            onUpdate({ status: "wip" });
+          },
+        },
+      ]}
+    />
+  );
+
+  const layoutToggle = (
+    <div
+      role="group"
+      aria-label="Layout"
+      className="flex items-center gap-0.5 rounded-full bg-white/[0.03] p-0.5 inset-ring-1 inset-ring-white/[0.08]"
+    >
+      {(
+        [
+          { id: "split", label: "Split" },
+          { id: "canvas", label: "Canvas" },
+        ] as const
+      ).map((option) => (
+        <button
+          key={option.id}
+          onClick={() => changeLayout(option.id)}
+          aria-pressed={layout === option.id}
+          title={`${option.label} layout`}
+          className={cn(
+            "h-7 rounded-full px-2.5 text-[11px] font-medium transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
+            layout === option.id
+              ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  // The "new" model gets the polished composer layouts (Split / Canvas). The
+  // "current" model keeps the original single-column form below, unchanged.
+  if (isNewModel) {
+    const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
+    return (
+      <LayoutComponent
+        key={layout}
+        session={session}
+        mediaAssets={mediaAssets}
+        isCampaignLocked={isCampaignLocked}
+        titleDraft={titleDraft}
+        onTitleChange={setTitleDraft}
+        copyDraft={copyDraft}
+        onCopyChange={setCopyDraft}
+        hashtagsDraft={hashtagsDraft}
+        onHashtagsChange={setHashtagsDraft}
+        tagDraft={tagDraft}
+        onTagDraftChange={setTagDraft}
+        saveStatus={saveStatus}
+        saveSource={saveSource}
+        savePendingChanges={savePendingChanges}
+        onUpdate={onUpdate}
+        onUpdateWithPendingSave={handleUpdateWithPendingSave}
+        onClose={onClose}
+        onOpenDiscussion={onOpenDiscussion}
+        isDiscussionOpen={isDiscussionOpen}
+        onToggleDiscussion={onToggleDiscussion}
+        onOpenSend={onOpenSend}
+        onOpenMediaLibrary={() => setView("media-library")}
+        onOpenVariations={() => setView("variations")}
+        onRequestUnlock={() => setShowUnlockDialog(true)}
+        sendReadinessIssues={sendReadinessIssues}
+        readyToSend={readyToSend}
+        needsResend={needsResend}
+        statusMenu={statusMenu}
+        layoutToggle={layoutToggle}
+        unlockDialog={unlockDialog}
+      />
+    );
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <input
@@ -244,14 +377,7 @@ export function SessionDetailPane({
       />
 
       <div className="flex shrink-0 items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">
-          <StatusMenu
-            status={session.status}
-            onChange={(status) => handleUpdateWithPendingSave({ status })}
-            disabled={isCampaignLocked}
-            canApprove={canApprove}
-          />
-        </div>
+        <div className="flex items-center gap-3">{statusMenu}</div>
         <div className="flex items-center gap-1.5">
           {readyToSend && (
             <Button
@@ -752,30 +878,7 @@ export function SessionDetailPane({
         </Field>
       </div>
 
-      <ConfirmDialog
-        open={showUnlockDialog}
-        onOpenChange={setShowUnlockDialog}
-        icon={LockOpen}
-        tone="violet"
-        title="Unlock this post?"
-        description="This moves it back to WIP so you can edit it. It stays sent to Wozku as-is until you re-approve and send the update — nothing changes there until then."
-        actions={[
-          {
-            label: "Cancel",
-            tone: "outline",
-            onClick: () => setShowUnlockDialog(false),
-          },
-          {
-            label: "Unlock",
-            icon: LockOpen,
-            tone: "primary",
-            onClick: () => {
-              setShowUnlockDialog(false);
-              onUpdate({ status: "wip" });
-            },
-          },
-        ]}
-      />
+      {unlockDialog}
     </div>
   );
 }

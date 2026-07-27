@@ -1,0 +1,900 @@
+"use client";
+
+import { useState } from "react";
+import {
+  AlertCircle,
+  AtSign,
+  Check,
+  ChevronsRight,
+  Layers,
+  Loader2,
+  Lock,
+  MessageCircle,
+  RefreshCw,
+  Send,
+  Sparkles,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { MediaThumb } from "./media-thumb";
+import type { Comment, MediaAsset, Session } from "@/lib/types";
+
+export const HASHTAG_SUGGESTIONS = [
+  "#product",
+  "#launch",
+  "#giveaway",
+  "#contest",
+  "#announcement",
+  "#marketing",
+  "#branding",
+];
+
+export const TAG_SUGGESTIONS = [
+  "social",
+  "product",
+  "launch",
+  "giveaway",
+  "contest",
+  "email",
+  "announcement",
+];
+
+export const EASE = "cubic-bezier(0.2,0,0,1)";
+
+export interface ComposerLayoutProps {
+  session: Session;
+  mediaAssets: MediaAsset[];
+  isCampaignLocked: boolean;
+  titleDraft: string;
+  onTitleChange: (value: string) => void;
+  copyDraft: string;
+  onCopyChange: (value: string) => void;
+  hashtagsDraft: string;
+  onHashtagsChange: (value: string) => void;
+  tagDraft: string;
+  onTagDraftChange: (value: string) => void;
+  saveStatus: "idle" | "saving" | "saved";
+  saveSource: "blur" | "timer" | "instant" | null;
+  savePendingChanges: (source?: "blur" | "timer" | "instant") => void;
+  onUpdate: (patch: Partial<Session>) => void;
+  onUpdateWithPendingSave: (patch: Partial<Session>) => void;
+  onClose: () => void;
+  onOpenDiscussion: (fieldLabel?: string) => void;
+  isDiscussionOpen: boolean;
+  onToggleDiscussion: () => void;
+  onOpenSend: () => void;
+  onOpenMediaLibrary: () => void;
+  onOpenVariations: () => void;
+  onRequestUnlock: () => void;
+  sendReadinessIssues: string[];
+  readyToSend: boolean;
+  needsResend: boolean;
+  statusMenu: React.ReactNode;
+  layoutToggle: React.ReactNode;
+  unlockDialog: React.ReactNode;
+}
+
+export function SessionComposer({
+  session,
+  mediaAssets,
+  isCampaignLocked,
+  titleDraft,
+  onTitleChange,
+  copyDraft,
+  onCopyChange,
+  hashtagsDraft,
+  onHashtagsChange,
+  tagDraft,
+  onTagDraftChange,
+  saveStatus,
+  saveSource,
+  savePendingChanges,
+  onUpdate,
+  onUpdateWithPendingSave,
+  onClose,
+  onOpenDiscussion,
+  isDiscussionOpen,
+  onToggleDiscussion,
+  onOpenSend,
+  onOpenMediaLibrary,
+  onOpenVariations,
+  onRequestUnlock,
+  sendReadinessIssues,
+  readyToSend,
+  needsResend,
+  statusMenu,
+  layoutToggle,
+  unlockDialog,
+}: ComposerLayoutProps) {
+  const [scrolled, setScrolled] = useState(false);
+
+  const commentsFor = (fieldLabel: string) =>
+    session.comments.filter((c) => c.fieldLabel === fieldLabel);
+
+  const checklist = [
+    { label: "Copy written", done: copyDraft.trim().length > 0, required: true },
+    { label: "Asset attached", done: session.visualAssetIds.length > 0 },
+    { label: "Hashtags added", done: hashtagsDraft.trim().length > 0 },
+    { label: "Tagged", done: session.tags.length > 0 },
+  ];
+  const doneCount = checklist.filter((c) => c.done).length;
+  const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Header — hairline + lift appear only once content scrolls under it */}
+      <div
+        className={cn(
+          "z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
+          scrolled
+            ? "border-white/[0.07] shadow-[0_10px_24px_-20px_rgba(0,0,0,0.9)]"
+            : "border-transparent",
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {statusMenu}
+          {/* Title hands off to the header once it scrolls out of view */}
+          <span
+            aria-hidden={!scrolled}
+            className={cn(
+              "min-w-0 truncate text-sm font-medium transition-[opacity,translate] duration-200",
+              scrolled ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0",
+            )}
+            style={{ transitionTimingFunction: EASE }}
+          >
+            {titleDraft}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {readyToSend && (
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+              onClick={onOpenSend}
+            >
+              {needsResend ? (
+                <RefreshCw className="size-3.5" />
+              ) : (
+                <Send className="size-3.5" />
+              )}
+              {needsResend ? "Send Update" : "Send to Campaign"}
+            </Button>
+          )}
+
+          {layoutToggle}
+
+          <SaveChip
+            saveStatus={saveStatus}
+            saveSource={saveSource}
+            onClick={() => savePendingChanges("instant")}
+          />
+
+          <button
+            onClick={onToggleDiscussion}
+            aria-label="Toggle discussion"
+            aria-pressed={isDiscussionOpen}
+            title="Discussion"
+            className={cn(
+              "relative flex size-8 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+              isDiscussionOpen
+                ? "bg-white/[0.09] text-foreground"
+                : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+            )}
+          >
+            <MessageCircle className="size-4" />
+            {session.comments.length > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-violet-500 text-[9px] font-semibold tabular-nums text-white ring-2 ring-background">
+                {session.comments.length}
+              </span>
+            )}
+          </button>
+
+          <div className="mx-1 h-5 w-px bg-white/10" />
+
+          <button
+            onClick={() => {
+              savePendingChanges("blur");
+              onClose();
+            }}
+            aria-label="Save and collapse session"
+            title="Save and collapse"
+            className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+          >
+            <ChevronsRight className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      {isCampaignLocked && (
+        <Banner tone="violet">
+          <span className="flex min-w-0 items-center gap-2">
+            <Lock className="size-4 shrink-0" />
+            This post is live on Wozku, so it&rsquo;s locked from editing.
+          </span>
+          <button
+            onClick={onRequestUnlock}
+            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-violet-200 inset-ring-1 inset-ring-violet-400/30 transition-[background-color,scale] duration-150 hover:bg-violet-400/15 active:scale-[0.96]"
+          >
+            Unlock to Edit
+          </button>
+        </Banner>
+      )}
+
+      {!isCampaignLocked && session.status === "approved" && sendReadinessIssues.length > 0 && (
+        <Banner tone="amber">
+          <span className="flex min-w-0 items-center gap-2">
+            <AlertCircle className="size-4 shrink-0" />
+            Add {sendReadinessIssues.join(" and ")} before this post can be sent.
+          </span>
+        </Banner>
+      )}
+
+      {/* Body — one scroll container, two grid columns when the pane is wide enough.
+          Container queries (not viewport) so opening the Activity panel collapses this
+          to a single natural stack: title → assets → copy → readiness → hashtags → tags. */}
+      <div
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+        className="@container min-h-0 flex-1 overflow-y-auto @[880px]:overflow-hidden"
+      >
+        <div className="grid min-h-full grid-cols-1 @[880px]:h-full @[880px]:grid-cols-[minmax(0,1fr)_352px]">
+          {/* Wide: the editor column is pinned to the pane height and scrolls only
+              if its own content overflows — so no dead space opens up beneath Assets.
+              Narrow: the outer container scrolls and both columns simply stack. */}
+          <main
+            onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+            className="min-w-0 @[880px]:min-h-0 @[880px]:overflow-y-auto"
+          >
+            <div className="mx-auto w-full max-w-[860px] px-8 pb-8 pt-7">
+              <Stagger index={0} className="mb-6">
+                <input
+                  value={titleDraft}
+                  onChange={(e) => onTitleChange(e.target.value)}
+                  onBlur={() => savePendingChanges("blur")}
+                  disabled={isCampaignLocked}
+                  aria-label="Session title"
+                  className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+                />
+                <div className="mt-2 flex items-center gap-2 pl-0.5 text-[13px] text-muted-foreground">
+                  <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
+                    <AvatarFallback className="text-[9px]">
+                      {session.lastEditedBy?.name?.[0] ?? "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-foreground/80">
+                    {session.lastEditedBy?.name ?? "Unknown"}
+                  </span>
+                  <Dot />
+                  <span className="tabular-nums">
+                    Edited{" "}
+                    {new Date(session.updatedAt).toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </Stagger>
+
+              {/* Copy leads — it is the artifact. Assets support it and sit below. */}
+              <Stagger index={1} className="mb-4">
+                <Card focusable>
+                  <CardHeader
+                    label="Copy"
+                    comments={commentsFor("Copy")}
+                    onComment={() => onOpenDiscussion("Copy")}
+                    action={
+                      <div className="flex items-center gap-1">
+                        <GhostAction onClick={onOpenVariations} icon={Layers}>
+                          Post Variations
+                          {session.variations.length > 0 && (
+                            <span className="ml-1 rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
+                              {session.variations.length}
+                            </span>
+                          )}
+                        </GhostAction>
+                        <GhostAction icon={AtSign}>Add Mentions</GhostAction>
+                        <button className="ml-1 flex h-7 items-center gap-1.5 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600 px-2.5 text-xs font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.35),0_6px_16px_-10px_rgba(139,92,246,0.9)] inset-ring-1 inset-ring-white/20 transition-[filter,scale] duration-150 hover:brightness-110 active:scale-[0.96]">
+                          <Sparkles className="size-3.5" />
+                          AI Assist
+                        </button>
+                      </div>
+                    }
+                  />
+                  <textarea
+                    value={copyDraft}
+                    onChange={(e) => onCopyChange(e.target.value)}
+                    onBlur={() => savePendingChanges("blur")}
+                    placeholder="Write your post…"
+                    disabled={isCampaignLocked}
+                    className="block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-white/[0.06] px-4 py-2.5">
+                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                      {wordCount} {wordCount === 1 ? "word" : "words"}
+                      <span className="mx-1.5 text-muted-foreground/40">·</span>
+                      {copyDraft.length} characters
+                    </span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <LimitMeter label="X" count={copyDraft.length} limit={280} />
+                      <LimitMeter label="LinkedIn" count={copyDraft.length} limit={3000} />
+                      <LimitMeter label="IG" count={copyDraft.length} limit={2200} />
+                    </div>
+                  </div>
+                </Card>
+              </Stagger>
+
+              <Stagger index={2}>
+                <Card>
+                  <CardHeader
+                    label="Assets"
+                    comments={commentsFor("Assets")}
+                    onComment={() => onOpenDiscussion("Assets")}
+                    action={
+                      session.visualAssetIds.length > 0 ? (
+                        <span className="text-[11px] tabular-nums text-muted-foreground/70">
+                          {session.visualAssetIds.length} attached
+                        </span>
+                      ) : undefined
+                    }
+                  />
+                  <div className="p-3">
+                    {session.visualAssetIds.length === 0 ? (
+                      // Compact row, not a hero dropzone — assets are optional here
+                      <button
+                        disabled={isCampaignLocked}
+                        onClick={onOpenMediaLibrary}
+                        className="group flex w-full items-center gap-3 rounded-[12px] border border-dashed border-violet-400/25 bg-violet-500/[0.02] px-3 py-2.5 text-left transition-[background-color,border-color,scale] duration-200 hover:border-violet-400/55 hover:bg-violet-500/[0.06] active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-violet-400/25 disabled:hover:bg-violet-500/[0.02]"
+                      >
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25 transition-transform duration-200 group-hover:scale-[1.06]">
+                          <UploadCloud className="size-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-medium">Add assets</span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            Image, video or an embed code
+                          </span>
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="flex flex-wrap gap-2.5">
+                        {session.visualAssetIds.map((assetId) => (
+                          <div
+                            key={assetId}
+                            className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
+                          >
+                            <MediaThumb
+                              assetId={assetId}
+                              type={mediaAssets.find((a) => a.id === assetId)?.type}
+                              className="size-full !rounded-[10px]"
+                            />
+                            {!isCampaignLocked && (
+                              <button
+                                onClick={() =>
+                                  onUpdate({
+                                    visualAssetIds: session.visualAssetIds.filter(
+                                      (id) => id !== assetId,
+                                    ),
+                                  })
+                                }
+                                aria-label="Remove asset"
+                                className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-[0.96] group-hover:opacity-100"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {!isCampaignLocked && (
+                          <button
+                            onClick={onOpenMediaLibrary}
+                            title="Pick from Media Library"
+                            aria-label="Add another asset"
+                            className="flex size-20 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-white/15 text-muted-foreground transition-[background-color,border-color,color,scale] duration-200 hover:border-violet-400/50 hover:bg-violet-500/[0.06] hover:text-violet-300 active:scale-[0.97]"
+                          >
+                            <UploadCloud className="size-5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </Stagger>
+            </div>
+          </main>
+
+          {/* Right rail — secondary fields + context, so the main column keeps a readable measure.
+              Below the breakpoint it becomes the bottom of the same single column. */}
+          <aside className="min-w-0 border-white/[0.06] @[880px]:min-h-0 @[880px]:overflow-y-auto @[880px]:border-l @[880px]:bg-black/[0.14]">
+            <div className="mx-auto w-full max-w-[860px] space-y-4 px-8 pb-16 pt-2 @[880px]:max-w-none @[880px]:px-5 @[880px]:pt-7">
+              {!isCampaignLocked && (
+                <Stagger index={1}>
+                  <RailCard label="Readiness">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm font-medium">
+                        <span className="tabular-nums">{doneCount}</span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          of <span className="tabular-nums">{checklist.length}</span> done
+                        </span>
+                      </span>
+                    </div>
+                    {/* fills left-to-right by count, not per-item — it reads as progress */}
+                    <div className="mt-2.5 flex gap-1">
+                      {checklist.map((item, i) => (
+                        <span
+                          key={item.label}
+                          className={cn(
+                            "h-1 flex-1 rounded-full transition-colors duration-300",
+                            i < doneCount ? "bg-violet-400" : "bg-white/10",
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <ul className="mt-3.5 space-y-2">
+                      {checklist.map((item) => (
+                        <li key={item.label} className="flex items-center gap-2.5 text-[13px]">
+                          <span
+                            className={cn(
+                              "flex size-4 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+                              item.done
+                                ? "bg-emerald-500/20 text-emerald-300 inset-ring-1 inset-ring-emerald-400/30"
+                                : "inset-ring-1 inset-ring-white/15",
+                            )}
+                          >
+                            {item.done && <Check className="size-2.5" />}
+                          </span>
+                          <span
+                            className={cn(
+                              item.done ? "text-muted-foreground" : "text-foreground/90",
+                            )}
+                          >
+                            {item.label}
+                          </span>
+                          {item.required && !item.done && (
+                            <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-amber-400/90">
+                              required
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </RailCard>
+                </Stagger>
+              )}
+
+              <Stagger index={2}>
+                <RailCard
+                  label="Hashtags"
+                  comments={commentsFor("Hashtags")}
+                  onComment={() => onOpenDiscussion("Hashtags")}
+                >
+                  <input
+                    value={hashtagsDraft}
+                    onChange={(e) => onHashtagsChange(e.target.value)}
+                    onBlur={() => savePendingChanges("blur")}
+                    placeholder="#product #launch"
+                    disabled={isCampaignLocked}
+                    className="h-10 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/60 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                  {!isCampaignLocked && (
+                    <ChipRow>
+                      {HASHTAG_SUGGESTIONS.filter((ht) => !hashtagsDraft.includes(ht))
+                        .slice(0, 5)
+                        .map((ht) => (
+                          <Chip
+                            key={ht}
+                            onClick={() => {
+                              const trimmed = hashtagsDraft.trim();
+                              const next = trimmed ? `${trimmed} ${ht}` : ht;
+                              onHashtagsChange(next);
+                              onUpdateWithPendingSave({ hashtags: next });
+                            }}
+                          >
+                            {ht}
+                          </Chip>
+                        ))}
+                    </ChipRow>
+                  )}
+                </RailCard>
+              </Stagger>
+
+              <Stagger index={3}>
+                <RailCard label="Tags">
+                  <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
+                    {session.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex h-7 items-center gap-1.5 rounded-md bg-white/[0.08] px-2.5 text-xs font-medium inset-ring-1 inset-ring-white/[0.06]"
+                      >
+                        {tag}
+                        {!isCampaignLocked && (
+                          <button
+                            onClick={() =>
+                              onUpdate({ tags: session.tags.filter((t) => t !== tag) })
+                            }
+                            aria-label={`Remove tag ${tag}`}
+                            className="-mr-0.5 flex size-4 items-center justify-center rounded-full text-muted-foreground transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                    <input
+                      value={tagDraft}
+                      onChange={(e) => onTagDraftChange(e.target.value)}
+                      disabled={isCampaignLocked}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === ",") && tagDraft.trim()) {
+                          e.preventDefault();
+                          const next = tagDraft.trim().toLowerCase();
+                          if (!session.tags.includes(next)) {
+                            onUpdate({ tags: [...session.tags, next] });
+                          }
+                          onTagDraftChange("");
+                        } else if (
+                          e.key === "Backspace" &&
+                          !tagDraft &&
+                          session.tags.length > 0
+                        ) {
+                          onUpdate({ tags: session.tags.slice(0, -1) });
+                        }
+                      }}
+                      placeholder={session.tags.length === 0 ? "Add tags (location, topic…)" : ""}
+                      className="h-7 min-w-24 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  {!isCampaignLocked && (
+                    <ChipRow>
+                      {TAG_SUGGESTIONS.filter((t) => !session.tags.includes(t))
+                        .slice(0, 5)
+                        .map((tag) => (
+                          <Chip
+                            key={tag}
+                            onClick={() => onUpdate({ tags: [...session.tags, tag] })}
+                          >
+                            {tag}
+                          </Chip>
+                        ))}
+                    </ChipRow>
+                  )}
+                </RailCard>
+              </Stagger>
+
+              <Stagger index={4}>
+                <RailCard label="Details">
+                  <dl className="divide-y divide-white/[0.06]">
+                    <DetailRow label="Created" value={formatDate(session.createdAt)} />
+                    <DetailRow label="Last edited" value={formatDate(session.updatedAt)} />
+                    <DetailRow
+                      label="Variations"
+                      value={
+                        session.variations.length === 0 ? "None" : `${session.variations.length}`
+                      }
+                    />
+                    <DetailRow
+                      label="Comments"
+                      value={
+                        session.comments.length === 0 ? "None" : `${session.comments.length}`
+                      }
+                    />
+                  </dl>
+                </RailCard>
+              </Stagger>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {unlockDialog}
+    </div>
+  );
+}
+
+/* ---------- primitives ---------- */
+
+export function Stagger({
+  index,
+  className,
+  children,
+}: {
+  index: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "animate-in fade-in slide-in-from-bottom-1 fill-mode-both duration-500 motion-reduce:animate-none",
+        className,
+      )}
+      style={{ animationDelay: `${index * 55}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Card({
+  focusable,
+  fill,
+  children,
+}: {
+  focusable?: boolean;
+  fill?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-2xl bg-white/[0.025] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_12px_28px_-20px_rgba(0,0,0,0.8)] inset-ring-1 inset-ring-white/[0.07] transition-[box-shadow] duration-200",
+        fill && "flex min-h-0 flex-1 flex-col",
+        focusable &&
+          "focus-within:inset-ring-violet-400/40 focus-within:shadow-[0_1px_2px_rgba(0,0,0,0.25),0_0_0_4px_rgba(139,92,246,0.09)]",
+      )}
+    >
+      {children}
+    </section>
+  );
+}
+
+function CardHeader({
+  label,
+  action,
+  comments,
+  onComment,
+}: {
+  label: string;
+  action?: React.ReactNode;
+  comments?: Comment[];
+  onComment?: () => void;
+}) {
+  return (
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-1.5">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/75">
+        {label}
+      </span>
+      <div className="flex items-center gap-1.5">
+        {action}
+        {onComment && (
+          <CommentButton comments={comments ?? []} onClick={onComment} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function RailCard({
+  label,
+  comments,
+  onComment,
+  children,
+}: {
+  label: string;
+  comments?: Comment[];
+  onComment?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl bg-white/[0.022] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)] inset-ring-1 inset-ring-white/[0.06]">
+      <div className="mb-2.5 flex min-h-6 items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/75">
+          {label}
+        </span>
+        {onComment && <CommentButton comments={comments ?? []} onClick={onComment} />}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export function CommentButton({
+  comments,
+  onClick,
+}: {
+  comments: Comment[];
+  onClick: () => void;
+}) {
+  if (comments.length === 0) {
+    return (
+      <button
+        onClick={onClick}
+        aria-label="Add comment"
+        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/40 transition-[background-color,color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] hover:text-muted-foreground active:scale-[0.96]"
+      >
+        <MessageCircle className="size-3.5" />
+      </button>
+    );
+  }
+  const lastAuthor = comments[comments.length - 1].author;
+  return (
+    <button
+      onClick={onClick}
+      aria-label={`${comments.length} comments`}
+      className="relative flex size-8 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] active:scale-[0.96]"
+    >
+      <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
+        <AvatarFallback className="text-[9px]">{lastAuthor.name[0]}</AvatarFallback>
+      </Avatar>
+      <span className="absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-violet-500 text-[8px] font-semibold tabular-nums text-white ring-2 ring-background">
+        {comments.length}
+      </span>
+    </button>
+  );
+}
+
+export function GhostAction({
+  icon: Icon,
+  onClick,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-7 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+    >
+      <Icon className="size-3.5" />
+      {children}
+    </button>
+  );
+}
+
+export function LimitMeter({
+  label,
+  count,
+  limit,
+}: {
+  label: string;
+  count: number;
+  limit: number;
+}) {
+  const over = count > limit;
+  const pct = Math.min(100, (count / limit) * 100);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] font-medium text-muted-foreground/70">{label}</span>
+      <span className="relative h-1 w-10 overflow-hidden rounded-full bg-white/10">
+        <span
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-300",
+            over ? "bg-amber-400" : "bg-violet-400/85",
+          )}
+          style={{ width: `${pct}%`, transitionTimingFunction: EASE }}
+        />
+      </span>
+      <span
+        className={cn(
+          "text-[11px] tabular-nums",
+          over ? "font-medium text-amber-400" : "text-muted-foreground",
+        )}
+      >
+        {count}/{limit}
+      </span>
+    </div>
+  );
+}
+
+export function ChipRow({ children }: { children: React.ReactNode }) {
+  const items = Array.isArray(children) ? children.filter(Boolean) : children;
+  if (Array.isArray(items) && items.length === 0) return null;
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px] text-muted-foreground/50">Suggested</span>
+      {items}
+    </div>
+  );
+}
+
+export function Chip({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-8 items-center rounded-full bg-white/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-200 hover:inset-ring-violet-400/40 active:scale-[0.96]"
+    >
+      {children}
+    </button>
+  );
+}
+
+export function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 text-[13px] first:pt-0 last:pb-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="truncate tabular-nums text-foreground/90">{value}</dd>
+    </div>
+  );
+}
+
+export function Dot() {
+  return <span className="size-1 rounded-full bg-muted-foreground/40" />;
+}
+
+export function Banner({
+  tone,
+  children,
+}: {
+  tone: "violet" | "amber";
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-between gap-3 border-b px-6 py-2.5 text-sm",
+        tone === "violet"
+          ? "border-violet-400/20 bg-violet-500/10 text-violet-200"
+          : "border-amber-400/20 bg-amber-500/10 text-amber-300",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function SaveChip({
+  saveStatus,
+  saveSource,
+  onClick,
+}: {
+  saveStatus: "idle" | "saving" | "saved";
+  saveSource: "blur" | "timer" | "instant" | null;
+  onClick: () => void;
+}) {
+  const saving = saveStatus === "saving";
+  const suffix =
+    saveSource === "timer" ? " (30s timer)" : saveSource === "blur" ? " (on blur)" : "";
+
+  return (
+    <button
+      onClick={onClick}
+      title="Autosaves on focus loss (blur) or every 30 seconds"
+      className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.03] px-3 text-xs inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] hover:inset-ring-white/15 active:scale-[0.96]"
+    >
+      {/* both icons stay mounted and cross-fade, so the swap animates in and out */}
+      <span className="relative flex size-3 items-center justify-center">
+        <Loader2
+          className={cn(
+            "absolute size-3 animate-spin text-violet-300 transition-[opacity,scale,filter] duration-200",
+            saving ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
+          )}
+          style={{ transitionTimingFunction: EASE }}
+        />
+        <Check
+          className={cn(
+            "absolute size-3 text-emerald-400 transition-[opacity,scale,filter] duration-200",
+            saving ? "scale-[0.25] opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-0",
+          )}
+          style={{ transitionTimingFunction: EASE }}
+        />
+      </span>
+      <span className="text-muted-foreground">
+        {saving ? `Saving${suffix}…` : `Autosaved${suffix}`}
+      </span>
+    </button>
+  );
+}
+
+export function formatDate(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}

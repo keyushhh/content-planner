@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, PlusCircle, Settings2, LayoutGrid, UserPlus } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
-import { SessionDetailPane } from "@/components/content-planner/session-detail-pane";
+import {
+  SessionDetailPane,
+  readStoredLayout,
+  type ComposerLayout,
+} from "@/components/content-planner/session-detail-pane";
 import { DiscussionPanel } from "@/components/content-planner/discussion-panel";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { InviteModal } from "@/components/content-planner/invite-modal";
@@ -56,6 +60,7 @@ export default function Home() {
   const [discussionOpen, setDiscussionOpen] = useState(false);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
   const nextId = useRef(1000);
 
   // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
@@ -65,6 +70,7 @@ export default function Home() {
     if (savedMode === "current" || savedMode === "new") {
       setMode(savedMode);
     }
+    setComposerLayout(readStoredLayout());
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -441,7 +447,12 @@ export default function Home() {
           <SheetContent
             showCloseButton={false}
             side="right"
-            className="session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !w-[70%] !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-transform duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full"
+            className={cn(
+              "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[transform,width] duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full",
+              // Canvas is a document, not a dashboard — a narrower pane keeps the
+              // sessions table visible behind it and suits the reading measure.
+              mode === "new" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
+            )}
           >
             {selectedSession && (
               <div className="flex size-full min-h-0 min-w-0">
@@ -460,6 +471,8 @@ export default function Home() {
                     hidePostType={mode === "new"}
                     postTypeAsSegmented={mode === "current"}
                     isNewModel={mode === "new"}
+                    composerLayout={composerLayout}
+                    onComposerLayoutChange={setComposerLayout}
                   />
                 </div>
                 <DiscussionPanel
