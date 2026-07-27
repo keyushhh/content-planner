@@ -13,6 +13,7 @@ import {
   Loader2,
   Save,
   ImageIcon,
+  FileText,
   Frame,
   Repeat2,
   MessageCircle,
@@ -82,6 +83,7 @@ const POST_TYPE_META: Record<PostType, { icon: typeof ImageIcon; label: string }
   Image: { icon: ImageIcon, label: "Image" },
   Reshare: { icon: Repeat2, label: "Reshare" },
   Frames: { icon: Frame, label: "Frames" },
+  PDF: { icon: FileText, label: "PDF" },
 };
 const POST_TYPES = Object.keys(POST_TYPE_META) as PostType[];
 
@@ -228,6 +230,8 @@ export function SessionDetailPane({
           folders={mediaFolders}
           assets={mediaAssets}
           selectedAssetIds={session.visualAssetIds}
+          restrictType={session.postType === "PDF" ? "pdf" : undefined}
+          restrictReason="A PDF post carries one PDF, rendered as swipeable pages"
           onClose={() => setView("form")}
           onSelectAsset={(assetId) => {
             if (!session.visualAssetIds.includes(assetId)) {

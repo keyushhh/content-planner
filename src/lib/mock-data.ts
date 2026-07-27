@@ -65,6 +65,22 @@ export const mediaAssets: MediaAsset[] = [
     url: "",
     type: "pdf",
   },
+  // A PDF post type filters the library to PDFs only, so there needs to be more
+  // than one of them for the picker to look like a library rather than an error.
+  {
+    id: "asset-post-pdf-2",
+    folderId: "folder-post",
+    name: "q3-results-carousel.pdf",
+    url: "",
+    type: "pdf",
+  },
+  {
+    id: "asset-post-pdf-3",
+    folderId: "folder-headers",
+    name: "hiring-deck-5-slides.pdf",
+    url: "",
+    type: "pdf",
+  },
 ];
 
 export const campaigns: Campaign[] = [

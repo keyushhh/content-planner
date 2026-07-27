@@ -6,6 +6,7 @@ import {
   AtSign,
   ChevronDown,
   ChevronsRight,
+  FileText,
   Layers,
   Layers2,
   Image as ImageIcon,
@@ -33,6 +34,8 @@ import {
   Byline,
   SaveChip,
   Stagger,
+  MEDIA_COPY,
+  assetsForType,
   TAG_SUGGESTIONS,
   formatDate,
   useComposerShortcuts,
@@ -46,6 +49,7 @@ import type { PostType } from "@/lib/types";
 const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
   { id: "Image", icon: ImageIcon },
   { id: "Frames", icon: Layers2 },
+  { id: "PDF", icon: FileText },
   { id: "Reshare", icon: Repeat2 },
 ];
 
@@ -98,6 +102,8 @@ export function SessionCanvas({
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
   // replies live inside their parent, so the raw length under-reports the thread
   const totalComments = countComments(session.comments);
+  const media = MEDIA_COPY[session.postType];
+  const canAddMore = session.visualAssetIds.length < media.max;
 
   const checklist = [
     { label: "copy", done: copyDraft.trim().length > 0 },
@@ -107,7 +113,7 @@ export function SessionCanvas({
       ? []
       : [
           {
-            label: session.postType === "Frames" ? "a frame" : "an asset",
+            label: media.checklist,
             done: session.visualAssetIds.length > 0,
           },
         ]),
@@ -433,7 +439,7 @@ export function SessionCanvas({
               </SettingRow>
             ) : (
             <SettingRow
-              label={session.postType === "Frames" ? "Frames" : "Assets"}
+              label={media.section}
               comments={commentsFor("Assets")}
               onComment={() => onOpenDiscussion("Assets")}
               // a single pill sits right; a wrapping thumbnail grid must start
@@ -451,9 +457,7 @@ export function SessionCanvas({
                   <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
                     <UploadCloud className="size-3.5" />
                   </span>
-                  {session.postType === "Frames"
-                    ? "Add the first frame"
-                    : "Add an image or video"}
+                  {media.cta}
                 </button>
               ) : (
                 <div className="flex flex-wrap gap-2.5">
@@ -485,7 +489,7 @@ export function SessionCanvas({
                       )}
                     </div>
                   ))}
-                  {!isCampaignLocked && (
+                  {!isCampaignLocked && canAddMore && (
                     <button
                       onClick={onOpenMediaLibrary}
                       title="Pick from Media Library"
@@ -616,8 +620,10 @@ export function SessionCanvas({
         mode="change"
         current={session.postType}
         onSelect={(postType) => {
-          // assets are kept, just unused while Reshare — nothing is destroyed
-          onUpdate({ postType });
+          onUpdate({
+            postType,
+            visualAssetIds: assetsForType(session.visualAssetIds, mediaAssets, postType),
+          });
           setTypeModalOpen(false);
         }}
       />

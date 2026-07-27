@@ -13,6 +13,14 @@ interface MediaLibraryViewProps {
   selectedAssetIds?: string[];
   onSelectAsset: (assetId: string) => void;
   onClose: () => void;
+  /**
+   * Locks the library to one asset type. A PDF post cannot take an image, so
+   * the other formats are not shown as options that will be rejected later —
+   * they are simply not offered.
+   */
+  restrictType?: MediaAssetType;
+  /** What the restriction is for, so the notice explains itself. */
+  restrictReason?: string;
 }
 
 const ALL_MEDIA = "__all__";
@@ -30,6 +38,8 @@ export function MediaLibraryView({
   selectedAssetIds = [],
   onSelectAsset,
   onClose,
+  restrictType,
+  restrictReason,
 }: MediaLibraryViewProps) {
   // Default to the cross-folder view so embeds/PDFs are visible immediately,
   // instead of being hidden inside whichever single folder they were filed under.
@@ -37,11 +47,16 @@ export function MediaLibraryView({
   const [activeType, setActiveType] = useState<MediaAssetType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Narrowed before anything else, so the folder counts and the "All Media"
+  // total describe what you can actually pick — a collection listing 12 assets
+  // that opens onto 2 usable ones is a lie the sidebar told you.
+  const pool = restrictType ? assets.filter((a) => a.type === restrictType) : assets;
+
   const activeFolder = folders.find((f) => f.id === activeFolderId);
   const scopedAssets =
     activeFolderId === ALL_MEDIA
-      ? assets
-      : assets.filter((a) => a.folderId === activeFolderId);
+      ? pool
+      : pool.filter((a) => a.folderId === activeFolderId);
   const visibleAssets = scopedAssets.filter((a) => {
     const matchesType = activeType === "all" || a.type === activeType;
     const matchesSearch = searchQuery.trim() === "" || a.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
@@ -74,7 +89,7 @@ export function MediaLibraryView({
                 activeFolderId === ALL_MEDIA ? "bg-violet-500/20 text-violet-300" : "bg-accent",
               )}
             >
-              {assets.length}
+              {pool.length}
             </span>
           </button>
 
@@ -82,7 +97,7 @@ export function MediaLibraryView({
             Collections
           </div>
           {folders.map((folder) => {
-            const count = assets.filter((a) => a.folderId === folder.id).length;
+            const count = pool.filter((a) => a.folderId === folder.id).length;
             const isActive = folder.id === activeFolderId;
             return (
               <button
@@ -141,6 +156,16 @@ export function MediaLibraryView({
           </button>
         </div>
 
+        {/* When the type is fixed, the filter row would offer three choices that
+            all lead nowhere. It states the constraint instead. */}
+        {restrictType ? (
+          <div className="flex items-center gap-2 border-b border-border/60 px-5 py-2.5 text-xs text-muted-foreground">
+            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 font-medium uppercase tracking-wide text-amber-300">
+              {restrictType}
+            </span>
+            {restrictReason ?? `Only ${restrictType.toUpperCase()}s can be picked here`}
+          </div>
+        ) : (
         <div className="flex flex-wrap items-center gap-1.5 border-b border-border/60 px-5 py-2.5">
           {TYPE_FILTERS.map((f) => (
             <button
@@ -157,20 +182,23 @@ export function MediaLibraryView({
             </button>
           ))}
         </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-5">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-center hover:border-primary/50 hover:bg-accent/20">
               <input
                 type="file"
-                accept="image/*,application/pdf"
+                accept={restrictType === "pdf" ? "application/pdf" : "image/*,application/pdf"}
                 className="hidden"
                 onChange={onClose}
               />
               <UploadCloud className="size-6 text-muted-foreground" />
               <span className="text-xs font-medium">Upload Media</span>
               <span className="px-4 text-[11px] text-muted-foreground">
-                Click or drag and drop images, embeds, or PDFs
+                {restrictType === "pdf"
+                  ? "Click or drag and drop a PDF"
+                  : "Click or drag and drop images, embeds, or PDFs"}
               </span>
             </label>
 

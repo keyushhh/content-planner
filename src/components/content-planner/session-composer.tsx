@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   ChevronsRight,
+  FileText,
   Layers,
   Layers2,
   Image as ImageIcon,
@@ -31,8 +32,95 @@ import type { Comment, MediaAsset, Platform, PostType, Session } from "@/lib/typ
 export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
   { id: "Image", icon: ImageIcon },
   { id: "Frames", icon: Layers2 },
+  { id: "PDF", icon: FileText },
   { id: "Reshare", icon: Repeat2 },
 ];
+
+/**
+ * The media section is the same component in both layouts; only its wording and
+ * its ceiling change with the post type. Kept here as one table so Split and
+ * Canvas cannot drift apart, and so adding a type is one row rather than a hunt
+ * through six ternaries.
+ *
+ * `max` is how many assets the type accepts: a PDF post is one document, so the
+ * "add another" tile has to disappear once it is filled.
+ */
+export const MEDIA_COPY: Record<
+  PostType,
+  {
+    section: string;
+    checklist: string;
+    attached: string;
+    /** Canvas: one-line pill. Split: title + hint stacked. */
+    cta: string;
+    ctaTitle: string;
+    ctaHint: string;
+    max: number;
+  }
+> = {
+  Image: {
+    section: "Assets",
+    checklist: "an asset",
+    attached: "Asset attached",
+    cta: "Add an image or video",
+    ctaTitle: "Add assets",
+    ctaHint: "An image or a video",
+    max: Infinity,
+  },
+  Frames: {
+    section: "Frames",
+    checklist: "a frame",
+    attached: "Frame attached",
+    cta: "Add the first frame",
+    ctaTitle: "Add frames",
+    ctaHint: "Several images, swiped in order",
+    max: Infinity,
+  },
+  PDF: {
+    section: "PDF",
+    checklist: "a PDF",
+    attached: "PDF attached",
+    cta: "Add a PDF",
+    ctaTitle: "Add a PDF",
+    ctaHint: "One document, swiped as pages",
+    max: 1,
+  },
+  // Reshare never reaches the picker — its media comes from the original post.
+  Reshare: {
+    section: "Media",
+    checklist: "",
+    attached: "",
+    cta: "",
+    ctaTitle: "",
+    ctaHint: "",
+    max: 0,
+  },
+};
+
+/**
+ * What survives a post-type change.
+ *
+ * A PDF post cannot carry images and an Image post cannot carry a PDF, so the
+ * attachments have to be reconciled — otherwise the pane shows three image
+ * thumbnails under a heading that says PDF. Reshare is the exception: its
+ * section is hidden rather than emptied, so switching through it and back is
+ * lossless.
+ */
+export function assetsForType(
+  ids: string[],
+  assets: MediaAsset[],
+  type: PostType,
+): string[] {
+  if (type === "Reshare") return ids;
+  const kept = ids.filter((id) => {
+    const asset = assets.find((a) => a.id === id);
+    // an id we cannot resolve (a device upload) is not assumed to be a PDF
+    if (!asset) return type !== "PDF";
+    return type === "PDF" ? asset.type === "pdf" : asset.type !== "pdf";
+  });
+  const { max } = MEDIA_COPY[type];
+  return Number.isFinite(max) ? kept.slice(0, max) : kept;
+}
 
 export const HASHTAG_SUGGESTIONS = [
   "#product",
@@ -184,6 +272,8 @@ export function SessionComposer({
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
   // replies live inside their parent, so the raw length under-reports the thread
   const totalComments = countComments(session.comments);
+  const media = MEDIA_COPY[session.postType];
+  const canAddMore = session.visualAssetIds.length < media.max;
 
   const checklist = [
     { label: "Copy written", done: copyDraft.trim().length > 0, required: true },
@@ -191,7 +281,7 @@ export function SessionComposer({
       ? []
       : [
           {
-            label: session.postType === "Frames" ? "Frame attached" : "Asset attached",
+            label: media.attached,
             done: session.visualAssetIds.length > 0,
           },
         ]),
@@ -443,11 +533,13 @@ export function SessionComposer({
               <Stagger index={3}>
                 <Card>
                   <CardHeader
-                    label={session.postType === "Frames" ? "Frames" : "Assets"}
+                    label={media.section}
                     comments={commentsFor("Assets")}
                     onComment={() => onOpenDiscussion("Assets")}
                     action={
-                      session.visualAssetIds.length > 0 ? (
+                      // a count is only information when the number can vary;
+                      // "1 attached" on a one-PDF post says nothing
+                      session.visualAssetIds.length > 0 && media.max > 1 ? (
                         <span className="text-[11px] tabular-nums text-muted-foreground">
                           {session.visualAssetIds.length} attached
                         </span>
@@ -467,12 +559,10 @@ export function SessionComposer({
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[13px] font-medium">
-                            {session.postType === "Frames" ? "Add frames" : "Add assets"}
+                            {media.ctaTitle}
                           </span>
                           <span className="block truncate text-[11px] text-muted-foreground">
-                            {session.postType === "Frames"
-                              ? "Several images, swiped in order"
-                              : "An image or a video"}
+                            {media.ctaHint}
                           </span>
                         </span>
                       </button>
@@ -506,7 +596,7 @@ export function SessionComposer({
                             )}
                           </div>
                         ))}
-                        {!isCampaignLocked && (
+                        {!isCampaignLocked && canAddMore && (
                           <button
                             onClick={onOpenMediaLibrary}
                             title="Pick from Media Library"
@@ -680,8 +770,10 @@ export function SessionComposer({
         mode="change"
         current={session.postType}
         onSelect={(postType) => {
-          // assets are kept, just unused while Reshare — nothing is destroyed
-          onUpdate({ postType });
+          onUpdate({
+            postType,
+            visualAssetIds: assetsForType(session.visualAssetIds, mediaAssets, postType),
+          });
           setTypeModalOpen(false);
         }}
       />

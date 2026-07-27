@@ -3,6 +3,7 @@
 import {
   Check,
   ChevronRight,
+  FileText,
   Image as ImageIcon,
   Layers2,
   Repeat2,
@@ -50,6 +51,14 @@ const TYPES: {
     icon: Layers2,
     well: "bg-sky-500/[0.14] text-sky-300 inset-ring-sky-400/25",
     glow: "hover:inset-ring-sky-400/45 hover:bg-sky-500/[0.07]",
+  },
+  {
+    id: "PDF",
+    label: "PDF",
+    hint: "One PDF, swiped as pages",
+    icon: FileText,
+    well: "bg-amber-500/[0.14] text-amber-300 inset-ring-amber-400/25",
+    glow: "hover:inset-ring-amber-400/45 hover:bg-amber-500/[0.07]",
   },
   {
     id: "Reshare",
@@ -103,7 +112,7 @@ export function PostTypeModal({
             </DialogTitle>
             <DialogDescription className="mt-1.5 text-[13px] leading-snug text-muted-foreground text-pretty">
               {isChange
-                ? "Your copy and anything you\u2019ve attached is kept either way."
+                ? "Your copy is kept. Anything attached that the new type can\u2019t carry comes off."
                 : "This decides which fields the composer gives you."}
             </DialogDescription>
           </div>
@@ -167,7 +176,7 @@ export function PostTypeModal({
             here and a black slab gave it the visual weight of a decision. */}
         <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
-            {isChange ? "Nothing is deleted" : "Set once, at the start"}
+            {isChange ? "Your copy is never touched" : "Set once, at the start"}
           </span>
           <button
             onClick={() => onOpenChange(false)}

@@ -2,7 +2,9 @@ export type SessionStatus = "draft" | "wip" | "approved";
 
 export type Platform = "linkedin" | "instagram" | "facebook" | "x";
 
-export type PostType = "Image" | "Frames" | "Reshare";
+/** "PDF" is a document post — one PDF file the platform renders as swipeable
+    pages. It takes exactly one asset, and that asset must be a PDF. */
+export type PostType = "Image" | "Frames" | "Reshare" | "PDF";
 
 export interface User {
   id: string;
