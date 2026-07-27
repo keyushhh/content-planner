@@ -31,6 +31,7 @@ import {
   Stagger,
   TAG_SUGGESTIONS,
   formatDate,
+  useComposerShortcuts,
   type ComposerLayoutProps,
 } from "./session-composer";
 
@@ -76,16 +77,19 @@ export function SessionCanvas({
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
 
+  useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
+
   const commentsFor = (fieldLabel: string) =>
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
 
   const checklist = [
-    { label: "Copy", done: copyDraft.trim().length > 0 },
-    { label: "Asset", done: session.visualAssetIds.length > 0 },
-    { label: "Hashtags", done: hashtagsDraft.trim().length > 0 },
-    { label: "Tags", done: session.tags.length > 0 },
+    { label: "copy", done: copyDraft.trim().length > 0 },
+    { label: "an asset", done: session.visualAssetIds.length > 0 },
+    { label: "hashtags", done: hashtagsDraft.trim().length > 0 },
+    { label: "tags", done: session.tags.length > 0 },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
+  const missing = checklist.filter((c) => !c.done).map((c) => c.label);
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
 
   return (
@@ -201,32 +205,55 @@ export function SessionCanvas({
       {/* Canvas — the wash makes the surrounding space read as deliberate margin */}
       <div
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
-        className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)]"
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto transition-[background-image] duration-500",
+          // the canvas itself loses its violet cast when the post is locked
+          isCampaignLocked
+            ? "bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.02),transparent_60%)]"
+            : "bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)]",
+        )}
       >
         {/* items-start: the sheet sizes to its content instead of stretching, so no
             dead space opens up inside it. The surrounding canvas margin is deliberate. */}
         <div className="flex min-h-full items-start justify-center px-7 pb-12 pt-6 @container">
           <Stagger
             index={0}
-            className="flex w-full max-w-[900px] flex-col overflow-hidden rounded-[28px] bg-white/[0.028] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]"
+            className={cn(
+              "flex w-full max-w-[900px] flex-col overflow-hidden rounded-[28px] transition-[filter,box-shadow,background-color] duration-500",
+              // A locked document should look locked from across the room: colour
+              // drains out and it settles lower, as though set down rather than held.
+              isCampaignLocked
+                ? "bg-white/[0.018] shadow-[0_1px_3px_rgba(0,0,0,0.45)] saturate-50 inset-ring-1 inset-ring-white/[0.05]"
+                : "bg-white/[0.028] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]",
+            )}
           >
-            {/* Readiness reads as a hairline at the sheet's edge, not another card */}
-            <div className="flex h-0.5 w-full shrink-0 overflow-hidden">
-              {checklist.map((item, i) => (
-                <span
-                  key={item.label}
-                  className={cn(
-                    "h-full flex-1 transition-colors duration-500",
-                    i < doneCount ? "bg-violet-400" : "bg-white/[0.06]",
-                  )}
-                  style={{ transitionTimingFunction: EASE }}
-                />
-              ))}
-            </div>
+            {/* Readiness reads as a hairline at the sheet's edge, not another card.
+                It is meaningless once the post is live, so it goes away entirely. */}
+            {!isCampaignLocked && (
+              <div className="flex h-0.5 w-full shrink-0 overflow-hidden">
+                {checklist.map((item, i) => (
+                  <span
+                    key={item.label}
+                    className={cn(
+                      "h-full flex-1 transition-colors duration-500",
+                      i < doneCount ? "bg-violet-400" : "bg-white/[0.06]",
+                    )}
+                    style={{ transitionTimingFunction: EASE }}
+                  />
+                ))}
+              </div>
+            )}
+            {/* Specular edge — light catching the rim of a physical surface */}
+            <div
+              className={cn(
+                "h-px w-full shrink-0 bg-gradient-to-r from-transparent to-transparent transition-colors duration-500",
+                isCampaignLocked ? "via-white/[0.04]" : "via-white/[0.09]",
+              )}
+            />
 
             {/* Title */}
-            <div className="flex flex-wrap items-end justify-between gap-4 px-9 pb-7 pt-8">
-              <div className="min-w-0 flex-1">
+            <Stagger index={1} className="px-9 pb-7 pt-8">
+              <div className="min-w-0">
                 <input
                   value={titleDraft}
                   onChange={(e) => onTitleChange(e.target.value)}
@@ -235,7 +262,7 @@ export function SessionCanvas({
                   aria-label="Session title"
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
-                <div className="mt-2.5 flex items-center gap-2 pl-0.5 text-[13px] text-muted-foreground">
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-0.5 text-[13px] text-muted-foreground">
                   <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
                     <AvatarFallback className="text-[9px]">
                       {session.lastEditedBy?.name?.[0] ?? "?"}
@@ -246,36 +273,44 @@ export function SessionCanvas({
                   </span>
                   <span className="size-1 rounded-full bg-muted-foreground/40" />
                   <span className="tabular-nums">Edited {formatDate(session.updatedAt)}</span>
+                  {/* Readiness lives here as words. The hairline above shows progress;
+                      this says what is actually missing, which dots never could.
+                      When locked, the same slot carries the reason it cannot change. */}
+                  {isCampaignLocked && (
+                    <>
+                      <span className="size-1 rounded-full bg-muted-foreground/40" />
+                      <span className="inline-flex items-center gap-1.5">
+                        <Lock className="size-3 shrink-0" />
+                        Locked — live on Wozku
+                      </span>
+                    </>
+                  )}
+                  {!isCampaignLocked && (
+                    <>
+                      <span className="size-1 rounded-full bg-muted-foreground/40" />
+                      {missing.length === 0 ? (
+                        <span className="text-emerald-300/90">Ready to send</span>
+                      ) : (
+                        <span>
+                          <span className="tabular-nums">
+                            {doneCount} of {checklist.length}
+                          </span>{" "}
+                          ready&nbsp;· needs {missing.join(", ")}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
+            </Stagger>
 
-              {!isCampaignLocked && (
-                <div className="flex shrink-0 items-center gap-2 pb-1">
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {doneCount}/{checklist.length} ready
-                  </span>
-                  {/* fills left-to-right by count — these are progress, not per-item state */}
-                  <span className="flex items-center gap-1">
-                    {checklist.map((item, i) => (
-                      <span
-                        key={item.label}
-                        className={cn(
-                          "size-1.5 rounded-full transition-colors duration-300",
-                          i < doneCount ? "bg-violet-400" : "bg-white/15",
-                        )}
-                      />
-                    ))}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Copy — the writing surface, flush to the sheet, no nested box */}
-            <div className="flex flex-col border-t border-white/[0.06]">
+            {/* Copy — the writing surface, flush to the sheet, no nested box.
+                Focus is expressed as the section lighting up rather than a ring,
+                which would contradict the flush treatment. */}
+            <Stagger index={2}>
+              <div className="flex flex-col border-t border-white/[0.06] transition-[background-color,border-color] duration-300 focus-within:border-violet-400/45 focus-within:bg-violet-500/[0.022]">
               <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/75">
-                  Copy
-                </span>
+                <span className="text-[13px] font-medium text-muted-foreground">Copy</span>
                 <div className="-mr-1.5 flex items-center gap-1">
                   <GhostAction onClick={onOpenVariations} icon={Layers}>
                     Post Variations
@@ -316,13 +351,19 @@ export function SessionCanvas({
                   <LimitMeter label="IG" count={copyDraft.length} limit={2200} />
                 </div>
               </div>
-            </div>
+              </div>
+            </Stagger>
 
             {/* Settings-style rows: label left, control right */}
             <SettingRow
               label="Assets"
               comments={commentsFor("Assets")}
               onComment={() => onOpenDiscussion("Assets")}
+              // a single pill sits right; a wrapping thumbnail grid must start
+              // left, or the ragged edge lands on the wrong side
+              align={session.visualAssetIds.length > 0 ? "start" : "center"}
+              valueAlign={session.visualAssetIds.length > 0 ? "start" : "end"}
+              staggerIndex={3}
             >
               {session.visualAssetIds.length === 0 ? (
                 <button
@@ -336,7 +377,7 @@ export function SessionCanvas({
                   Add an image, video or embed
                 </button>
               ) : (
-                <div className="flex flex-wrap justify-end gap-2.5">
+                <div className="flex flex-wrap gap-2.5">
                   {session.visualAssetIds.map((assetId) => (
                     <div
                       key={assetId}
@@ -383,6 +424,7 @@ export function SessionCanvas({
               comments={commentsFor("Hashtags")}
               onComment={() => onOpenDiscussion("Hashtags")}
               align="start"
+              staggerIndex={4}
             >
               <div className="w-full">
                 <input
@@ -415,7 +457,7 @@ export function SessionCanvas({
               </div>
             </SettingRow>
 
-            <SettingRow label="Tags" align="start">
+            <SettingRow label="Tags" align="start" staggerIndex={5}>
               <div className="w-full">
                 <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
                   {session.tags.map((tag) => (
@@ -479,7 +521,10 @@ export function SessionCanvas({
             </SettingRow>
 
             {/* Colophon — metadata as a quiet footer, not a card */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] bg-white/[0.012] px-9 py-3 text-[11px] text-muted-foreground/70">
+            <Stagger
+              index={6}
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] bg-white/[0.012] px-9 py-3 text-[11px] text-muted-foreground/70"
+            >
               <span className="tabular-nums">Created {formatDate(session.createdAt)}</span>
               <span className="text-muted-foreground/30">·</span>
               <span className="tabular-nums">
@@ -493,7 +538,7 @@ export function SessionCanvas({
                   ? "No comments"
                   : `${session.comments.length} comment${session.comments.length === 1 ? "" : "s"}`}
               </span>
-            </div>
+            </Stagger>
           </Stagger>
         </div>
       </div>
@@ -506,24 +551,30 @@ export function SessionCanvas({
 function SettingRow({
   label,
   align = "center",
+  valueAlign = "end",
   comments,
   onComment,
+  staggerIndex,
   children,
 }: {
   label: string;
   align?: "center" | "start";
+  valueAlign?: "start" | "end";
   comments?: import("@/lib/types").Comment[];
   onComment?: () => void;
+  staggerIndex: number;
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        "grid gap-x-4 gap-y-2.5 border-t border-white/[0.06] px-9 py-4",
-        "grid-cols-1 @[560px]:grid-cols-[132px_minmax(0,1fr)_auto]",
-        align === "center" ? "items-center" : "items-start",
-      )}
-    >
+    <Stagger index={staggerIndex}>
+      <div
+        className={cn(
+          "grid gap-x-4 gap-y-2.5 border-t border-white/[0.06] px-9 py-4",
+          "grid-cols-1 @[560px]:grid-cols-[132px_minmax(0,1fr)_auto]",
+          "transition-[background-color,border-color] duration-300 focus-within:border-violet-400/45 focus-within:bg-violet-500/[0.022]",
+          align === "center" ? "items-center" : "items-start",
+        )}
+      >
       <span
         className={cn(
           "text-[13px] font-medium text-muted-foreground",
@@ -532,7 +583,14 @@ function SettingRow({
       >
         {label}
       </span>
-      <div className="flex min-w-0 justify-start @[560px]:justify-end">{children}</div>
+      <div
+        className={cn(
+          "flex min-w-0 justify-start",
+          valueAlign === "end" && "@[560px]:justify-end",
+        )}
+      >
+        {children}
+      </div>
       <div className={cn("hidden @[560px]:flex", align === "start" && "pt-0.5")}>
         {onComment ? (
           <CommentButton comments={comments ?? []} onClick={onComment} />
@@ -540,6 +598,7 @@ function SettingRow({
           <span className="size-8" aria-hidden />
         )}
       </div>
-    </div>
+      </div>
+    </Stagger>
   );
 }

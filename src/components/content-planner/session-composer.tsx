@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertCircle,
   AtSign,
@@ -43,6 +43,40 @@ export const TAG_SUGGESTIONS = [
 ];
 
 export const EASE = "cubic-bezier(0.2,0,0,1)";
+
+/**
+ * Composer keyboard shortcuts, shared by both layouts.
+ *
+ * Escape is handled by the page (it closes the sheet) but does not flush drafts —
+ * React unmounts without firing blur, so anything typed since the last save would
+ * be lost. Both listeners run in the same dispatch, so saving here is enough.
+ */
+export function useComposerShortcuts({
+  savePendingChanges,
+  readyToSend,
+  onOpenSend,
+}: {
+  savePendingChanges: (source?: "blur" | "timer" | "instant") => void;
+  readyToSend: boolean;
+  onOpenSend: () => void;
+}) {
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey;
+      if (e.key === "Escape") {
+        savePendingChanges("blur");
+      } else if (mod && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        savePendingChanges("instant");
+      } else if (mod && e.key === "Enter" && readyToSend) {
+        e.preventDefault();
+        onOpenSend();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [savePendingChanges, readyToSend, onOpenSend]);
+}
 
 export interface ComposerLayoutProps {
   session: Session;
@@ -110,6 +144,8 @@ export function SessionComposer({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
+
+  useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
 
   const commentsFor = (fieldLabel: string) =>
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
