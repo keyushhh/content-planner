@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, countComments } from "@/lib/utils";
 import { MediaThumb } from "./media-thumb";
 import {
   Banner,
@@ -26,12 +26,13 @@ import {
   EASE,
   GhostAction,
   HASHTAG_SUGGESTIONS,
-  LimitMeter,
+  CopyLimits,
   SaveChip,
   Stagger,
   TAG_SUGGESTIONS,
   formatDate,
   useComposerShortcuts,
+  useTagFlash,
   type ComposerLayoutProps,
 } from "./session-composer";
 
@@ -57,6 +58,7 @@ export function SessionCanvas({
   onTagDraftChange,
   saveStatus,
   saveSource,
+  isDirty,
   savePendingChanges,
   onUpdate,
   onUpdateWithPendingSave,
@@ -78,9 +80,12 @@ export function SessionCanvas({
   const [scrolled, setScrolled] = useState(false);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
+  const { flashedTag, flashTag } = useTagFlash();
 
   const commentsFor = (fieldLabel: string) =>
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
+  // replies live inside their parent, so the raw length under-reports the thread
+  const totalComments = countComments(session.comments);
 
   const checklist = [
     { label: "copy", done: copyDraft.trim().length > 0 },
@@ -124,6 +129,7 @@ export function SessionCanvas({
               size="sm"
               className="h-8 gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
               onClick={onOpenSend}
+              title={`${needsResend ? "Send update" : "Send to campaign"} (⌘↵)`}
             >
               {needsResend ? (
                 <RefreshCw className="size-3.5" />
@@ -139,6 +145,7 @@ export function SessionCanvas({
           <SaveChip
             saveStatus={saveStatus}
             saveSource={saveSource}
+            isDirty={isDirty}
             onClick={() => savePendingChanges("instant")}
           />
 
@@ -155,9 +162,9 @@ export function SessionCanvas({
             )}
           >
             <MessageCircle className="size-4" />
-            {session.comments.length > 0 && (
+            {totalComments > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-violet-500 text-[9px] font-semibold tabular-nums text-white ring-2 ring-background">
-                {session.comments.length}
+                {totalComments}
               </span>
             )}
           </button>
@@ -260,6 +267,7 @@ export function SessionCanvas({
                   onBlur={() => savePendingChanges("blur")}
                   disabled={isCampaignLocked}
                   aria-label="Session title"
+                  placeholder="Untitled session"
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-0.5 text-[13px] text-muted-foreground">
@@ -310,7 +318,15 @@ export function SessionCanvas({
             <Stagger index={2}>
               <div className="flex flex-col border-t border-white/[0.06] transition-[background-color,border-color] duration-300 focus-within:border-violet-400/45 focus-within:bg-violet-500/[0.022]">
               <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
-                <span className="text-[13px] font-medium text-muted-foreground">Copy</span>
+                <label
+                  htmlFor="canvas-copy"
+                  className="flex w-fit cursor-pointer items-center gap-1.5 text-[13px] font-medium text-muted-foreground"
+                >
+                  Copy
+                  {commentsFor("Copy").length > 0 && (
+                    <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-violet-400" />
+                  )}
+                </label>
                 <div className="-mr-1.5 flex items-center gap-1">
                   <GhostAction onClick={onOpenVariations} icon={Layers}>
                     Post Variations
@@ -332,12 +348,13 @@ export function SessionCanvas({
                 </div>
               </div>
               <textarea
+                id="canvas-copy"
                 value={copyDraft}
                 onChange={(e) => onCopyChange(e.target.value)}
                 onBlur={() => savePendingChanges("blur")}
                 placeholder="Write your post…"
                 disabled={isCampaignLocked}
-                className="block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/45 disabled:cursor-not-allowed disabled:opacity-70"
+                className="block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
               />
               <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-9 pb-4">
                 <span className="text-[11px] tabular-nums text-muted-foreground">
@@ -345,11 +362,7 @@ export function SessionCanvas({
                   <span className="mx-1.5 text-muted-foreground/40">·</span>
                   {copyDraft.length} characters
                 </span>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <LimitMeter label="X" count={copyDraft.length} limit={280} />
-                  <LimitMeter label="LinkedIn" count={copyDraft.length} limit={3000} />
-                  <LimitMeter label="IG" count={copyDraft.length} limit={2200} />
-                </div>
+                <CopyLimits count={copyDraft.length} platforms={session.platforms} />
               </div>
               </div>
             </Stagger>
@@ -423,17 +436,19 @@ export function SessionCanvas({
               label="Hashtags"
               comments={commentsFor("Hashtags")}
               onComment={() => onOpenDiscussion("Hashtags")}
+              htmlFor="canvas-hashtags"
               align="start"
               staggerIndex={4}
             >
               <div className="w-full">
                 <input
+                  id="canvas-hashtags"
                   value={hashtagsDraft}
                   onChange={(e) => onHashtagsChange(e.target.value)}
                   onBlur={() => savePendingChanges("blur")}
                   placeholder="#product #launch"
                   disabled={isCampaignLocked}
-                  className="h-9 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/55 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-9 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
                 />
                 {!isCampaignLocked && (
                   <ChipRow>
@@ -457,13 +472,18 @@ export function SessionCanvas({
               </div>
             </SettingRow>
 
-            <SettingRow label="Tags" align="start" staggerIndex={5}>
+            <SettingRow label="Tags" htmlFor="canvas-tags" align="start" staggerIndex={5}>
               <div className="w-full">
                 <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
                   {session.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex h-6 items-center gap-1.5 rounded-md bg-white/[0.08] px-2 text-xs font-medium inset-ring-1 inset-ring-white/[0.06]"
+                      className={cn(
+                        "inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs font-medium inset-ring-1 transition-[background-color,box-shadow,scale] duration-200",
+                        flashedTag === tag
+                          ? "scale-[1.06] bg-amber-500/20 inset-ring-amber-400/50"
+                          : "bg-white/[0.08] inset-ring-white/[0.06]",
+                      )}
                     >
                       {tag}
                       {!isCampaignLocked && (
@@ -480,6 +500,7 @@ export function SessionCanvas({
                     </span>
                   ))}
                   <input
+                    id="canvas-tags"
                     value={tagDraft}
                     onChange={(e) => onTagDraftChange(e.target.value)}
                     disabled={isCampaignLocked}
@@ -487,9 +508,11 @@ export function SessionCanvas({
                       if ((e.key === "Enter" || e.key === ",") && tagDraft.trim()) {
                         e.preventDefault();
                         const next = tagDraft.trim().toLowerCase();
-                        if (!session.tags.includes(next)) {
-                          onUpdate({ tags: [...session.tags, next] });
+                        if (session.tags.includes(next)) {
+                          flashTag(next);
+                          return;
                         }
+                        onUpdate({ tags: [...session.tags, next] });
                         onTagDraftChange("");
                       } else if (
                         e.key === "Backspace" &&
@@ -500,7 +523,7 @@ export function SessionCanvas({
                       }
                     }}
                     placeholder={session.tags.length === 0 ? "Add tags (location, topic…)" : ""}
-                    className="h-6 min-w-24 flex-1 bg-transparent px-1 text-sm caret-violet-400 outline-none placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
+                    className="h-6 min-w-24 flex-1 bg-transparent px-1 text-sm caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed"
                   />
                 </div>
                 {!isCampaignLocked && (
@@ -523,7 +546,7 @@ export function SessionCanvas({
             {/* Colophon — metadata as a quiet footer, not a card */}
             <Stagger
               index={6}
-              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] bg-white/[0.012] px-9 py-3 text-[11px] text-muted-foreground/70"
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] bg-white/[0.012] px-9 py-3 text-[11px] text-muted-foreground"
             >
               <span className="tabular-nums">Created {formatDate(session.createdAt)}</span>
               <span className="text-muted-foreground/30">·</span>
@@ -550,6 +573,7 @@ export function SessionCanvas({
 
 function SettingRow({
   label,
+  htmlFor,
   align = "center",
   valueAlign = "end",
   comments,
@@ -558,6 +582,8 @@ function SettingRow({
   children,
 }: {
   label: string;
+  /** Bind the label to its control so clicking it focuses the field. */
+  htmlFor?: string;
   align?: "center" | "start";
   valueAlign?: "start" | "end";
   comments?: import("@/lib/types").Comment[];
@@ -565,6 +591,7 @@ function SettingRow({
   staggerIndex: number;
   children: React.ReactNode;
 }) {
+  const Label = htmlFor ? "label" : "span";
   return (
     <Stagger index={staggerIndex}>
       <div
@@ -575,14 +602,23 @@ function SettingRow({
           align === "center" ? "items-center" : "items-start",
         )}
       >
-      <span
+      <Label
+        htmlFor={htmlFor}
         className={cn(
-          "text-[13px] font-medium text-muted-foreground",
+          "flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground",
+          htmlFor && "w-fit cursor-pointer",
           align === "start" && "@[560px]:pt-2",
         )}
       >
         {label}
-      </span>
+        {/* the header badge counts comments; this says which section holds them */}
+        {comments && comments.length > 0 && (
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full bg-violet-400"
+          />
+        )}
+      </Label>
       <div
         className={cn(
           "flex min-w-0 justify-start",

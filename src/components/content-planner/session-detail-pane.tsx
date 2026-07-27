@@ -251,6 +251,13 @@ export function SessionDetailPane({
   if (!copyDraft.trim()) sendReadinessIssues.push("copy");
   const canApprove = sendReadinessIssues.length === 0;
 
+  // Drafts that have not reached onUpdate yet — the save chip must not claim
+  // "Autosaved" while these differ.
+  const isDirty =
+    titleDraft !== session.title ||
+    copyDraft !== session.copy ||
+    hashtagsDraft !== session.hashtags;
+
   const isCampaignLocked = isSessionLocked(session);
   const readyToSend = session.status === "approved" && sendReadinessIssues.length === 0;
   const needsResend = sessionNeedsResend(session);
@@ -341,6 +348,7 @@ export function SessionDetailPane({
         onTagDraftChange={setTagDraft}
         saveStatus={saveStatus}
         saveSource={saveSource}
+        isDirty={isDirty}
         savePendingChanges={savePendingChanges}
         onUpdate={onUpdate}
         onUpdateWithPendingSave={handleUpdateWithPendingSave}

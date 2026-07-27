@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   AtSign,
@@ -18,9 +18,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, countComments } from "@/lib/utils";
 import { MediaThumb } from "./media-thumb";
-import type { Comment, MediaAsset, Session } from "@/lib/types";
+import type { Comment, MediaAsset, Platform, Session } from "@/lib/types";
 
 export const HASHTAG_SUGGESTIONS = [
   "#product",
@@ -78,6 +78,26 @@ export function useComposerShortcuts({
   }, [savePendingChanges, readyToSend, onOpenSend]);
 }
 
+/**
+ * Adding a tag that already exists is silently ignored by the update logic, which
+ * reads as a broken input. This flashes the existing chip instead so the dead end
+ * is visible rather than mysterious.
+ */
+export function useTagFlash() {
+  const [flashedTag, setFlashedTag] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const flashTag = (tag: string) => {
+    setFlashedTag(tag);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setFlashedTag(null), 600);
+  };
+
+  return { flashedTag, flashTag };
+}
+
 export interface ComposerLayoutProps {
   session: Session;
   mediaAssets: MediaAsset[];
@@ -92,6 +112,7 @@ export interface ComposerLayoutProps {
   onTagDraftChange: (value: string) => void;
   saveStatus: "idle" | "saving" | "saved";
   saveSource: "blur" | "timer" | "instant" | null;
+  isDirty: boolean;
   savePendingChanges: (source?: "blur" | "timer" | "instant") => void;
   onUpdate: (patch: Partial<Session>) => void;
   onUpdateWithPendingSave: (patch: Partial<Session>) => void;
@@ -125,6 +146,7 @@ export function SessionComposer({
   onTagDraftChange,
   saveStatus,
   saveSource,
+  isDirty,
   savePendingChanges,
   onUpdate,
   onUpdateWithPendingSave,
@@ -149,6 +171,8 @@ export function SessionComposer({
 
   const commentsFor = (fieldLabel: string) =>
     session.comments.filter((c) => c.fieldLabel === fieldLabel);
+  // replies live inside their parent, so the raw length under-reports the thread
+  const totalComments = countComments(session.comments);
 
   const checklist = [
     { label: "Copy written", done: copyDraft.trim().length > 0, required: true },
@@ -206,6 +230,7 @@ export function SessionComposer({
           <SaveChip
             saveStatus={saveStatus}
             saveSource={saveSource}
+            isDirty={isDirty}
             onClick={() => savePendingChanges("instant")}
           />
 
@@ -222,9 +247,9 @@ export function SessionComposer({
             )}
           >
             <MessageCircle className="size-4" />
-            {session.comments.length > 0 && (
+            {totalComments > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-violet-500 text-[9px] font-semibold tabular-nums text-white ring-2 ring-background">
-                {session.comments.length}
+                {totalComments}
               </span>
             )}
           </button>
@@ -292,6 +317,7 @@ export function SessionComposer({
                   onBlur={() => savePendingChanges("blur")}
                   disabled={isCampaignLocked}
                   aria-label="Session title"
+                  placeholder="Untitled session"
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
                 <div className="mt-2 flex items-center gap-2 pl-0.5 text-[13px] text-muted-foreground">
@@ -347,7 +373,7 @@ export function SessionComposer({
                     onBlur={() => savePendingChanges("blur")}
                     placeholder="Write your post…"
                     disabled={isCampaignLocked}
-                    className="block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
                   />
                   <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-white/[0.06] px-4 py-2.5">
                     <span className="text-[11px] tabular-nums text-muted-foreground">
@@ -355,11 +381,7 @@ export function SessionComposer({
                       <span className="mx-1.5 text-muted-foreground/40">·</span>
                       {copyDraft.length} characters
                     </span>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <LimitMeter label="X" count={copyDraft.length} limit={280} />
-                      <LimitMeter label="LinkedIn" count={copyDraft.length} limit={3000} />
-                      <LimitMeter label="IG" count={copyDraft.length} limit={2200} />
-                    </div>
+                    <CopyLimits count={copyDraft.length} platforms={session.platforms} />
                   </div>
                 </Card>
               </Stagger>
@@ -372,7 +394,7 @@ export function SessionComposer({
                     onComment={() => onOpenDiscussion("Assets")}
                     action={
                       session.visualAssetIds.length > 0 ? (
-                        <span className="text-[11px] tabular-nums text-muted-foreground/70">
+                        <span className="text-[11px] tabular-nums text-muted-foreground">
                           {session.visualAssetIds.length} attached
                         </span>
                       ) : undefined
@@ -515,7 +537,7 @@ export function SessionComposer({
                     onBlur={() => savePendingChanges("blur")}
                     placeholder="#product #launch"
                     disabled={isCampaignLocked}
-                    className="h-10 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/60 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-10 w-full rounded-[10px] bg-white/[0.04] px-3 text-sm inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                   {!isCampaignLocked && (
                     <ChipRow>
@@ -582,7 +604,7 @@ export function SessionComposer({
                         }
                       }}
                       placeholder={session.tags.length === 0 ? "Add tags (location, topic…)" : ""}
-                      className="h-7 min-w-24 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
+                      className="h-7 min-w-24 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed"
                     />
                   </div>
                   {!isCampaignLocked && (
@@ -692,7 +714,7 @@ function CardHeader({
 }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/75">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </span>
       <div className="flex items-center gap-1.5">
@@ -719,7 +741,7 @@ export function RailCard({
   return (
     <section className="rounded-2xl bg-white/[0.022] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)] inset-ring-1 inset-ring-white/[0.06]">
       <div className="mb-2.5 flex min-h-6 items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/75">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </span>
         {onComment && <CommentButton comments={comments ?? []} onClick={onComment} />}
@@ -741,7 +763,7 @@ export function CommentButton({
       <button
         onClick={onClick}
         aria-label="Add comment"
-        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/40 transition-[background-color,color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] hover:text-muted-foreground active:scale-[0.96]"
+        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/65 transition-[background-color,color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] hover:text-muted-foreground active:scale-[0.96]"
       >
         <MessageCircle className="size-3.5" />
       </button>
@@ -751,14 +773,14 @@ export function CommentButton({
   return (
     <button
       onClick={onClick}
-      aria-label={`${comments.length} comments`}
+      aria-label={`${countComments(comments)} comments`}
       className="relative flex size-8 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.06] active:scale-[0.96]"
     >
       <Avatar className="size-5 inset-ring-1 inset-ring-white/10">
         <AvatarFallback className="text-[9px]">{lastAuthor.name[0]}</AvatarFallback>
       </Avatar>
       <span className="absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-violet-500 text-[8px] font-semibold tabular-nums text-white ring-2 ring-background">
-        {comments.length}
+        {countComments(comments)}
       </span>
     </button>
   );
@@ -789,21 +811,27 @@ export function LimitMeter({
   label,
   count,
   limit,
+  targeted = true,
 }: {
   label: string;
   count: number;
   limit: number;
+  /** False when the post does not target this platform — shown, but not claimed. */
+  targeted?: boolean;
 }) {
-  const over = count > limit;
+  const over = count > limit && targeted;
   const pct = Math.min(100, (count / limit) * 100);
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[11px] font-medium text-muted-foreground/70">{label}</span>
+    <div
+      className={cn("flex items-center gap-2", !targeted && "opacity-45")}
+      title={targeted ? undefined : `${label} is not connected for this post`}
+    >
+      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
       <span className="relative h-1 w-10 overflow-hidden rounded-full bg-white/10">
         <span
           className={cn(
             "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-300",
-            over ? "bg-amber-400" : "bg-violet-400/85",
+            over ? "bg-amber-400" : targeted ? "bg-violet-400/85" : "bg-white/25",
           )}
           style={{ width: `${pct}%`, transitionTimingFunction: EASE }}
         />
@@ -820,12 +848,45 @@ export function LimitMeter({
   );
 }
 
+/** Character budgets, ordered so the targeted platform reads first. */
+export const COPY_LIMITS: { id: Platform; label: string; limit: number }[] = [
+  { id: "linkedin", label: "LinkedIn", limit: 3000 },
+  { id: "x", label: "X", limit: 280 },
+  { id: "instagram", label: "IG", limit: 2200 },
+];
+
+export function CopyLimits({
+  count,
+  platforms,
+}: {
+  count: number;
+  platforms: Platform[];
+}) {
+  const ordered = [
+    ...COPY_LIMITS.filter((p) => platforms.includes(p.id)),
+    ...COPY_LIMITS.filter((p) => !platforms.includes(p.id)),
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {ordered.map((p) => (
+        <LimitMeter
+          key={p.id}
+          label={p.label}
+          count={count}
+          limit={p.limit}
+          targeted={platforms.includes(p.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ChipRow({ children }: { children: React.ReactNode }) {
   const items = Array.isArray(children) ? children.filter(Boolean) : children;
   if (Array.isArray(items) && items.length === 0) return null;
   return (
     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] text-muted-foreground/50">Suggested</span>
+      <span className="text-[11px] text-muted-foreground">Suggested</span>
       {items}
     </div>
   );
@@ -886,41 +947,66 @@ export function Banner({
 export function SaveChip({
   saveStatus,
   saveSource,
+  isDirty,
   onClick,
 }: {
   saveStatus: "idle" | "saving" | "saved";
   saveSource: "blur" | "timer" | "instant" | null;
+  /** Drafts differ from the saved session — work is genuinely not persisted yet. */
+  isDirty: boolean;
   onClick: () => void;
 }) {
   const saving = saveStatus === "saving";
+  // Dirty must win over "saved": having typed since the last flush is the whole
+  // point of the indicator, and claiming "Autosaved" then would be a lie.
+  const state = saving ? "saving" : isDirty ? "dirty" : "saved";
   const suffix =
     saveSource === "timer" ? " (30s timer)" : saveSource === "blur" ? " (on blur)" : "";
 
   return (
     <button
       onClick={onClick}
-      title="Autosaves on focus loss (blur) or every 30 seconds"
-      className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.03] px-3 text-xs inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] hover:inset-ring-white/15 active:scale-[0.96]"
+      title="Save now (⌘S). Also autosaves on focus loss or every 30 seconds"
+      className={cn(
+        "flex h-8 items-center gap-1.5 rounded-full px-3 text-xs inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-[0.96]",
+        state === "dirty"
+          ? "bg-amber-500/[0.08] inset-ring-amber-400/25 hover:bg-amber-500/15"
+          : "bg-white/[0.03] inset-ring-white/[0.08] hover:bg-white/[0.07] hover:inset-ring-white/15",
+      )}
     >
-      {/* both icons stay mounted and cross-fade, so the swap animates in and out */}
+      {/* all three icons stay mounted and cross-fade, so swaps animate in and out */}
       <span className="relative flex size-3 items-center justify-center">
         <Loader2
           className={cn(
             "absolute size-3 animate-spin text-violet-300 transition-[opacity,scale,filter] duration-200",
-            saving ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
+            state === "saving" ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
+          )}
+          style={{ transitionTimingFunction: EASE }}
+        />
+        <span
+          className={cn(
+            "absolute size-1.5 rounded-full bg-amber-400 transition-[opacity,scale,filter] duration-200",
+            state === "dirty" ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
           )}
           style={{ transitionTimingFunction: EASE }}
         />
         <Check
           className={cn(
             "absolute size-3 text-emerald-400 transition-[opacity,scale,filter] duration-200",
-            saving ? "scale-[0.25] opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-0",
+            state === "saved" ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
           )}
           style={{ transitionTimingFunction: EASE }}
         />
       </span>
-      <span className="text-muted-foreground">
-        {saving ? `Saving${suffix}…` : `Autosaved${suffix}`}
+      <span
+        aria-live="polite"
+        className={cn(state === "dirty" ? "text-amber-300" : "text-muted-foreground")}
+      >
+        {state === "saving"
+          ? `Saving${suffix}…`
+          : state === "dirty"
+            ? "Unsaved changes"
+            : `Autosaved${suffix}`}
       </span>
     </button>
   );

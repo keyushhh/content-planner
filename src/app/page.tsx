@@ -58,6 +58,7 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [discussionOpen, setDiscussionOpen] = useState(false);
+  const [discussionField, setDiscussionField] = useState<string | undefined>(undefined);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
@@ -210,11 +211,14 @@ export default function Home() {
     );
   }
 
-  function addComment(id: string, text: string, parentId?: string) {
+  function addComment(id: string, text: string, parentId?: string, fieldLabel?: string) {
     const newComment = {
       id: `comment-${Date.now()}`,
       author: currentUser,
       text,
+      // Which field the comment anchor was clicked on, so it lands attached
+      // instead of floating at the top level.
+      ...(fieldLabel ? { fieldLabel } : {}),
       createdAt: new Date().toISOString(),
     };
     setSessions((prev) =>
@@ -447,6 +451,9 @@ export default function Home() {
           <SheetContent
             showCloseButton={false}
             side="right"
+            aria-label={
+              selectedSession ? `Editing ${selectedSession.title}` : "Session details"
+            }
             className={cn(
               "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[transform,width] duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full",
               // Canvas is a document, not a dashboard — a narrower pane keeps the
@@ -464,8 +471,14 @@ export default function Home() {
                     onUpdate={(patch) => updateSession(selectedSession.id, patch)}
                     onClose={() => setSelectedSessionId(null)}
                     isDiscussionOpen={discussionOpen}
-                    onToggleDiscussion={() => setDiscussionOpen((v) => !v)}
-                    onOpenDiscussion={() => setDiscussionOpen(true)}
+                    onToggleDiscussion={() => {
+                      setDiscussionOpen((v) => !v);
+                      setDiscussionField(undefined);
+                    }}
+                    onOpenDiscussion={(fieldLabel) => {
+                      setDiscussionOpen(true);
+                      setDiscussionField(fieldLabel);
+                    }}
                     onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
                     hidePlatforms={true}
                     hidePostType={mode === "new"}
@@ -478,9 +491,16 @@ export default function Home() {
                 <DiscussionPanel
                   session={selectedSession}
                   isOpen={discussionOpen}
-                  onClose={() => setDiscussionOpen(false)}
-                  onAddComment={(text, parentId) => addComment(selectedSession.id, text, parentId)}
+                  onClose={() => {
+                    setDiscussionOpen(false);
+                    setDiscussionField(undefined);
+                  }}
+                  onAddComment={(text, parentId, fieldLabel) =>
+                    addComment(selectedSession.id, text, parentId, fieldLabel)
+                  }
                   onClearHistory={() => clearHistory(selectedSession.id)}
+                  pendingFieldLabel={discussionField}
+                  onClearPendingField={() => setDiscussionField(undefined)}
                 />
               </div>
             )}

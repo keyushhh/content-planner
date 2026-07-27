@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Session } from "./types"
+import type { Comment, Session } from "./types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -21,4 +21,15 @@ export function isSessionLocked(session: Session) {
 
 export function sessionNeedsResend(session: Session) {
   return session.sentToCampaignId !== null && !isSessionLocked(session)
+}
+
+/**
+ * Total comments in a thread list, replies included. The raw `comments.length`
+ * only counts roots, so a thread with five replies would read as "1".
+ */
+export function countComments(comments: Comment[]): number {
+  return comments.reduce(
+    (total, c) => total + 1 + (c.replies ? countComments(c.replies) : 0),
+    0,
+  );
 }
