@@ -839,7 +839,10 @@ export function CommentButton({
  */
 export function Byline({ session }: { session: Session }) {
   return (
-    <span className="hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
+    // mr- widens the 6px toolbar gap on the save-chip side only: the byline
+    // reports on the file and the chip reports on the save, so they should not
+    // read as one cluster.
+    <span className="mr-2 hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
       <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-white/10">
         <AvatarFallback className="text-[8px]">
           {session.lastEditedBy?.name?.[0] ?? "?"}
