@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { SECONDARY_ACTION_SM } from "@/lib/button-styles";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
 import type { Feedback, MediaAsset, Platform, PostType, Session } from "@/lib/types";
@@ -1108,19 +1109,13 @@ export function CopyMeta({ words, count }: { words: number; count: number }) {
 }
 
 /**
- * Flat black pill with a hairline stroke. Nothing else — no gradient, no sheen,
- * no glow. It stays discoverable without outranking Send, which is the button
- * that actually publishes.
+ * The app's secondary action, same as Invite in the repository toolbar: an
+ * outlined pill, no gradient, no sheen, no glow. It stays discoverable without
+ * outranking Send, which is the button that actually publishes.
  */
 export function AiAssistButton({ className }: { className?: string }) {
   return (
-    <button
-      title="AI Assist"
-      className={cn(
-        "flex h-7 items-center gap-1.5 rounded-full bg-[oklch(0.19_0_0)] px-2.5 text-xs font-medium text-foreground/90 inset-ring-1 inset-ring-white/[0.12] transition-[background-color,color,scale] duration-150 hover:bg-[oklch(0.24_0_0)] hover:text-foreground active:scale-[0.96]",
-        className,
-      )}
-    >
+    <button title="AI Assist" className={cn(SECONDARY_ACTION_SM, className)}>
       <Sparkles className="size-3.5" />
       AI Assist
     </button>

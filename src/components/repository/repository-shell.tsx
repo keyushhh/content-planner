@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { SECONDARY_ACTION } from "@/lib/button-styles";
 import { currentUser } from "@/lib/mock-data";
 import {
   Database,
@@ -260,41 +261,33 @@ export function RepositoryShell({
               </p>
             </div>
 
-            {/* Actions sit with the filters, directly above the table they act on */}
-            <div className="mb-4 flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2.5">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search content…"
-                  aria-label="Search content"
-                  className="h-8 w-[220px] rounded-full bg-white/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    aria-label="Clear search"
-                    className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
-                  >
-                    <X className="size-3" />
-                  </button>
-                )}
-              </div>
+            {/* Two halves, not one run: everything that NARROWS the table on the
+                left, everything that ACTS on the right. The split is what tells
+                the two apart — style alone could not, because a filter and a
+                button standing shoulder to shoulder read as the same kind of
+                thing however they are painted. */}
+            <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2.5">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search content…"
+                    aria-label="Search content"
+                    className="h-8 w-[220px] rounded-full bg-white/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </div>
 
-              <TagFilterBar
-                tags={rankedTags}
-                active={activeTags}
-                visibleCount={3}
-                onToggle={(tag) =>
-                  setActiveTags((prev) =>
-                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-                  )
-                }
-                onClear={() => setActiveTags([])}
-              />
-
-              <div className="ml-auto flex items-center gap-1.5">
                 {/* Status filter — multi-select, so "Approved + WIP" is one step.
                     Lights violet while narrowing, the same signal the tag chips
                     use, so you can never forget a filter is on. */}
@@ -303,8 +296,12 @@ export function RepositoryShell({
                     render={
                       <button
                         title="Filter by status"
+                        // Fixed width, sized to "2 statuses" — the trigger must
+                        // not resize as you pick, and the menu is anchored to
+                        // its width, so a narrow trigger and a wider menu are
+                        // the same bug seen from two ends.
                         className={cn(
-                          "flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
+                          "flex h-8 w-[148px] items-center gap-1.5 rounded-full px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
                           statusFilter.length > 0
                             ? "bg-violet-500/[0.16] text-violet-100 inset-ring-violet-400/45"
                             : "bg-white/[0.035] text-muted-foreground inset-ring-white/[0.08] hover:text-foreground",
@@ -312,16 +309,18 @@ export function RepositoryShell({
                       />
                     }
                   >
-                    <CircleDot className="size-3.5" />
-                    {statusLabel}
-                    <ChevronDown className="size-3.5 opacity-60" />
+                    <CircleDot className="size-3.5 shrink-0" />
+                    <span className="flex-1 truncate text-left">{statusLabel}</span>
+                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  {/* These triggers now sit at the left of the row, so the menu
+                      drops from their left edge rather than reaching back. */}
+                  <DropdownMenuContent align="start" className="min-w-[148px]">
                     {/* "All" is the no-filter state stated out loud. Without it the
                         only way back was unticking whatever you had ticked, which
                         is not something you should have to reason about. */}
                     <DropdownMenuItem onClick={() => setStatusFilter([])}>
-                      <span className="flex-1">All</span>
+                      <span className="flex-1 whitespace-nowrap">All</span>
                       {statusFilter.length === 0 && (
                         <Check className="size-3.5 text-violet-300" />
                       )}
@@ -333,7 +332,7 @@ export function RepositoryShell({
                         closeOnClick={false}
                         onClick={() => toggleStatus(id)}
                       >
-                        <span className="flex-1">{label}</span>
+                        <span className="flex-1 whitespace-nowrap">{label}</span>
                         {statusFilter.includes(id) && (
                           <Check className="size-3.5 text-violet-300" />
                         )}
@@ -347,45 +346,68 @@ export function RepositoryShell({
                     render={
                       <button
                         title="Sort content"
-                        className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-[0.97]"
+                        // Fixed width, sized to the longest option. The control
+                        // must not resize as you pick — it would shove the tag
+                        // filter sideways — and the menu inherits the trigger's
+                        // width, so a shrunken trigger wraps its own options.
+                        className="flex h-8 w-[184px] items-center gap-1.5 rounded-full bg-white/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-[0.97]"
                       />
                     }
                   >
-                    <ArrowUpDown className="size-3.5" />
-                    {SORTS[sort].label}
-                    <ChevronDown className="size-3.5 opacity-60" />
+                    <ArrowUpDown className="size-3.5 shrink-0" />
+                    <span className="flex-1 truncate text-left">{SORTS[sort].label}</span>
+                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  {/* These triggers now sit at the left of the row, so the menu
+                      drops from their left edge rather than reaching back. */}
+                  {/* Belt and braces: the trigger is already wide enough, but a
+                      sort option is a fixed phrase and must never wrap. */}
+                  <DropdownMenuContent align="start" className="min-w-[184px]">
                     {SORT_MENU.map((key) => (
                       <DropdownMenuItem key={key} onClick={() => requestSort(key)}>
-                        <span className="flex-1">{SORTS[key].label}</span>
+                        <span className="flex-1 whitespace-nowrap">{SORTS[key].label}</span>
                         {sort === key && <Check className="size-3.5 text-violet-300" />}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
 
+                {/* Tags last, so the three controls read left to right in the
+                    order you reach for them: what state, what order, what topic. */}
+                <TagFilterBar
+                  tags={rankedTags}
+                  active={activeTags}
+                  onToggle={(tag) =>
+                    setActiveTags((prev) =>
+                      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+                    )
+                  }
+                  onClear={() => setActiveTags([])}
+                />
+              </div>
+
+              {/* Actions: outlined rather than filled. A white fill here would
+                  carry more luminance weight than the violet primary and the
+                  row would have two CTAs fighting. */}
+              <div className="flex shrink-0 items-center gap-1.5">
                 {view !== "repository" && (
                   <button
                     title="Bring content that already exists in the Repository into this campaign"
                     onClick={() => setShowImport(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+                    className={SECONDARY_ACTION}
                   >
                     <FolderInput className="size-4" />
                     Import
                   </button>
                 )}
-                <button
-                  onClick={() => setShowInvite(true)}
-                  className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
-                >
+                <button onClick={() => setShowInvite(true)} className={SECONDARY_ACTION}>
                   <UserPlus className="size-4" />
                   Invite
                 </button>
                 {view === "repository" && (
                   <button
                     onClick={onNewContent}
-                    className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97]"
+                    className="ml-0.5 flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97]"
                   >
                     <PlusCircle className="size-4" />
                     New content
