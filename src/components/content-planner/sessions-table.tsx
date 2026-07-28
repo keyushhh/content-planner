@@ -418,7 +418,7 @@ export function SessionsTable({
                   <button
                     onClick={onCycleStatus}
                     title="Filter by status"
-                    aria-label={`Filter by status — currently ${statusLabel}`}
+                    aria-label={`Filter by status, currently ${statusLabel}`}
                     className={cn(
                       "group/status -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-white/[0.06]",
                       statusFiltered ? "text-violet-200" : "hover:text-foreground",
@@ -1270,10 +1270,16 @@ function DeleteContentDialog({
             It is live on Wozku in{" "}
             <span className="tabular-nums text-foreground/90">{sentCount}</span>{" "}
             {sentCount === 1 ? "campaign" : "campaigns"} and will be removed from{" "}
-            {sentCount === 1 ? "it" : "them"} too. This can&rsquo;t be undone.
+            {sentCount === 1 ? "it" : "them"} too. It will be deleted{" "}
+            <span className="text-foreground/90">permanently</span>. This action
+            cannot be undone.
           </>
         ) : (
-          <>Its copy, assets and comments go with it. This can&rsquo;t be undone.</>
+          <>
+            Its copy, assets and comments go with it. It will be deleted{" "}
+            <span className="text-foreground/90">permanently</span>. This action
+            cannot be undone.
+          </>
         )
       }
       preview={

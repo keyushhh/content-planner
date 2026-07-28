@@ -223,6 +223,17 @@
   }
 }
 
+/* A toast's remaining life, drawn along its bottom edge. Scale rather than
+   width so it animates on the compositor and never reflows the card. */
+@keyframes toast-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 /* Post-type rows enter staggered, so the three options read as a short list
    being offered rather than three buttons appearing at once. */
 @keyframes post-type-in {

@@ -227,7 +227,7 @@ export const sessions: Session[] = [
         id: "fb-1",
         author: users[2],
         sectionLabel: "Copy",
-        text: "Let's tighten this up before we send it out — the opening line buries the prize.",
+        text: "Let's tighten this up before we send it out. The opening line buries the prize.",
         createdAt: "2026-07-21T12:30:00Z",
         status: "open",
       },

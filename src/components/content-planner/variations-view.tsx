@@ -316,7 +316,7 @@ export function VariationsView({
               </span>
               <span className="max-w-[420px] text-xs text-muted-foreground text-pretty">
                 {variations.length === 0
-                  ? "A variation is an alternate take on the same post — different copy, different images — without touching the primary."
+                  ? "A variation is an alternate take on the same post: different copy, different images, without touching the primary."
                   : `Nothing matches “${searchQuery.trim()}”.`}
               </span>
               {variations.length === 0 && !disabled && (
@@ -534,6 +534,8 @@ function ThumbStack({
             compact
             assetId={id}
             type={mediaAssets.find((a) => a.id === id)?.type}
+            url={mediaAssets.find((a) => a.id === id)?.url}
+            name={mediaAssets.find((a) => a.id === id)?.name}
             className="size-full !rounded-[7px]"
           />
         </span>
@@ -831,6 +833,8 @@ function VariationEditor({
                     <MediaThumb
                       assetId={assetId}
                       type={mediaAssets.find((a) => a.id === assetId)?.type}
+                      url={mediaAssets.find((a) => a.id === assetId)?.url}
+                      name={mediaAssets.find((a) => a.id === assetId)?.name}
                       className="size-full !rounded-[10px]"
                     />
                     {!disabled && (

@@ -14,15 +14,17 @@ import {
 import { FeedbackPanel } from "@/components/content-planner/feedback-panel";
 import { TableStyleToggle } from "@/components/content-planner/table-style-toggle";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
+import { SendSuccessModal } from "@/components/content-planner/send-success-modal";
 import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/toast";
 import { PostTypeModal } from "@/components/content-planner/post-type-modal";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { cn } from "@/lib/utils";
 import {
   campaigns as initialCampaigns,
   currentUser,
-  mediaAssets,
+  mediaAssets as initialMediaAssets,
   mediaFolders,
   sessions as initialSessions,
 } from "@/lib/mock-data";
@@ -31,6 +33,7 @@ import type {
   CustomColumn,
   Feedback,
   FeedbackStatus,
+  MediaAsset,
   PostType,
   Session,
 } from "@/lib/types";
@@ -110,6 +113,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 }
 
 export default function Home() {
+  const toast = useToast();
   const [mode, setMode] = useState<"current" | "new">("current");
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
@@ -122,6 +126,14 @@ export default function Home() {
   const [showPostType, setShowPostType] = useState(false);
   const [feedbackSection, setFeedbackSection] = useState<string | undefined>(undefined);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
+  /** What the last send actually did, for the confirmation that follows it. */
+  const [sendResult, setSendResult] = useState<
+    { title: string; campaignIds: string[] } | null
+  >(null);
+  // Assets have to be state, not the imported constant: an upload that cannot
+  // add to the library is not an upload, and the old file input threw the file
+  // away and closed the dialog.
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(initialMediaAssets);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
 
@@ -471,7 +483,38 @@ export default function Home() {
     });
   }
 
+  /**
+   * Takes files off a file input and into the library, returning the new ids so
+   * the picker can attach them straight to whatever asked for them.
+   *
+   * Object URLs, so a picked image actually renders — there is no upload
+   * endpoint here. They live as long as the tab does, which is the same lifetime
+   * as the rest of this prototype's state, and are revoked when an asset is
+   * dropped from the library rather than on unmount, or a thumbnail still on
+   * screen would go blank.
+   */
+  function uploadAssets(files: File[], folderId: string): string[] {
+    const created: MediaAsset[] = files.map((file, i) => ({
+      id: `asset-${Date.now()}-${i}`,
+      folderId,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      type: file.type === "application/pdf" ? "pdf" : "image",
+    }));
+    setMediaAssets((prev) => [...created, ...prev]);
+    toast({
+      title: created.length === 1 ? "Asset uploaded" : `${created.length} assets uploaded`,
+      description:
+        created.length === 1 ? created[0].name : "They are now in your media library.",
+      tone: "success",
+    });
+    return created.map((a) => a.id);
+  }
+
   function deleteSession(id: string) {
+    const removed = sessions.find((s) => s.id === id);
+    if (!removed) return;
+
     setSessions((prev) => prev.filter((s) => s.id !== id));
     setCustomCellValues((prev) => {
       const { [id]: _removed, ...rest } = prev;
@@ -484,6 +527,16 @@ export default function Home() {
       })),
     );
     if (selectedSessionId === id) setSelectedSessionId(null);
+
+    // No undo offered: the confirm dialog promises the deletion is permanent,
+    // and a toast that then hands back an Undo makes one of the two a lie.
+    toast({
+      title: "Content deleted",
+      description: removed.title
+        ? `“${removed.title}” has been deleted.`
+        : "The content has been deleted.",
+      tone: "danger",
+    });
   }
 
   /**
@@ -849,6 +902,7 @@ export default function Home() {
                     session={selectedSession}
                     mediaFolders={mediaFolders}
                     mediaAssets={mediaAssets}
+                    onUploadAssets={uploadAssets}
                     onUpdate={(patch) => updateSession(selectedSession.id, patch)}
                     onClose={() => setSelectedSessionId(null)}
                     isFeedbackOpen={feedbackOpen}
@@ -904,12 +958,32 @@ export default function Home() {
           sessions.find((s) => s.id === sendSheetSessionId)?.sentToCampaignIds ?? []
         }
         onShare={(campaignIds) => {
-          if (sendSheetSessionId) {
-            shareSessionToCampaigns(sendSheetSessionId, campaignIds);
-          }
+          if (!sendSheetSessionId) return;
+          const shared = sessions.find((s) => s.id === sendSheetSessionId);
+          shareSessionToCampaigns(sendSheetSessionId, campaignIds);
+          // Held in local state rather than read back off the session: the
+          // summary must describe THIS send, not everywhere the post has ever
+          // been sent.
+          setSendResult({
+            title: shared?.title ?? "",
+            campaignIds,
+          });
         }}
         allowCreateCampaign={mode === "new"}
         onCreateCampaign={mode === "new" ? createCampaign : undefined}
+      />
+
+      <SendSuccessModal
+        open={sendResult !== null}
+        onOpenChange={(next) => {
+          if (!next) setSendResult(null);
+        }}
+        sessionTitle={sendResult?.title ?? ""}
+        campaigns={campaigns.filter((c) => sendResult?.campaignIds.includes(c.id))}
+        onViewCampaign={(campaignId) => {
+          setSendResult(null);
+          setSelectedCampaignId(campaignId);
+        }}
       />
 
       <InviteModal

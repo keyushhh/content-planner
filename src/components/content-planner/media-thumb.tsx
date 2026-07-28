@@ -45,15 +45,35 @@ export function MediaThumb({
   assetId,
   type = "image",
   compact = false,
+  url,
+  name,
   className,
 }: {
   assetId: string;
   type?: MediaAssetType;
   compact?: boolean;
+  /** The real picture, when there is one. Mock assets have none. */
+  url?: string;
+  name?: string;
   className?: string;
 }) {
   const isEmbed = type === "embed";
   const isPdf = type === "pdf";
+
+  // An actual image beats any placeholder: the glyph tiles exist because the
+  // seeded assets carry no file, not because a thumbnail should be an icon.
+  if (url && type === "image") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- blob: URLs from a
+      // local file pick, which next/image cannot optimise and must not proxy.
+      <img
+        src={url}
+        alt={name ?? "Asset preview"}
+        draggable={false}
+        className={cn("rounded-xl bg-white/[0.03] object-cover", className)}
+      />
+    );
+  }
 
   const key = isEmbed ? "embed" : isPdf ? "pdf" : assetId.includes("logo") ? "png" : "jpg";
   const theme = THEMES[key] || THEMES.png;

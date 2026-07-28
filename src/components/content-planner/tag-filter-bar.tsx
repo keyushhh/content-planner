@@ -75,11 +75,13 @@ export function TagFilterBar({
         render={
           <button
             title={
-              active.length > 0 ? `Filtering by ${joined}` : `Filter by tag — ${panelTags.length} tags`
+              active.length > 0
+                ? `Filtering by ${joined}`
+                : `Filter by tag (${panelTags.length} available)`
             }
             aria-label={
               active.length > 0
-                ? `Filter by tag — ${active.length} selected: ${joined}`
+                ? `Filter by tag, ${active.length} selected: ${joined}`
                 : "Filter by tag"
             }
             // Same shape and the same violet "a filter is on" signal as Status,

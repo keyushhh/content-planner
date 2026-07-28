@@ -461,35 +461,8 @@ export function SessionComposer({
                 </Card>
               </Stagger>
 
-              {/* Fixed for the life of the post — see the note in
-                  session-canvas.tsx. Stated as plain text, so it does not read
-                  as a control that has been taken away. */}
-              <Stagger index={2} className="mb-4">
-                <Card>
-                  <div className="group/row flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="text-[13px] font-medium text-muted-foreground">
-                        Post type
-                      </span>
-                      <FeedbackButton
-                        items={feedbackFor("Post type")}
-                        onClick={() => onOpenFeedback("Post type")}
-                      />
-                    </span>
-                    <span
-                      title="Set when this content was created — it can’t be changed"
-                      className="flex items-center gap-2 text-[13px] font-medium text-foreground/90"
-                    >
-                      {(() => {
-                        const Icon =
-                          POST_TYPES.find((t) => t.id === session.postType)?.icon ?? ImageIcon;
-                        return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
-                      })()}
-                      {session.postType}
-                    </span>
-                  </div>
-                </Card>
-              </Stagger>
+              {/* No "Post type" card: it is chosen at creation and fixed for the
+                  life of the post — see the note in session-canvas.tsx. */}
 
               {/* Reshare keeps the original post's media, so there is nothing to
                   pick — the row says so rather than offering a dead picker. */}
@@ -555,6 +528,8 @@ export function SessionComposer({
                               compact
                               assetId={assetId}
                               type={mediaAssets.find((a) => a.id === assetId)?.type}
+                              url={mediaAssets.find((a) => a.id === assetId)?.url}
+                              name={mediaAssets.find((a) => a.id === assetId)?.name}
                               className="size-full !rounded-[10px]"
                             />
                             {!isCampaignLocked && (

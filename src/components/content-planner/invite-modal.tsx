@@ -23,6 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useToast } from "@/components/ui/toast";
 import { avatarTint, cn } from "@/lib/utils";
 import { subAccounts } from "@/lib/mock-data";
 import type { SubAccount } from "@/lib/types";
@@ -33,8 +34,6 @@ const ROLES: { id: Role; label: string; hint: string; icon: typeof Shield }[] = 
   { id: "editor", label: "Editor", hint: "Can write and change posts", icon: Shield },
   { id: "commenter", label: "Commenter", hint: "Can comment, not edit", icon: MessageCircle },
 ];
-
-const EASE = "cubic-bezier(0.2,0,0,1)";
 
 function initials(name: string) {
   return name
@@ -62,9 +61,9 @@ export function InviteModal({
   onOpenChange,
   contextName = "this campaign",
 }: InviteModalProps) {
+  const toast = useToast();
   const [personId, setPersonId] = useState<string | null>(null);
   const [role, setRole] = useState<Role>("editor");
-  const [sent, setSent] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -76,7 +75,6 @@ export function InviteModal({
     if (open) {
       setPersonId(null);
       setRole("editor");
-      setSent(false);
       setQuery("");
     }
   }
@@ -96,14 +94,21 @@ export function InviteModal({
     [q],
   );
 
+  // The confirmation used to live in the button — it turned green, said
+  // "Invitation sent", and held the dialog open for 1.4s so you could read it.
+  // That makes the report cost you the thing you were trying to finish. The
+  // dialog now closes on send and the toast carries the news.
   function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!person || person.alreadyHasAccess) return;
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      onOpenChange(false);
-    }, 1400);
+    onOpenChange(false);
+    toast({
+      title: "Invitation sent",
+      description: `${person.name} can now ${
+        role === "commenter" ? "comment on" : "edit"
+      } ${contextName}.`,
+      tone: "success",
+    });
   }
 
   function choose(s: SubAccount) {
@@ -112,7 +117,7 @@ export function InviteModal({
     setQuery("");
   }
 
-  const canSend = person !== null && !person.alreadyHasAccess && !sent;
+  const canSend = person !== null && !person.alreadyHasAccess;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -336,31 +341,10 @@ export function InviteModal({
             <button
               type="submit"
               disabled={!canSend}
-              className={cn(
-                "flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium text-white inset-ring-1 inset-ring-white/15 transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.97] disabled:pointer-events-none",
-                sent
-                  ? "bg-emerald-600 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(16,185,129,0.7)]"
-                  : "bg-violet-600 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] hover:bg-violet-500 disabled:opacity-40 disabled:shadow-none",
-              )}
+              className="flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
             >
-              {/* icons cross-fade so the confirmation animates in rather than swapping */}
-              <span className="relative flex size-3.5 items-center justify-center">
-                <Check
-                  className={cn(
-                    "absolute size-3.5 transition-[opacity,scale,filter] duration-200",
-                    sent ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
-                  )}
-                  style={{ transitionTimingFunction: EASE }}
-                />
-                <UserPlus
-                  className={cn(
-                    "absolute size-3.5 transition-[opacity,scale,filter] duration-200",
-                    sent ? "scale-[0.25] opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-0",
-                  )}
-                  style={{ transitionTimingFunction: EASE }}
-                />
-              </span>
-              {sent ? "Invitation sent" : "Send invitation"}
+              <UserPlus className="size-3.5" />
+              Send invitation
             </button>
           </div>
         </form>

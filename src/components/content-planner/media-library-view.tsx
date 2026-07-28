@@ -21,6 +21,12 @@ interface MediaLibraryViewProps {
   restrictType?: MediaAssetType;
   /** What the restriction is for, so the notice explains itself. */
   restrictReason?: string;
+  /**
+   * Puts picked files into the library and hands back their ids. Without it the
+   * upload tile is decoration — which is what it used to be: its onChange threw
+   * the file away and closed the dialog.
+   */
+  onUpload?: (files: File[], folderId: string) => string[];
 }
 
 const ALL_MEDIA = "__all__";
@@ -40,6 +46,7 @@ export function MediaLibraryView({
   onClose,
   restrictType,
   restrictReason,
+  onUpload,
 }: MediaLibraryViewProps) {
   // Default to the cross-folder view so embeds/PDFs are visible immediately,
   // instead of being hidden inside whichever single folder they were filed under.
@@ -189,9 +196,29 @@ export function MediaLibraryView({
             <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-center hover:border-primary/50 hover:bg-accent/20">
               <input
                 type="file"
+                multiple={restrictType !== "pdf"}
                 accept={restrictType === "pdf" ? "application/pdf" : "image/*,application/pdf"}
                 className="hidden"
-                onChange={onClose}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  // Same input twice in a row fires nothing unless it is cleared
+                  e.target.value = "";
+                  if (files.length === 0) return;
+                  if (!onUpload) {
+                    onClose();
+                    return;
+                  }
+                  // Filed into the folder you are looking at, not a default one:
+                  // the upload lands where you were already working. "All Media"
+                  // is a view, not a folder, so it falls back to the first real one.
+                  const targetFolder =
+                    activeFolderId === ALL_MEDIA ? folders[0]?.id ?? "" : activeFolderId;
+                  // Attaching the first one closes the picker, which is the
+                  // behaviour of picking any asset — an upload is a pick that
+                  // brought its own file.
+                  const [firstId] = onUpload(files, targetFolder);
+                  if (firstId) onSelectAsset(firstId);
+                }}
               />
               <UploadCloud className="size-6 text-muted-foreground" />
               <span className="text-xs font-medium">Upload Media</span>
@@ -214,6 +241,8 @@ export function MediaLibraryView({
                     <MediaThumb
                       assetId={asset.id}
                       type={asset.type}
+                      url={asset.url}
+                      name={asset.name}
                       className={cn(
                         "aspect-square w-full ring-1 transition-all group-hover:ring-primary",
                         isSelected ? "ring-primary" : "ring-border",

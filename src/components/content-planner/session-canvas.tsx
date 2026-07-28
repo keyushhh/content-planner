@@ -5,10 +5,7 @@ import {
   AlertCircle,
   AtSign,
   ChevronsRight,
-  FileText,
   Layers,
-  Layers2,
-  Image as ImageIcon,
   Repeat2,
   Lock,
   RefreshCw,
@@ -40,15 +37,7 @@ import {
   useTagFlash,
   type ComposerLayoutProps,
 } from "./session-composer";
-import type { Feedback, PostType } from "@/lib/types";
-
-/** Post types offered in the composer, matching the creation modal. */
-const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
-  { id: "Image", icon: ImageIcon },
-  { id: "Frames", icon: Layers2 },
-  { id: "PDF", icon: FileText },
-  { id: "Reshare", icon: Repeat2 },
-];
+import type { Feedback } from "@/lib/types";
 
 /**
  * Canvas layout — the single-column alternative to SessionComposer.
@@ -285,7 +274,7 @@ export function SessionCanvas({
                   {isCampaignLocked && (
                     <span className="inline-flex items-center gap-1.5">
                       <Lock className="size-3 shrink-0" />
-                      Locked — live on Wozku
+                      Locked · live on Wozku
                     </span>
                   )}
                   {!isCampaignLocked && (
@@ -370,31 +359,10 @@ export function SessionCanvas({
             </Stagger>
 
             {/* Settings-style rows: label left, control right */}
-            {/* Fixed for the life of the post. The type is chosen before this
-                pane opens and it decides which rows exist here — changing it
-                afterwards would rearrange the sheet under the cursor and quietly
-                drop attachments the new type cannot carry. So it is stated as a
-                fact, in plain text: no pill, no chevron, nothing that reads as a
-                control you are being denied. */}
-            <SettingRow
-              label="Post type"
-              feedback={feedbackFor("Post type")}
-              onFeedback={() => onOpenFeedback("Post type")}
-              staggerIndex={3}
-              valueAlign="end"
-            >
-              <span
-                title="Set when this content was created — it can’t be changed"
-                className="flex items-center gap-2 text-[13px] font-medium text-foreground/90"
-              >
-                {(() => {
-                  const Icon =
-                    POST_TYPES.find((t) => t.id === session.postType)?.icon ?? ImageIcon;
-                  return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
-                })()}
-                {session.postType}
-              </span>
-            </SettingRow>
+            {/* No "Post type" row: the type is chosen in the creation modal and
+                cannot change afterwards, so restating it here spent a row of the
+                sheet on a fact you already acted on. It still decides which rows
+                exist below — that is where you see it. */}
 
             {/* Reshare carries no media of its own — Wozku keeps the original
                 post's. So the row states that instead of offering a picker that
@@ -447,6 +415,8 @@ export function SessionCanvas({
                         compact
                         assetId={assetId}
                         type={mediaAssets.find((a) => a.id === assetId)?.type}
+                        url={mediaAssets.find((a) => a.id === assetId)?.url}
+                        name={mediaAssets.find((a) => a.id === assetId)?.name}
                         className="size-full !rounded-[10px]"
                       />
                       {!isCampaignLocked && (

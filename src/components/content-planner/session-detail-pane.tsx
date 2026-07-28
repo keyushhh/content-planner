@@ -106,6 +106,8 @@ interface SessionDetailPaneProps {
   session: Session;
   mediaFolders: MediaFolder[];
   mediaAssets: MediaAsset[];
+  /** Adds files to the library and returns the ids they landed under. */
+  onUploadAssets?: (files: File[], folderId: string) => string[];
   onUpdate: (patch: Partial<Session>) => void;
   onClose: () => void;
   onOpenFeedback: (sectionLabel?: string) => void;
@@ -124,6 +126,7 @@ export function SessionDetailPane({
   session,
   mediaFolders,
   mediaAssets,
+  onUploadAssets,
   onUpdate,
   onClose,
   onOpenFeedback,
@@ -261,6 +264,7 @@ export function SessionDetailPane({
           // itself is bound by the PDF-means-one-PDF rule.
           restrictType={!forVariation && session.postType === "PDF" ? "pdf" : undefined}
           restrictReason="A PDF post carries one PDF, rendered as swipeable pages"
+          onUpload={onUploadAssets}
           onClose={() => setView(forVariation ? "variations" : "form")}
           onSelectAsset={(assetId) => {
             if (forVariation) {
@@ -320,7 +324,7 @@ export function SessionDetailPane({
       icon={LockOpen}
       tone="violet"
       title="Unlock this post?"
-      description="This moves it back to WIP so you can edit it. It stays sent to Wozku as-is until you re-approve and send the update — nothing changes there until then."
+      description="This moves it back to WIP so you can edit it. It stays sent to Wozku as-is until you re-approve and send the update. Nothing changes there until then."
       actions={[
         {
           label: "Cancel",
@@ -699,6 +703,8 @@ export function SessionDetailPane({
                     <MediaThumb
                       assetId={assetId}
                       type={mediaAssets.find((a) => a.id === assetId)?.type}
+                      url={mediaAssets.find((a) => a.id === assetId)?.url}
+                      name={mediaAssets.find((a) => a.id === assetId)?.name}
                       className="size-full"
                     />
                     {!isCampaignLocked && (
