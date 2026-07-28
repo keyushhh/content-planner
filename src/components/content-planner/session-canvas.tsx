@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, tagTint } from "@/lib/utils";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
 import {
@@ -266,6 +266,8 @@ export function SessionCanvas({
                   disabled={isCampaignLocked}
                   aria-label="Session title"
                   placeholder="Untitled session"
+                  // The landing pad for the row title's flight — see title-flight.ts
+                  data-pane-title
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
                 {/* Byline moved to the toolbar, so this line now carries one
@@ -470,7 +472,9 @@ export function SessionCanvas({
                         "inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs font-medium inset-ring-1 transition-[background-color,box-shadow,scale] duration-200",
                         flashedTag === tag
                           ? "scale-[1.06] bg-amber-500/20 inset-ring-amber-400/50"
-                          : "bg-white/[0.08] inset-ring-white/[0.06]",
+                          // Its own hue, so the same tag is the same colour here
+                          // as it is in the table row and the filter menu.
+                          : cn(tagTint(tag), "inset-ring-white/[0.06]"),
                       )}
                     >
                       {tag}

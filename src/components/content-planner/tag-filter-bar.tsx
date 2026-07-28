@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, Search, Tag } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, tagDot } from "@/lib/utils";
 
 export interface TagCount {
   name: string;
@@ -203,6 +203,12 @@ function TagOption({
           style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
         />
       </span>
+      {/* The tag's own hue, so the colour you tick here is the colour you then
+          scan for in the table. */}
+      <span
+        aria-hidden
+        className={cn("size-1.5 shrink-0 rounded-full", tagDot(label), !active && "opacity-70")}
+      />
       <span className={cn("flex-1 truncate", active ? "text-foreground" : "text-muted-foreground")}>
         {label}
       </span>

@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, PlusCircle, Settings2, LayoutGrid, UserPlus, FlaskConical } from "lucide-react";
+import {
+  CalendarDays,
+  PlusCircle,
+  Settings2,
+  LayoutGrid,
+  Search,
+  UserPlus,
+  FlaskConical,
+} from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import {
@@ -19,8 +27,13 @@ import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { PostTypeModal } from "@/components/content-planner/post-type-modal";
+import {
+  CommandPalette,
+  useCommandPalette,
+} from "@/components/content-planner/command-palette";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { cn } from "@/lib/utils";
+import { flyTitleWhenReady } from "@/lib/title-flight";
 import {
   campaigns as initialCampaigns,
   currentUser,
@@ -41,6 +54,14 @@ import { feedbackStatusMeta } from "@/lib/feedback";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
+
+/** Dev-only table state overrides, for demoing states real data will not show. */
+type DemoState = "live" | "empty" | "loading";
+const DEMO_STATES: { id: DemoState; label: string }[] = [
+  { id: "live", label: "Live" },
+  { id: "empty", label: "Empty" },
+  { id: "loading", label: "Loading" },
+];
 
 /**
  * Sessions saved by earlier builds carry a single `sentToCampaignId`. Reading
@@ -114,6 +135,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 
 export default function Home() {
   const toast = useToast();
+  const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
   const [mode, setMode] = useState<"current" | "new">("current");
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
@@ -134,6 +156,7 @@ export default function Home() {
   // add to the library is not an upload, and the old file input threw the file
   // away and closed the dialog.
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(initialMediaAssets);
+  const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
 
@@ -511,6 +534,24 @@ export default function Home() {
     return created.map((a) => a.id);
   }
 
+  /**
+   * Opens a post in the detail pane, and hands its title across.
+   *
+   * The row and the pane show the same words at two sizes, so the title flies
+   * from one to the other and the pane reads as that row opening rather than as
+   * a second screen sliding over the first. Every entry point goes through here
+   * — clicks, Enter from the keyboard cursor, ⌘K — and when there is no row on
+   * screen to fly from (a palette jump from another campaign) the flight simply
+   * does not happen. The pane opens either way.
+   */
+  function openSession(id: string) {
+    const rowTitle = document.querySelector<HTMLElement>(
+      `[data-row-id="${id}"] [data-row-title]`,
+    );
+    setSelectedSessionId(id);
+    if (rowTitle) flyTitleWhenReady(rowTitle, "[data-pane-title]");
+  }
+
   function deleteSession(id: string) {
     const removed = sessions.find((s) => s.id === id);
     if (!removed) return;
@@ -679,7 +720,27 @@ export default function Home() {
             : "border-b border-border bg-card/40",
         )}
       >
-        <span className="text-xs font-medium text-muted-foreground">Content Planner</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-muted-foreground">Content Planner</span>
+          {/* The palette needs a door. A shortcut nobody can see is a shortcut
+              only the person who built it uses. */}
+          <button
+            onClick={() => setPaletteOpen(true)}
+            title="Search everything (⌘K)"
+            className={cn(
+              "group flex h-7 items-center gap-2 rounded-full pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground",
+              isCanvas
+                ? "bg-white/[0.03] inset-ring-1 inset-ring-white/[0.08] hover:bg-white/[0.06]"
+                : "border border-border hover:bg-accent/40",
+            )}
+          >
+            <Search className="size-3" />
+            Search
+            <kbd className="rounded bg-white/[0.07] px-1 py-px text-[10px] text-muted-foreground/80 inset-ring-1 inset-ring-white/[0.07] transition-colors duration-150 group-hover:text-foreground/80">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
         <div className="flex items-center gap-1.5">
         <div
           className={cn(
@@ -734,6 +795,34 @@ export default function Home() {
           <FlaskConical className="size-3.5" />
           Seed 450
         </button>
+
+        {/* Dev only: force the table's empty and loading states, so a demo can
+            show them without deleting anyone's content or faking a slow network.
+            Nothing is destroyed — the data is still there behind the override. */}
+        <div
+          title="Dev: preview the table's empty and loading states"
+          className={cn(
+            "ml-1 flex items-center gap-0.5 rounded-full p-0.5 text-[11px] font-medium",
+            isCanvas
+              ? "bg-white/[0.03] inset-ring-1 inset-ring-white/[0.08]"
+              : "border border-border bg-background",
+          )}
+        >
+          {DEMO_STATES.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setDemoState(id)}
+              className={cn(
+                "rounded-full px-2 py-1 transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+                demoState === id
+                  ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         </div>
       </div>
 
@@ -817,9 +906,10 @@ export default function Home() {
                     </div>
                     <SessionsTable
                       variant="canvas"
-                      sessions={campaignSessions}
+                      sessions={demoState === "empty" ? [] : campaignSessions}
+                      loading={demoState === "loading"}
                       selectedSessionId={selectedSessionId}
-                      onSelectSession={setSelectedSessionId}
+                      onSelectSession={openSession}
                       onOpenSend={setSendSheetSessionId}
                       onDeleteSession={deleteSession}
                       onUnlockSession={unlockSession}
@@ -828,9 +918,10 @@ export default function Home() {
                   </div>
                 ) : (
                 <SessionsTable
-                  sessions={campaignSessions}
+                  sessions={demoState === "empty" ? [] : campaignSessions}
+                  loading={demoState === "loading"}
                   selectedSessionId={selectedSessionId}
-                  onSelectSession={setSelectedSessionId}
+                  onSelectSession={openSession}
                   onOpenSend={setSendSheetSessionId}
                   onDeleteSession={deleteSession}
                   onUnlockSession={unlockSession}
@@ -857,10 +948,13 @@ export default function Home() {
           </>
         ) : (
           <RepositoryShell
-            sessions={sessions}
+            // Dev states win over the real data, so the demo can show an empty
+            // repository without anyone having to delete their content first.
+            sessions={demoState === "empty" ? [] : sessions}
+            tableLoading={demoState === "loading"}
             campaigns={campaigns}
             selectedSessionId={selectedSessionId}
-            onSelectSession={setSelectedSessionId}
+            onSelectSession={openSession}
             onOpenSend={setSendSheetSessionId}
             onDeleteSession={deleteSession}
             onUnlockSession={unlockSession}
@@ -971,6 +1065,26 @@ export default function Home() {
         }}
         allowCreateCampaign={mode === "new"}
         onCreateCampaign={mode === "new" ? createCampaign : undefined}
+      />
+
+      {/* ⌘K. Lives at the page, because it needs everything the page owns:
+          the sessions, the campaigns, and the actions that open them. */}
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        sessions={sessions}
+        campaigns={campaigns}
+        actions={{
+          onOpenSession: openSession,
+          onNewContent: handleNewContent,
+          onInvite: () => setShowInviteModal(true),
+          // Jumping to a campaign closes whatever post was open, or you land on
+          // a campaign with last campaign's post still covering it.
+          onOpenCampaign: (id) => {
+            setSelectedSessionId(null);
+            setSelectedCampaignId(id);
+          },
+        }}
       />
 
       <SendSuccessModal

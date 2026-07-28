@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "./status-badge";
+import { StatusBadge, STATUS_TONE } from "./status-badge";
 import { ConfirmDialog } from "./confirm-dialog";
 import {
   avatarTint,
@@ -11,6 +11,7 @@ import {
   isSessionLocked,
   relativeTime,
   sessionNeedsResend,
+  tagDot,
 } from "@/lib/utils";
 import {
   Send,
@@ -24,6 +25,7 @@ import {
   Pencil,
   MoreHorizontal,
   Inbox,
+  SearchX,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -53,7 +55,19 @@ interface SessionsTableProps {
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
   onDuplicateSession?: (id: string) => void;
-  emptyState?: { title: string; description: string };
+  emptyState?: {
+    title: string;
+    description: string;
+    /** The way out, when there is one. Filtered-to-nothing gets "Clear filters". */
+    action?: { label: string; onClick: () => void };
+    /** True when the table is empty because of filters, not because there is
+     *  nothing to show — a different situation that deserves different words. */
+    filtered?: boolean;
+  };
+  /** Shows skeleton rows in place of the body. No data source is async yet, so
+   *  today this is driven by the dev controls — it exists so the loading state
+   *  is designed alongside everything else rather than bolted on later. */
+  loading?: boolean;
   /** "classic" keeps the original table; "canvas" matches the Canvas pane. */
   variant?: "classic" | "canvas";
   /** Canvas only: rows per page. */
@@ -67,6 +81,9 @@ interface SessionsTableProps {
   statusFiltered?: boolean;
   onCycleStatus?: () => void;
 }
+
+/** How long a deleted row takes to collapse before the data is dropped. */
+const ROW_EXIT_MS = 220;
 
 /**
  * A column title that sorts. Inactive headers stay plain text with the arrow
@@ -138,6 +155,7 @@ export function SessionsTable({
     title: "No sessions yet",
     description: 'Click "New Session" to create your first post.',
   },
+  loading = false,
   variant = "classic",
   pageSize = 15,
   sortKey,
@@ -187,6 +205,8 @@ export function SessionsTable({
     [readScrollEdges],
   );
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  /** The row currently playing its exit, still in `sessions` until it finishes. */
+  const [leavingId, setLeavingId] = useState<string | null>(null);
   const [confirmUnlockId, setConfirmUnlockId] = useState<string | null>(null);
 
   // Only which cell is being typed in is local — that is transient UI, not data.
@@ -223,14 +243,30 @@ export function SessionsTable({
     else setConfirmDeleteColId(colId);
   }
 
+  /**
+   * The row leaves before the data does.
+   *
+   * Deleting used to yank the row out on the same frame the dialog closed, so
+   * the list snapped shut and — on the last row — an empty state appeared out of
+   * nowhere. The row now collapses and fades first, and the parent is told once
+   * it is gone, which keeps the surface continuous either way.
+   */
+  function confirmDelete(id: string) {
+    setConfirmDeleteId(null);
+    setLeavingId(id);
+    setTimeout(() => {
+      onDeleteSession(id);
+      setLeavingId(null);
+    }, ROW_EXIT_MS);
+  }
+
   const dialogs = (
     <>
       <DeleteContentDialog
         session={sessionPendingDelete}
         onOpenChange={(open) => !open && setConfirmDeleteId(null)}
         onConfirm={() => {
-          if (sessionPendingDelete) onDeleteSession(sessionPendingDelete.id);
-          setConfirmDeleteId(null);
+          if (sessionPendingDelete) confirmDelete(sessionPendingDelete.id);
         }}
       />
 
@@ -304,9 +340,17 @@ export function SessionsTable({
     </>
   );
 
+  /**
+   * Custom columns describe rows. With no rows to describe, "Column 1ds" is a
+   * heading over nothing — it makes an empty table look misconfigured rather
+   * than new. They come back the moment there is content, since the columns
+   * themselves are never deleted.
+   */
+  const headerColumns = sessions.length === 0 || loading ? [] : customColumns;
+
   // Dynamic CSS grid template columns
   const gridStyle = {
-    gridTemplateColumns: `minmax(200px, 1.5fr) 160px 110px 130px ${customColumns
+    gridTemplateColumns: `minmax(200px, 1.5fr) 160px 110px 130px ${headerColumns
       .map(() => "140px")
       .join(" ")} 60px 40px`,
   };
@@ -324,7 +368,7 @@ export function SessionsTable({
   const canvasGrid = {
     "--cols-sm": "minmax(0,1fr) 104px 72px",
     "--cols-md": "minmax(0,1fr) 168px 112px 72px",
-    "--cols-lg": `minmax(0,1fr) 176px 116px 132px ${customColumns
+    "--cols-lg": `minmax(0,1fr) 176px 116px 132px ${headerColumns
       .map(() => "140px")
       .join(" ")} 80px`,
   } as React.CSSProperties;
@@ -342,6 +386,74 @@ export function SessionsTable({
   const rangeStart = sessions.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const rangeEnd = Math.min(safePage * pageSize, sessions.length);
   const pageRows = sessions.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  /**
+   * Keyboard row cursor: j/k (and the arrow keys) move it, Enter opens.
+   *
+   * A cursor separate from the selection is the whole point — selection opens the
+   * detail pane, so "move down one row" cannot mean "select" or every keypress
+   * would swap the pane's contents and steal focus. This is the Mail model: a
+   * highlight you drive with one hand, committed with Enter.
+   *
+   * It only listens while the pane is closed (nothing is selected), because in
+   * there j and k are letters someone is typing.
+   */
+  const [cursor, setCursor] = useState<number | null>(null);
+  const cursorId = cursor !== null ? pageRows[cursor]?.id ?? null : null;
+
+  useEffect(() => {
+    if (selectedSessionId !== null) return;
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Never while the caret is in a field — j is a letter first.
+      const el = document.activeElement;
+      if (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        (el instanceof HTMLElement && el.isContentEditable)
+      ) {
+        return;
+      }
+
+      const down = e.key === "j" || e.key === "ArrowDown";
+      const up = e.key === "k" || e.key === "ArrowUp";
+      if (!down && !up && e.key !== "Enter" && e.key !== "Escape") return;
+      if (pageRows.length === 0) return;
+
+      if (e.key === "Escape") {
+        setCursor(null);
+        return;
+      }
+      if (e.key === "Enter") {
+        if (cursorId) {
+          e.preventDefault();
+          onSelectSession(cursorId);
+        }
+        return;
+      }
+
+      e.preventDefault();
+      setCursor((prev) => {
+        // First press lands on the first row rather than jumping to row 2
+        if (prev === null) return down ? 0 : pageRows.length - 1;
+        const next = down ? prev + 1 : prev - 1;
+        return Math.max(0, Math.min(pageRows.length - 1, next));
+      });
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [pageRows, cursorId, onSelectSession, selectedSessionId]);
+
+  /** Keeps the cursor row on screen when it walks past the fold. */
+  useEffect(() => {
+    if (cursorId === null) return;
+    bodyRef.current
+      ?.querySelector(`[data-row-id="${cursorId}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [cursorId]);
+
   const pageItems = buildPageItems(safePage, totalPages);
 
   function handleBodyScroll(e: React.UIEvent<HTMLDivElement>) {
@@ -440,7 +552,7 @@ export function SessionsTable({
               </div>
               <span className={wideOnly}>Campaign</span>
 
-              {customColumns.map((col) => (
+              {headerColumns.map((col) => (
                 <CustomColumnHeader
                   key={col.id}
                   column={col}
@@ -474,16 +586,10 @@ export function SessionsTable({
               // the list reads as an end rather than as a crop
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2"
             >
-            {sessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 px-8 py-16 text-center">
-                <span className="flex size-10 items-center justify-center rounded-full bg-white/[0.04] text-muted-foreground inset-ring-1 inset-ring-white/[0.06]">
-                  <Inbox className="size-4" />
-                </span>
-                <span className="mt-1 text-sm font-medium">{emptyState.title}</span>
-                <span className="max-w-[380px] text-xs text-muted-foreground text-pretty">
-                  {emptyState.description}
-                </span>
-              </div>
+            {loading ? (
+              <SkeletonRows rows={pageSize > 10 ? 10 : pageSize} />
+            ) : sessions.length === 0 ? (
+              <EmptyRows emptyState={emptyState} />
             ) : (
               pageRows.map((session) => {
                 const isSelected = session.id === selectedSessionId;
@@ -493,24 +599,55 @@ export function SessionsTable({
                 return (
                   <div
                     key={session.id}
+                    data-row-id={session.id}
                     onClick={() => onSelectSession(session.id)}
                     style={canvasGrid}
                     className={cn(
                       // A FIXED row height is what makes 15 rows read as a
                       // rhythm: with padding alone, a row with tags stood 14px
                       // taller than one without and the whole list stuttered.
-                      "group relative grid h-[58px] cursor-pointer items-center gap-3 border-b border-white/[0.05] px-5 transition-colors duration-150 last:border-b-0",
+                      "group relative grid h-[58px] cursor-pointer items-center gap-3 border-b border-white/[0.05] px-5 last:border-b-0",
+                      "transition-[height,opacity,translate,background-color,box-shadow] duration-220",
                       canvasGridClass,
-                      // selected gets a left accent instead of only a tint
+                      // Collapses and slips left on its way out, so the rows
+                      // below close the gap instead of jumping into it.
+                      session.id === leavingId &&
+                        "pointer-events-none !h-0 -translate-x-2 overflow-hidden !border-b-0 opacity-0",
+                      // Selection is a LIFT — a ring plus a shadow, the row
+                      // coming forward off the sheet. Hover stays a tint. They
+                      // were two volumes of one gesture before; now "I am reading
+                      // this" and "my cursor is here" are different kinds of
+                      // signal, which is what lets them coexist on one row.
                       isSelected
-                        ? "bg-violet-500/[0.10] before:absolute before:left-0 before:top-1/2 before:h-7 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-violet-400 before:content-['']"
+                        ? "z-10 bg-violet-500/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.35),0_10px_28px_-14px_rgba(0,0,0,0.9)] inset-ring-1 inset-ring-violet-400/35"
                         : "hover:bg-white/[0.035]",
+                      // The keyboard cursor: lighter than selection, because it
+                      // is a place you are pointing at rather than a thing you
+                      // have opened.
+                      !isSelected &&
+                        session.id === cursorId &&
+                        "bg-white/[0.05] inset-ring-1 inset-ring-white/[0.14]",
                     )}
                   >
+                    {/* Status, as a hairline down the leading edge. Fifteen of
+                        these read as a column of state before you have read a
+                        single word — which is the job the badge cannot do,
+                        because you have to look at it to use it. */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute inset-y-0 left-0 w-[2px] transition-opacity duration-150",
+                        STATUS_TONE[session.status].bar,
+                        // Held back a little at rest so a full table does not
+                        // read as a barcode; full strength on the row you are on.
+                        isSelected ? "opacity-100" : "opacity-70 group-hover:opacity-100",
+                      )}
+                    />
                     <div className="min-w-0 pr-4">
                       {/* title brightens on row hover — the row answers the
                           cursor instead of merely being highlighted */}
                       <div
+                        data-row-title
                         className={cn(
                           "truncate text-[13.5px] font-medium transition-colors duration-150",
                           isSelected
@@ -522,14 +659,20 @@ export function SessionsTable({
                       </div>
                       {/* Tags as quiet text, not pills. Filled chips here put a
                           second chip treatment on screen competing with the
-                          filter bar, and they out-weighted the title itself. */}
+                          filter bar, and they out-weighted the title itself.
+                          The colour rides on a 4px dot instead: enough to scan a
+                          topic down the column, nowhere near enough to shout. */}
                       {session.tags.length > 0 && (
-                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground/70">
-                          {session.tags.slice(0, 2).map((tag, i) => (
+                        <div className="mt-0.5 flex items-center gap-2 truncate text-[11px] text-muted-foreground/70">
+                          {session.tags.slice(0, 2).map((tag) => (
                             <span key={tag} className="flex shrink-0 items-center gap-1.5">
-                              {i > 0 && (
-                                <span aria-hidden className="size-1 rounded-full bg-current opacity-40" />
-                              )}
+                              <span
+                                aria-hidden
+                                className={cn(
+                                  "size-1 rounded-full opacity-80 transition-opacity duration-150 group-hover:opacity-100",
+                                  tagDot(tag),
+                                )}
+                              />
                               {tag}
                             </span>
                           ))}
@@ -762,7 +905,7 @@ export function SessionsTable({
           <span>Sent to Campaign</span>
 
           {/* Custom Column Headers */}
-          {customColumns.map((col) => (
+          {headerColumns.map((col) => (
             <CustomColumnHeader
               key={col.id}
               column={col}
@@ -797,10 +940,11 @@ export function SessionsTable({
         onScroll={handleBodyScroll}
         className="h-full overflow-y-auto overflow-x-auto pb-2"
       >
-        {sessions.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-muted-foreground min-w-max p-8">
-            <span className="text-sm font-medium">{emptyState.title}</span>
-            <span className="text-xs">{emptyState.description}</span>
+        {loading ? (
+          <SkeletonRows rows={8} />
+        ) : sessions.length === 0 ? (
+          <div className="min-w-max">
+            <EmptyRows emptyState={emptyState} />
           </div>
         ) : (
           pageRows.map((session) => {
@@ -814,11 +958,26 @@ export function SessionsTable({
                 onClick={() => onSelectSession(session.id)}
                 style={gridStyle}
                 className={cn(
-                  "group grid min-w-max items-center border-b border-border/60 px-4 py-3 cursor-pointer transition-colors gap-3",
-                  isSelected ? "bg-primary/[0.06]" : "hover:bg-accent/30"
+                  "group relative grid min-w-max items-center border-b border-border/60 px-4 py-3 cursor-pointer gap-3",
+                  "transition-[height,padding,opacity,translate,background-color,box-shadow] duration-220",
+                  isSelected
+                    ? "z-10 bg-primary/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.3),0_8px_24px_-14px_rgba(0,0,0,0.8)] inset-ring-1 inset-ring-violet-400/30"
+                    : "hover:bg-accent/30",
+                  // Same exit as the canvas rows — see confirmDelete
+                  session.id === leavingId &&
+                    "pointer-events-none !h-0 -translate-x-2 overflow-hidden !border-b-0 !py-0 opacity-0",
                 )}
               >
-                <span className="truncate pr-4 font-medium text-sm">
+                {/* Status hairline, same as the canvas table */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-y-0 left-0 w-[2px] transition-opacity duration-150",
+                    STATUS_TONE[session.status].bar,
+                    isSelected ? "opacity-100" : "opacity-70 group-hover:opacity-100",
+                  )}
+                />
+                <span data-row-title className="truncate pr-4 font-medium text-sm">
                   {session.title}
                 </span>
 
@@ -1036,6 +1195,117 @@ export function SessionsTable({
  * name could never be cleared and retyped — the thing that made these columns
  * feel write-once. Enter and blur commit, Escape abandons.
  */
+/**
+ * Loading rows.
+ *
+ * Built to the real row's measurements — 58px pitch, bars where the title,
+ * status and byline sit — so the table does not jump when the data lands. The
+ * sheen sweeps across the whole block rather than each bar pulsing on its own:
+ * one light passing over one surface, not fifteen rows blinking out of phase.
+ */
+function SkeletonRows({ rows = 8 }: { rows?: number }) {
+  return (
+    <div aria-hidden className="relative overflow-hidden">
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          className="flex h-[58px] items-center gap-3 border-b border-white/[0.04] px-5 last:border-b-0"
+        >
+          <div
+            className="h-2.5 rounded-full bg-white/[0.055]"
+            // Varied widths: equal bars read as a grid of placeholders, uneven
+            // ones read as titles of different lengths.
+            style={{ width: `${28 + ((i * 37) % 22)}%` }}
+          />
+          <div className="h-2.5 w-14 rounded-full bg-white/[0.04]" />
+          <div className="ml-auto flex items-center gap-3">
+            <div className="h-2.5 w-20 rounded-full bg-white/[0.035]" />
+            <div className="size-6 rounded-full bg-white/[0.04]" />
+          </div>
+        </div>
+      ))}
+      <div
+        className="pointer-events-none absolute inset-0 motion-reduce:hidden"
+        style={{
+          background:
+            "linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.045) 50%, transparent 70%)",
+          backgroundSize: "220% 100%",
+          animation: "table-sheen 1.6s ease-in-out infinite",
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * The empty table.
+ *
+ * No ghost rows: dim bars at row pitch are the vocabulary of LOADING, and
+ * borrowing them here told you to wait for something that is never coming. An
+ * empty table is a finished state, and it should look settled rather than
+ * pending.
+ *
+ * So it is the same small composition the rest of the app uses for nothing-here
+ * — violet medallion, title, one line of explanation, one action — sized to its
+ * content and centred in whatever height the sheet has. Filtered-to-nothing and
+ * genuinely-nothing differ in glyph, words, and which of the two is worth a
+ * violet button.
+ */
+function EmptyRows({
+  emptyState,
+}: {
+  emptyState: {
+    title: string;
+    description: string;
+    action?: { label: string; onClick: () => void };
+    filtered?: boolean;
+  };
+}) {
+  const Glyph = emptyState.filtered ? SearchX : Inbox;
+
+  return (
+    // Fades in, because it usually arrives right after the last row left: two
+    // hard cuts in a row is what made deleting feel like the table broke.
+    <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden duration-300 animate-in fade-in">
+      {/* One soft violet lift under the composition — the app's own signal that
+          a surface is a place where something begins. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_45%,rgba(139,92,246,0.07),transparent_70%)]"
+      />
+
+      <div className="relative flex flex-col items-center gap-2 px-8 py-12 text-center">
+        <span className="flex size-11 items-center justify-center rounded-full bg-violet-500/[0.10] text-violet-300 inset-ring-1 inset-ring-violet-400/25">
+          <Glyph className="size-[17px]" />
+        </span>
+        <span className="mt-1.5 text-[14px] font-semibold tracking-[-0.01em]">
+          {emptyState.title}
+        </span>
+        <span className="max-w-[330px] text-[12.5px] leading-snug text-muted-foreground text-pretty">
+          {emptyState.description}
+        </span>
+
+        {emptyState.action && (
+          <button
+            onClick={emptyState.action.onClick}
+            className={cn(
+              "mt-3.5 flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-[0.97]",
+              // Creating content is the primary act; clearing a filter is a way
+              // back. Only one of the two earns the violet.
+              emptyState.filtered
+                ? "bg-white/[0.04] inset-ring-1 inset-ring-white/[0.09] hover:bg-white/[0.08] hover:inset-ring-white/20"
+                : "bg-violet-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 hover:bg-violet-500",
+            )}
+          >
+            {!emptyState.filtered && <Plus className="size-4" />}
+            {emptyState.action.label}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function InlineEdit({
   initial,
   ariaLabel,

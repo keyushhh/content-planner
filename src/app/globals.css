@@ -4,6 +4,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+   Corner radius scale
+   ---------------------------------------------------------------------------
+   Radius tracks ELEVATION here, not size: the further a surface is from the
+   page, the softer its corners. Three families, deliberately:
+
+     7–10px   things INSIDE a surface — media thumbs, asset tiles, cells
+     14–16px  small floating objects — toasts, menu rows, inline panels
+     18–28px  surfaces that own the screen — sheets, dialogs, the composer card
+
+   Pills (h-7/h-8 controls, chips, badges) are always fully rounded, and sit
+   outside the scale — a pill is a shape, not a radius.
+
+   Written down because a fourth family is how this drifts: if a new component
+   wants 12px or 20px, it almost certainly belongs to one of the three above.
+   Values stay per-component (Tailwind arbitrary values) rather than tokens —
+   the point is the scale, and a token named --radius-md invites a --radius-lg.
+   --------------------------------------------------------------------------- */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -220,6 +239,17 @@
   55%,
   100% {
     opacity: 0;
+  }
+}
+
+/* One sheen travelling across a block of skeleton rows. Background-position
+   rather than transform, so the sweep is clipped by the block it lights. */
+@keyframes table-sheen {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
   }
 }
 

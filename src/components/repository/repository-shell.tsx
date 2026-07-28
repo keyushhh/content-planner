@@ -56,6 +56,8 @@ interface RepositoryShellProps extends CustomColumnProps {
   onUnlockSession: (id: string) => void;
   onDuplicateSession: (id: string) => void;
   onNewContent: () => void;
+  /** Dev-controls override: show the table's skeleton instead of its rows. */
+  tableLoading?: boolean;
   onImportToCampaign: (sessionIds: string[], campaignId: string) => void;
   onCreateCampaign?: (name: string) => string;
   tableStyle: ComposerLayout;
@@ -112,6 +114,7 @@ export function RepositoryShell({
   onUnlockSession,
   onDuplicateSession,
   onNewContent,
+  tableLoading = false,
   onImportToCampaign,
   onCreateCampaign,
   tableStyle,
@@ -204,6 +207,13 @@ export function RepositoryShell({
   );
   const isFiltered = q.length > 0 || activeTags.length > 0 || statusFilter.length > 0;
 
+  /** One way out of every filter at once, from the line that reports them. */
+  function clearFilters() {
+    setSearch("");
+    setActiveTags([]);
+    setStatusFilter([]);
+  }
+
   const importCandidates = sessions.filter(
     (s) => !activeCampaign || !s.sentToCampaignIds.includes(activeCampaign.id),
   );
@@ -275,7 +285,11 @@ export function RepositoryShell({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search content…"
                     aria-label="Search content"
-                    className="h-8 w-[220px] rounded-full bg-white/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+                    // A shade lighter at rest than the control pills beside it.
+                    // It is the one thing in this row you type into, and a field
+                    // should look like a recess you can put something in rather
+                    // than another button.
+                    className="h-8 w-[220px] rounded-full bg-white/[0.06] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.10] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.085] focus:inset-ring-violet-400/50"
                   />
                   {search && (
                     <button
@@ -416,6 +430,28 @@ export function RepositoryShell({
               </div>
             </div>
 
+            {/* Says out loud that you are looking at a subset. The controls each
+                know their own state, but nothing told you the TABLE was short
+                because of them — which is the moment people start doubting the
+                data rather than checking the filters. */}
+            {isFiltered && (
+              <div className="mb-2.5 flex shrink-0 items-center gap-2 pl-0.5 text-[12px] text-muted-foreground">
+                <span className="flex size-1.5 shrink-0 rounded-full bg-violet-400" />
+                <span>
+                  <span className="tabular-nums text-foreground/85">{sorted.length}</span>{" "}
+                  of{" "}
+                  <span className="tabular-nums">{visibleSessions.length}</span>{" "}
+                  {visibleSessions.length === 1 ? "item" : "items"}, filtered
+                </span>
+                <button
+                  onClick={clearFilters}
+                  className="h-6 rounded-full px-2 text-[12px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-white/[0.06] hover:text-foreground"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
             <SessionsTable
               // remount on filter change so the row window restarts at page 1
               key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}|${sort}|${reversed}`}
@@ -428,6 +464,7 @@ export function RepositoryShell({
               statusFiltered={statusFilter.length > 0}
               onCycleStatus={cycleStatus}
               sessions={sorted}
+              loading={tableLoading}
               selectedSessionId={selectedSessionId}
               onSelectSession={onSelectSession}
               onOpenSend={onOpenSend}
@@ -442,16 +479,23 @@ export function RepositoryShell({
                       description: q
                         ? `Nothing matches “${search.trim()}”. Try a different term or clear the filters.`
                         : "No content carries these tags. Try clearing the filters.",
+                      filtered: true,
+                      action: { label: "Clear all filters", onClick: clearFilters },
                     }
                   : view === "repository"
                   ? {
                       title: "Repository is empty",
-                      description: 'Click "New content" to create your first piece of content.',
+                      description:
+                        "Every piece of content you make lands here. Create the first one to get started.",
+                      action: onNewContent
+                        ? { label: "New content", onClick: onNewContent }
+                        : undefined,
                     }
                   : {
                       title: "Nothing sent to this campaign yet",
                       description:
                         "Import something that already exists, or send it here from the Repository.",
+                      action: { label: "Import content", onClick: () => setShowImport(true) },
                     }
               }
             />
@@ -566,6 +610,7 @@ export function RepositoryShell({
             // remount on filter change so the row window restarts at page 1
             key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}`}
             sessions={sorted}
+            loading={tableLoading}
             selectedSessionId={selectedSessionId}
             onSelectSession={onSelectSession}
             onOpenSend={onOpenSend}
@@ -574,15 +619,29 @@ export function RepositoryShell({
             onDuplicateSession={onDuplicateSession}
             {...columnProps}
             emptyState={
-              view === "repository"
+              isFiltered
+                ? {
+                    title: "No matches",
+                    description: q
+                      ? `Nothing matches “${search.trim()}”. Try a different term or clear the filters.`
+                      : "No content carries these tags. Try clearing the filters.",
+                    filtered: true,
+                    action: { label: "Clear all filters", onClick: clearFilters },
+                  }
+                : view === "repository"
                 ? {
                     title: "Repository is empty",
-                    description: 'Click "New Content" to create your first piece of content.',
+                    description:
+                      "Every piece of content you make lands here. Create the first one to get started.",
+                    action: onNewContent
+                      ? { label: "New content", onClick: onNewContent }
+                      : undefined,
                   }
                 : {
                     title: "Nothing sent to this campaign yet",
                     description:
-                      'Use "Import Content from Repository" to bring in something that already exists, or send it here from the Repository.',
+                      "Import something that already exists, or send it here from the Repository.",
+                    action: { label: "Import content", onClick: () => setShowImport(true) },
                   }
             }
           />

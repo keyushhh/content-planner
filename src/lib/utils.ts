@@ -48,12 +48,61 @@ const AVATAR_TINTS = [
   "bg-indigo-500/[0.18] text-indigo-200",
 ] as const;
 
+/** Same string, same colour, forever — and never a colour picked at random. */
+function hashOf(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) | 0;
+  return Math.abs(hash);
+}
+
 export function avatarTint(name: string | undefined | null): string {
   if (!name) return "bg-white/[0.07] text-muted-foreground";
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  return AVATAR_TINTS[Math.abs(hash) % AVATAR_TINTS.length];
+  return AVATAR_TINTS[hashOf(name) % AVATAR_TINTS.length];
 }
+
+/**
+ * Stable per-tag tint, the same idea as avatars applied to topics.
+ *
+ * A tag is an identity, and a row carrying "launch" should be findable by colour
+ * the way a row edited by one person already is. Much quieter than the avatar
+ * tints, though: tags sit on a row's second line, several at a time, and at
+ * avatar strength a three-tag row turns into a row of confetti. The hue does the
+ * identifying; the ink stays low.
+ *
+ * `active` is the filtered-by state, where the chip should read as switched on
+ * rather than merely coloured.
+ */
+const TAG_TINTS = [
+  { idle: "bg-violet-400/[0.10] text-violet-200/85", on: "bg-violet-400/25 text-violet-100 inset-ring-violet-300/40" },
+  { idle: "bg-sky-400/[0.10] text-sky-200/85", on: "bg-sky-400/25 text-sky-100 inset-ring-sky-300/40" },
+  { idle: "bg-emerald-400/[0.10] text-emerald-200/85", on: "bg-emerald-400/25 text-emerald-100 inset-ring-emerald-300/40" },
+  { idle: "bg-amber-400/[0.10] text-amber-200/85", on: "bg-amber-400/25 text-amber-100 inset-ring-amber-300/40" },
+  { idle: "bg-rose-400/[0.10] text-rose-200/85", on: "bg-rose-400/25 text-rose-100 inset-ring-rose-300/40" },
+  { idle: "bg-teal-400/[0.10] text-teal-200/85", on: "bg-teal-400/25 text-teal-100 inset-ring-teal-300/40" },
+  { idle: "bg-fuchsia-400/[0.10] text-fuchsia-200/85", on: "bg-fuchsia-400/25 text-fuchsia-100 inset-ring-fuchsia-300/40" },
+  { idle: "bg-indigo-400/[0.10] text-indigo-200/85", on: "bg-indigo-400/25 text-indigo-100 inset-ring-indigo-300/40" },
+] as const;
+
+export function tagTint(tag: string, active = false): string {
+  const tint = TAG_TINTS[hashOf(tag.toLowerCase()) % TAG_TINTS.length];
+  return active ? tint.on : tint.idle;
+}
+
+/** The tag's hue alone, for a dot or a rule rather than a filled chip. */
+export function tagDot(tag: string): string {
+  return TAG_DOTS[hashOf(tag.toLowerCase()) % TAG_DOTS.length];
+}
+
+const TAG_DOTS = [
+  "bg-violet-400",
+  "bg-sky-400",
+  "bg-emerald-400",
+  "bg-amber-400",
+  "bg-rose-400",
+  "bg-teal-400",
+  "bg-fuchsia-400",
+  "bg-indigo-400",
+] as const;
 
 /** Compact relative time: "just now", "2h ago", "3d ago", then a date. */
 export function relativeTime(iso: string, now: number = Date.now()): string {

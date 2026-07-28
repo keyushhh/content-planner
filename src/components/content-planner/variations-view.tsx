@@ -160,9 +160,12 @@ export function VariationsView({
   }
 
   // ---- Table ----------------------------------------------------------------
+  // Length gets 132px, not 104: the bar was 32px wide, which is too short to
+  // compare two fills at a glance, and the number needs a column of its own so
+  // the digits line up down the table instead of drifting with the bar.
   const grid = {
     "--cols-sm": "minmax(0,1.1fr) minmax(0,2fr) 76px",
-    "--cols-lg": "minmax(0,1.1fr) minmax(0,2fr) 96px 104px 76px",
+    "--cols-lg": "minmax(0,1.1fr) minmax(0,2fr) 96px 132px 76px",
   } as React.CSSProperties;
   const gridClass = "grid-cols-[var(--cols-sm)] @[720px]:grid-cols-[var(--cols-lg)]";
   const wideOnly = "hidden @[720px]:block";
@@ -378,7 +381,10 @@ export function VariationsView({
 
                 <div className="min-w-0 text-[12.5px] leading-snug text-muted-foreground">
                   {v.copy.trim() ? (
-                    <span className="line-clamp-2">{v.copy}</span>
+                    // Two lines at rest, four under the cursor. A 300-character
+                    // alternate clamped to two lines shows you the hook and hides
+                    // the thing you are actually comparing.
+                    <span className="line-clamp-2 group-hover:line-clamp-4">{v.copy}</span>
                   ) : (
                     <span className="italic text-muted-foreground/60">
                       No copy yet
@@ -549,19 +555,33 @@ function ThumbStack({
   );
 }
 
-/** Characters against the tightest platform budget, in the app's traffic light. */
+/**
+ * Characters against the tightest platform budget, in the app's traffic light.
+ *
+ * The bar leads and the number sits in a fixed 34px well at the right, so the
+ * digits form a straight column: comparing 346 against 1,204 is the entire
+ * reason this column exists, and ragged numbers make you read instead of scan.
+ */
 function LengthCell({ count }: { count: number }) {
   const zone = limitZone(count, PRIMARY_LIMIT.limit);
   const pct = Math.min(100, (count / PRIMARY_LIMIT.limit) * 100);
   return (
-    <span className="flex items-center gap-2">
-      <span className="relative h-1 w-8 shrink-0 overflow-hidden rounded-full bg-white/10">
+    <span className="flex items-center gap-2.5">
+      <span className="relative h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.09]">
         <span
-          className={cn("absolute inset-y-0 left-0 rounded-full", LIMIT_ZONE[zone].bar)}
-          style={{ width: `${pct}%` }}
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full transition-[width] duration-300",
+            LIMIT_ZONE[zone].bar,
+          )}
+          style={{ width: `${pct}%`, transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
         />
       </span>
-      <span className={cn("text-[11px] tabular-nums", LIMIT_ZONE[zone].text)}>
+      <span
+        className={cn(
+          "w-[34px] shrink-0 text-right text-[11.5px] tabular-nums",
+          LIMIT_ZONE[zone].text,
+        )}
+      >
         {count}
       </span>
     </span>

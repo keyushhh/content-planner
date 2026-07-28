@@ -127,7 +127,9 @@ export function SendSuccessModal({
                   )}
                 </span>
               </span>
-              <Check className="size-4 shrink-0 text-emerald-400" />
+              {/* No tick per row: the seal above already said yes once, and
+                  saying it again on every line makes the rows argue for the
+                  outcome instead of naming the destination. */}
             </div>
           ))}
         </div>

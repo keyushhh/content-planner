@@ -92,7 +92,7 @@ export function MediaLibraryView({
             </span>
             <span
               className={cn(
-                "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
+                "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] tabular-nums",
                 activeFolderId === ALL_MEDIA ? "bg-violet-500/20 text-violet-300" : "bg-accent",
               )}
             >
@@ -120,7 +120,7 @@ export function MediaLibraryView({
                 <span className="truncate">{folder.name}</span>
                 <span
                   className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
+                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] tabular-nums",
                     isActive ? "bg-violet-500/20 text-violet-300" : "bg-accent",
                   )}
                 >

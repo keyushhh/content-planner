@@ -131,7 +131,7 @@ export function CampaignSidebar({
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 tabular-nums">
                     <Layers className="size-3" />
                     {campaign.sessionIds.length}
                   </span>

@@ -64,14 +64,52 @@ export function MediaThumb({
   // seeded assets carry no file, not because a thumbnail should be an icon.
   if (url && type === "image") {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- blob: URLs from a
-      // local file pick, which next/image cannot optimise and must not proxy.
+      // blob: URLs from a local file pick — next/image cannot optimise those,
+      // and must not be handed them.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={url}
         alt={name ?? "Asset preview"}
         draggable={false}
         className={cn("rounded-xl bg-white/[0.03] object-cover", className)}
       />
+    );
+  }
+
+  /**
+   * A PDF gets its first page, not a document glyph.
+   *
+   * `<object>` is doing something specific here that an `<img>` cannot: the
+   * browser's own PDF renderer draws the page, and if it has none, the fallback
+   * CHILDREN render instead — so the glyph tile is the automatic backstop rather
+   * than something we have to detect and switch to. Scaled up and pinned to the
+   * top-left so the page's own margins do not eat the 80px tile, and
+   * pointer-events-none so the viewer never swallows a click meant for the tile.
+   */
+  if (url && isPdf) {
+    return (
+      <div
+        title={name ?? "PDF"}
+        className={cn(
+          "relative overflow-hidden rounded-xl bg-[oklch(0.28_0_0)]",
+          className,
+        )}
+      >
+        <object
+          data={`${url}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+          type="application/pdf"
+          aria-label={name ?? "PDF preview"}
+          className="pointer-events-none absolute left-0 top-0 h-[200%] w-[200%] origin-top-left scale-50 border-0"
+        >
+          <span className="flex size-full items-center justify-center text-muted-foreground">
+            <FileText className="size-5" />
+          </span>
+        </object>
+        {/* Says which format without a caption stealing a line of the tile */}
+        <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 py-px text-[8px] font-semibold uppercase tracking-wider text-white/80">
+          pdf
+        </span>
+      </div>
     );
   }
 

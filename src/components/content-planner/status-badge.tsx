@@ -3,11 +3,38 @@ import { Circle, CheckCircle2, PencilLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SessionStatus } from "@/lib/types";
 
-const DOT: Record<SessionStatus, { label: string; dot: string; text: string }> = {
-  approved: { label: "Approved", dot: "bg-emerald-400", text: "text-emerald-300" },
-  wip: { label: "WIP", dot: "bg-violet-400", text: "text-violet-300" },
-  draft: { label: "Draft", dot: "bg-muted-foreground/60", text: "text-muted-foreground" },
+/**
+ * One source of truth for what a status looks like.
+ *
+ * `bar` is the row's left-edge hairline — the same colour as the dot, on purpose:
+ * two different greens for one status is how a palette starts lying. Exported so
+ * the table cannot drift from the badge.
+ */
+export const STATUS_TONE: Record<
+  SessionStatus,
+  { label: string; dot: string; text: string; bar: string }
+> = {
+  approved: {
+    label: "Approved",
+    dot: "bg-emerald-400",
+    text: "text-emerald-300",
+    bar: "bg-emerald-400/80",
+  },
+  wip: {
+    label: "WIP",
+    dot: "bg-violet-400",
+    text: "text-violet-300",
+    bar: "bg-violet-400/80",
+  },
+  draft: {
+    label: "Draft",
+    dot: "bg-muted-foreground/60",
+    text: "text-muted-foreground",
+    bar: "bg-white/20",
+  },
 };
+
+const DOT = STATUS_TONE;
 
 /**
  * `variant="dot"` is the Canvas table's reading. The ringed pill is tuned for
