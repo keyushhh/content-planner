@@ -393,7 +393,7 @@ function CampaignRow({
         // as a stack of separate objects.
         "group relative flex h-[62px] w-full items-center gap-3 border-b border-white/[0.05] px-4 text-left transition-colors duration-150 last:border-b-0",
         selected
-          ? "bg-violet-500/[0.10] before:absolute before:left-0 before:top-1/2 before:h-8 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-violet-400 before:content-['']"
+          ? "bg-violet-500/[0.10]"
           : "hover:bg-white/[0.035]",
       )}
     >

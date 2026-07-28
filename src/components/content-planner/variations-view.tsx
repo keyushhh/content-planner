@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ArrowUpRight,
   Check,
   Copy as CopyIcon,
+  FileText,
   ImagePlus,
   Layers,
   Pencil,
@@ -16,7 +18,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { MediaAsset, MediaFolder, PostVariation } from "@/lib/types";
 import { MediaThumb } from "./media-thumb";
-import { COPY_LIMITS, LIMIT_ZONE, limitZone, Stagger } from "./session-composer";
+import {
+  COPY_LIMITS,
+  LIMIT_ZONE,
+  limitZone,
+  SaveChip,
+  Stagger,
+} from "./session-composer";
 
 const MAX_ASSETS = 3;
 
@@ -211,10 +219,12 @@ export function VariationsView({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)] px-6 py-6 @container">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)] px-6 py-6 @container">
+        {/* The card takes the whole height rather than floating in the top third:
+            a table that stops halfway down a dark pane reads as a loading state. */}
         <Stagger
           index={0}
-          className="mx-auto flex w-full max-w-[900px] flex-col overflow-hidden rounded-[20px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08] @container"
+          className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-[20px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08] @container"
         >
           <div
             aria-hidden
@@ -228,30 +238,43 @@ export function VariationsView({
               gridClass,
             )}
           >
-            <span className="min-w-0">Variation</span>
+            {/* "Name", not "Variation" — the column also heads the post row. */}
+            <span className="min-w-0">Name</span>
             <span className="min-w-0">Copy</span>
             <span className={cn("min-w-0", wideOnly)}>Images</span>
             <span className={cn("min-w-0", wideOnly)}>Length</span>
-            <span className="text-right">{variations.length || ""}</span>
+            <span aria-hidden />
           </div>
 
-          {/* The primary post, pinned. Without it the table is a list of
-              alternates to something you cannot see. */}
+          {/* The primary post, pinned — kept in the same columns because the
+              whole point is comparing against it. But it is NOT one of the
+              alternates, so it gets its own section band rather than being the
+              first row of the list: a row that behaves differently to every row
+              under it has to LOOK like it belongs to something else first. */}
+          <GroupBand>
+            The post
+            <span className="ml-auto font-normal normal-case tracking-normal text-muted-foreground/55">
+              Edited on the post itself
+            </span>
+          </GroupBand>
+
           <div
             style={grid}
             className={cn(
-              "grid items-center gap-3 border-b border-white/[0.05] bg-violet-500/[0.045] px-5 py-3",
+              "grid cursor-default items-center gap-3 bg-violet-500/[0.055] px-5 py-3",
               gridClass,
             )}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-[13px] font-medium">Primary</span>
-              <span className="shrink-0 rounded-[5px] bg-violet-500/[0.18] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.06em] text-violet-200">
-                post
+              <FileText className="size-3.5 shrink-0 text-violet-300/80" />
+              <span className="truncate text-[13px] font-semibold text-violet-50">
+                Primary
               </span>
             </span>
-            <span className="min-w-0 truncate text-[12.5px] text-muted-foreground">
-              {primaryCopy.trim() || <span className="italic">No copy yet</span>}
+            <span className="min-w-0 truncate text-[12.5px] text-foreground/70">
+              {primaryCopy.trim() || (
+                <span className="italic text-muted-foreground/60">No copy yet</span>
+              )}
             </span>
             <span className={cn("min-w-0", wideOnly)}>
               <ThumbStack assetIds={primaryAssetIds} mediaAssets={mediaAssets} />
@@ -259,13 +282,32 @@ export function VariationsView({
             <span className={cn("min-w-0", wideOnly)}>
               <LengthCell count={primaryCopy.length} />
             </span>
-            <span className="text-right text-[11px] text-muted-foreground/60">
-              &mdash;
+            {/* The missing affordance: the reason this row does not open an
+                editor is that its editor is the post, one step back. Say so. */}
+            <span className="flex justify-end">
+              <button
+                onClick={onClose}
+                title="Edit the primary copy on the post"
+                className="flex h-7 items-center gap-1 rounded-full px-2.5 text-[11.5px] font-medium text-violet-200/80 transition-[background-color,color,scale] duration-150 hover:bg-violet-500/15 hover:text-violet-100 active:scale-[0.96]"
+              >
+                Edit
+                <ArrowUpRight className="size-3.5" />
+              </button>
             </span>
           </div>
 
+          <GroupBand className="border-t border-white/[0.06]">
+            Alternates
+            {variations.length > 0 && (
+              <span className="tabular-nums text-muted-foreground/55">
+                {variations.length}
+              </span>
+            )}
+          </GroupBand>
+
+          <div className="flex min-h-0 flex-1 flex-col">
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 px-8 py-14 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 py-14 text-center">
               <span className="flex size-10 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
                 <Layers className="size-4" />
               </span>
@@ -375,8 +417,67 @@ export function VariationsView({
               </div>
             ))
           )}
+
+          {/* A quiet last row instead of a hard edge — the table ends where you
+              would add the next thing to it. */}
+          {filtered.length > 0 && !disabled && !q && (
+            <button
+              onClick={() => addVariation()}
+              className="group flex items-center gap-2 px-5 py-3 text-left text-[12.5px] text-muted-foreground transition-colors duration-150 hover:bg-white/[0.03] hover:text-foreground"
+            >
+              <span className="flex size-5 items-center justify-center rounded-full bg-white/[0.05] transition-[background-color,color] duration-150 group-hover:bg-violet-500/20 group-hover:text-violet-200">
+                <Plus className="size-3" />
+              </span>
+              Add variation
+            </button>
+          )}
+          </div>
+
+          {/* Anchors the bottom edge so the card reads as finished at any height. */}
+          <div className="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-white/[0.06] bg-[oklch(0.205_0_0)] px-5 py-2.5 text-[11px] text-muted-foreground">
+            <span className="tabular-nums">
+              {variations.length === 0
+                ? "The post · no alternates yet"
+                : `The post · ${variations.length} ${
+                    variations.length === 1 ? "alternate" : "alternates"
+                  }`}
+              {q && filtered.length !== variations.length && (
+                <span className="text-muted-foreground/60">
+                  {" "}
+                  · {filtered.length} shown
+                </span>
+              )}
+            </span>
+            <span className="hidden text-muted-foreground/60 @[560px]:block">
+              Click an alternate to edit · Esc to go back
+            </span>
+          </div>
         </Stagger>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A section band inside the table. Two kinds of thing live in these columns —
+ * the post, and alternates of it — and the band is what stops the reader
+ * treating them as one list where the first item happens to be styled oddly.
+ */
+function GroupBand({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center gap-2 bg-white/[0.012] px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/75",
+        className,
+      )}
+    >
+      {children}
     </div>
   );
 }
@@ -527,6 +628,11 @@ function VariationEditor({
 }) {
   const [copyDraft, setCopyDraft] = useState(variation.copy);
   const [labelDraft, setLabelDraft] = useState(variation.label);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  const isDirty =
+    copyDraft !== variation.copy ||
+    (labelDraft.trim().length > 0 && labelDraft.trim() !== variation.label);
 
   // Drafts belong to THIS variation; remounting on id change is what keeps them
   // from following you into the next row.
@@ -534,13 +640,45 @@ function VariationEditor({
     const next: Partial<PostVariation> = {};
     if (copyDraft !== variation.copy) next.copy = copyDraft;
     if (labelDraft.trim() && labelDraft !== variation.label) next.label = labelDraft.trim();
-    if (Object.keys(next).length > 0) onPatch(next);
+    if (Object.keys(next).length === 0) return;
+    onPatch(next);
+    setSaveStatus("saving");
   }, [copyDraft, labelDraft, variation.copy, variation.label, onPatch]);
+
+  // A "Saving…" that vanishes the same frame it appears reads as a glitch; the
+  // beat is for the reader, not for the write, which already happened.
+  useEffect(() => {
+    if (saveStatus !== "saving") return;
+    const t = setTimeout(() => setSaveStatus("saved"), 380);
+    return () => clearTimeout(t);
+  }, [saveStatus]);
 
   useEffect(() => {
     const interval = setInterval(flush, 30000);
     return () => clearInterval(interval);
   }, [flush]);
+
+  // Escape unmounts this editor from the parent without going through back(),
+  // so without a flush on the way out the last thing typed is simply lost. The
+  // ref is what lets the cleanup run the LATEST flush and still fire only on
+  // unmount, rather than on every keystroke.
+  const flushRef = useRef(flush);
+  useEffect(() => {
+    flushRef.current = flush;
+  }, [flush]);
+  useEffect(() => () => flushRef.current(), []);
+
+  // ⌘S is the reflex the indicator's tooltip promises. Honour it rather than
+  // letting the browser offer to save the page.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.key === "s" && (e.metaKey || e.ctrlKey))) return;
+      e.preventDefault();
+      flushRef.current();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
   const hasAssets = variation.assetIds.length > 0;
@@ -583,6 +721,17 @@ function VariationEditor({
               <Trash2 className="size-3.5" />
               Remove
             </button>
+          )}
+          {/* Not a Save button: the work is already safe, and a button that
+              implies otherwise teaches people to fear closing the pane. The
+              same chip as the composer, saying the same thing in the same
+              place — one save model across the app, not two. */}
+          {!disabled && (
+            <SaveChip
+              saveStatus={saveStatus}
+              isDirty={isDirty}
+              onClick={() => flush()}
+            />
           )}
           <button
             onClick={back}
