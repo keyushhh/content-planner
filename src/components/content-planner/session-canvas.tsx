@@ -229,7 +229,7 @@ export function SessionCanvas({
               // drains out and it settles lower, as though set down rather than held.
               isCampaignLocked
                 ? "bg-(--ink)/[0.018] shadow-(--lift-sm) saturate-50 inset-ring-1 inset-ring-(--ink)/[0.05]"
-                : "bg-(--ink)/[0.028] shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]",
+                : "bg-(--ink)/[0.028] shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08]",
             )}
           >
             {/* Readiness reads as a hairline at the sheet's edge, not another card.

@@ -227,7 +227,7 @@ export function VariationsView({
             a table that stops halfway down a dark pane reads as a loading state. */}
         <Stagger
           index={0}
-          className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08] @container"
+          className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08] @container"
         >
           <div
             aria-hidden
@@ -773,7 +773,7 @@ function VariationEditor({
               "flex w-full max-w-[760px] flex-col overflow-hidden rounded-(--r-surface) transition-[filter,box-shadow,background-color] duration-500",
               disabled
                 ? "bg-(--ink)/[0.018] shadow-(--lift-sm) saturate-50 inset-ring-1 inset-ring-(--ink)/[0.05]"
-                : "bg-(--ink)/[0.028] shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]",
+                : "bg-(--ink)/[0.028] shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08]",
             )}
           >
             <div

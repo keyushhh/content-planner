@@ -237,7 +237,7 @@ export function RepositoryShell({
                     fits a phrase and a ceiling past which a search field stops
                     looking like one. The actions on the right are shrink-0, so
                     nothing here can squeeze them. */}
-                <div className="relative min-w-[240px] max-w-[460px] flex-1">
+                <div className="relative min-w-[240px] max-w-[260px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     value={search}

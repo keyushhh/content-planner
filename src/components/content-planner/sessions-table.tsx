@@ -487,7 +487,7 @@ export function SessionsTable({
             and left a lake of empty surface under four rows. With auto height it
             sizes to its content, and flex-shrink caps it at the space available,
             at which point the body starts scrolling. Short list: short table. */}
-        <div className="relative flex min-h-0 flex-col overflow-clip rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08] @container">
+        <div className="relative flex min-h-0 flex-col overflow-clip rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08] @container">
             <div
               aria-hidden
               className="h-px w-full shrink-0 [background-image:var(--specular)]"
@@ -833,7 +833,7 @@ export function SessionsTable({
             {totalPages > 1 && (
             <nav
               aria-label="Pagination"
-              className="flex items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.03] p-1 inset-ring-1 inset-ring-(--ink)/[0.08]"
+              className="flex items-center gap-0.5 rounded-(--r-pill) bg-white dark:bg-(--ink)/[0.03] p-1 inset-ring-1 inset-ring-(--ink)/[0.08]"
             >
               <PagerButton
                 label="Previous page"
