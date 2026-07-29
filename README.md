@@ -1,6 +1,16 @@
 # Content Planner & Repository
 
-A modern, high-performance **Content Repository and Planning Application** built with Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS v4.
+Both product models in one build. On first load it asks which version to open — **Classic** (one campaign at a time) or **Repository** (everything across every campaign) — and then shows only that one. The choice is remembered; the title menu in the top-left switches, with a confirmation.
+
+This is the demo/decision build. The two models also exist on their own:
+
+| Repo | Contains |
+| --- | --- |
+| `content-planner-classic` | the Classic model, alone |
+| `content-planner-repository` | the Repository model, alone |
+| `content-planner` (this one) | both, behind the version chooser |
+
+Built with Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS v4.
 
 ---
 

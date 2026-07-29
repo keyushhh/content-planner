@@ -10,6 +10,9 @@ import {
   Search,
   UserPlus,
   FlaskConical,
+  ChevronDown,
+  Check,
+  Repeat,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
@@ -29,6 +32,17 @@ import {
   useCommandPalette,
 } from "@/components/content-planner/command-palette";
 import { RepositoryShell } from "@/components/repository/repository-shell";
+import {
+  VersionChooserModal,
+  type AppVersion,
+} from "@/components/content-planner/version-chooser-modal";
+import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { flyTitleWhenReady } from "@/lib/title-flight";
 import {
@@ -49,6 +63,7 @@ import type {
 } from "@/lib/types";
 import { feedbackStatusMeta } from "@/lib/feedback";
 
+const VERSION_STORAGE_KEY = "cp_mode";
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
 
@@ -133,7 +148,15 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
-  const [mode, setMode] = useState<"classic" | "repository">("classic");
+  /**
+   * `null` is a real state, not a missing value: it means nobody has chosen a
+   * version yet, and it is what opens the chooser. Defaulting to one of the two
+   * would answer the question on the user's behalf and show them a product they
+   * did not ask for.
+   */
+  const [mode, setMode] = useState<AppVersion | null>(null);
+  /** A pending switch, held until it is confirmed. */
+  const [pendingVersion, setPendingVersion] = useState<AppVersion | null>(null);
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [mounted, setMounted] = useState(false);
@@ -218,10 +241,10 @@ export default function Home() {
   // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
   useEffect(() => {
     setMounted(true);
-    const savedMode = localStorage.getItem("cp_mode");
+    const savedMode = localStorage.getItem(VERSION_STORAGE_KEY);
     // Both models have been renamed since this key was first written: "new"
     // became "repository" and "current" became "classic". Old values are still
-    // honoured, or an existing session gets silently moved to the other model.
+    // honoured, or someone who already chose gets asked all over again.
     if (savedMode === "new" || savedMode === "repository") {
       setMode("repository");
     } else if (savedMode === "current" || savedMode === "classic") {
@@ -264,8 +287,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem("cp_mode", mode);
+    // Only a real choice is persisted; writing the unchosen state would make
+    // the chooser reappear on the next load as if nothing had been picked.
+    if (mounted && mode) {
+      localStorage.setItem(VERSION_STORAGE_KEY, mode);
     }
   }, [mode, mounted]);
 
@@ -728,7 +753,56 @@ export default function Home() {
         )}
       >
         <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-muted-foreground">Content Planner</span>
+          {/* The title says which of the two products you are in, because that
+              is the single most important fact about this screen. It is also
+              the way out — version is navigation, not a preference, so it
+              belongs here rather than behind a gear. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  title="Switch version"
+                  className={cn(
+                    "group -ml-1.5 flex h-7 items-center gap-1.5 rounded-full px-1.5 text-xs font-medium transition-[background-color,color] duration-150",
+                    isCanvas ? "hover:bg-white/[0.06]" : "hover:bg-accent/40",
+                  )}
+                />
+              }
+            >
+              <span className="text-muted-foreground">Content Planner</span>
+              {mode && (
+                <>
+                  <span className={cn("text-muted-foreground/40")}>/</span>
+                  <span className="text-foreground">
+                    {mode === "repository" ? "Repository" : "Classic"}
+                  </span>
+                  <ChevronDown className="size-3 text-muted-foreground/60 transition-transform duration-150 group-data-[popup-open]:rotate-180" />
+                </>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[190px]">
+              {(["classic", "repository"] as AppVersion[]).map((v) => (
+                <DropdownMenuItem
+                  key={v}
+                  onClick={() => {
+                    // Switching is a confirmed act: the two versions read the
+                    // same content but present it so differently that landing
+                    // in the other one unannounced feels like a bug.
+                    if (v !== mode) setPendingVersion(v);
+                  }}
+                  className="gap-2"
+                >
+                  <Check
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      v === mode ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {v === "repository" ? "Repository" : "Classic"}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {/* The palette needs a door. A shortcut nobody can see is a shortcut
               only the person who built it uses. */}
           <button
@@ -749,44 +823,10 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center gap-1.5">
-        <div
-          className={cn(
-            "flex items-center gap-0.5 rounded-full p-0.5 text-xs font-medium",
-            isCanvas
-              ? "bg-white/[0.03] inset-ring-1 inset-ring-white/[0.08]"
-              : "border border-border bg-background",
-          )}
-        >
-          <button
-            onClick={() => setMode("classic")}
-            className={cn(
-              "rounded-full px-3 py-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
-              mode === "classic"
-                ? isCanvas
-                  ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
-                  : "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Classic
-          </button>
-          <button
-            onClick={() => setMode("repository")}
-            className={cn(
-              "rounded-full px-3 py-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
-              mode === "repository"
-                ? isCanvas
-                  ? "bg-violet-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_5px_14px_-8px_rgba(139,92,246,0.8)] inset-ring-1 inset-ring-white/15"
-                  : "bg-violet-600 text-white"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Repository
-          </button>
-        </div>
-
-        <div className="mx-1 h-5 w-px bg-white/10" />
-
+        {/* The dev controls act on a table that is not on screen until a version
+            is picked, so they wait for the choice too. */}
+        {mode !== null && (
+          <>
         {/* Dev only: stress the table so the demo shows a realistic repository */}
         <button
           onClick={seedDemoContent}
@@ -829,11 +869,17 @@ export default function Home() {
             </button>
           ))}
         </div>
+          </>
+        )}
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {mode === "classic" ? (
+        {mode === null ? (
+          // Before a choice there is no product to show. An empty frame beats
+          // guessing, and it keeps the chooser the only thing to attend to.
+          <div className="flex-1" />
+        ) : mode === "classic" ? (
           <>
             <CampaignSidebar
               campaigns={campaigns}
@@ -1115,6 +1161,47 @@ export default function Home() {
         open={showPostType}
         onOpenChange={setShowPostType}
         onSelect={createContent}
+      />
+
+      {/* Asked once, on first load. `mounted` gates it so the dialog cannot
+          flash before the saved choice has been read back off localStorage. */}
+      <VersionChooserModal
+        open={mounted && mode === null}
+        onChoose={(v) => setMode(v)}
+      />
+
+      <ConfirmDialog
+        open={pendingVersion !== null}
+        onOpenChange={(next) => {
+          if (!next) setPendingVersion(null);
+        }}
+        icon={Repeat}
+        tone="violet"
+        title={
+          pendingVersion === "repository"
+            ? "Switch to Repository?"
+            : "Switch to Classic?"
+        }
+        description={
+          pendingVersion === "repository"
+            ? "The same content, shown as one repository across every campaign. Nothing is moved or deleted — this only changes how you work with it."
+            : "The same content, shown one campaign at a time. Nothing is moved or deleted — this only changes how you work with it."
+        }
+        actions={[
+          { label: "Cancel", tone: "outline", onClick: () => setPendingVersion(null) },
+          {
+            label: pendingVersion === "repository" ? "Open Repository" : "Open Classic",
+            tone: "primary",
+            icon: Repeat,
+            onClick: () => {
+              // Any post open in the old version would be sitting in the other
+              // version's pane a frame later, so it closes with the switch.
+              setSelectedSessionId(null);
+              setMode(pendingVersion);
+              setPendingVersion(null);
+            },
+          },
+        ]}
       />
     </div>
   );
