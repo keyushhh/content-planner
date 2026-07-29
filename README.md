@@ -107,6 +107,9 @@ npm install
 npm run dev
 ```
 
+> [!NOTE]
+> Next.js 15+ defaults to Turbopack, which may crash with a `Next.js package not found` panic in this specific setup. To bypass it, run `npm run dev -- --webpack` or use the predefined `dev` script in `package.json` which already has `--webpack` enabled.
+
 Open [http://localhost:3000](http://localhost:3000) in your browser to test the application.
 
 ### Build Verification
