@@ -12,7 +12,6 @@ import {
   FlaskConical,
   ChevronDown,
   Check,
-  Repeat,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
@@ -34,6 +33,8 @@ import {
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import {
   VersionChooserModal,
+  versionMeta,
+  VERSIONS,
   type AppVersion,
 } from "@/components/content-planner/version-chooser-modal";
 import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
@@ -63,7 +64,6 @@ import type {
 } from "@/lib/types";
 import { feedbackStatusMeta } from "@/lib/feedback";
 
-const VERSION_STORAGE_KEY = "cp_mode";
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
 
@@ -238,18 +238,24 @@ export default function Home() {
 
   const nextId = useRef(1000);
 
+  /**
+   * This build is usually open alongside the two standalone ones, so the tab
+   * says which version is on screen rather than just which app it is.
+   */
+  useEffect(() => {
+    document.title = mode
+      ? `${mode === "repository" ? "Repository" : "Classic"} · Content Planner (Demo)`
+      : "Choose a version · Content Planner (Demo)";
+  }, [mode]);
+
   // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
   useEffect(() => {
     setMounted(true);
-    const savedMode = localStorage.getItem(VERSION_STORAGE_KEY);
-    // Both models have been renamed since this key was first written: "new"
-    // became "repository" and "current" became "classic". Old values are still
-    // honoured, or someone who already chose gets asked all over again.
-    if (savedMode === "new" || savedMode === "repository") {
-      setMode("repository");
-    } else if (savedMode === "current" || savedMode === "classic") {
-      setMode("classic");
-    }
+    // The version is deliberately NOT restored. This build exists to show both
+    // models, so every load starts at the question — a demo should never open
+    // on whatever the last person happened to pick. Remembering it would also
+    // hide the chooser, which is the thing being demonstrated. The two
+    // standalone repos need no such choice.
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -285,14 +291,6 @@ export default function Home() {
       } catch (e) {}
     }
   }, []);
-
-  useEffect(() => {
-    // Only a real choice is persisted; writing the unchosen state would make
-    // the chooser reappear on the next load as if nothing had been picked.
-    if (mounted && mode) {
-      localStorage.setItem(VERSION_STORAGE_KEY, mode);
-    }
-  }, [mode, mounted]);
 
   useEffect(() => {
     if (mounted) {
@@ -773,32 +771,30 @@ export default function Home() {
               {mode && (
                 <>
                   <span className={cn("text-muted-foreground/40")}>/</span>
-                  <span className="text-foreground">
-                    {mode === "repository" ? "Repository" : "Classic"}
-                  </span>
+                  <span className="text-foreground">{versionMeta(mode).label}</span>
                   <ChevronDown className="size-3 text-muted-foreground/60 transition-transform duration-150 group-data-[popup-open]:rotate-180" />
                 </>
               )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[190px]">
-              {(["classic", "repository"] as AppVersion[]).map((v) => (
+              {VERSIONS.map(({ id, label }) => (
                 <DropdownMenuItem
-                  key={v}
+                  key={id}
                   onClick={() => {
                     // Switching is a confirmed act: the two versions read the
                     // same content but present it so differently that landing
                     // in the other one unannounced feels like a bug.
-                    if (v !== mode) setPendingVersion(v);
+                    if (id !== mode) setPendingVersion(id);
                   }}
                   className="gap-2"
                 >
                   <Check
                     className={cn(
                       "size-3.5 shrink-0",
-                      v === mode ? "opacity-100" : "opacity-0",
+                      id === mode ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  {v === "repository" ? "Repository" : "Classic"}
+                  {label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -1170,29 +1166,29 @@ export default function Home() {
         onChoose={(v) => setMode(v)}
       />
 
+      {/* A view switch is the lowest-stakes action in here: nothing is created,
+          moved or destroyed. So it gets no alert icon, no preview panel and one
+          line of copy — the weight of a delete confirmation on a change of view
+          would be lying about the consequences. */}
       <ConfirmDialog
         open={pendingVersion !== null}
         onOpenChange={(next) => {
           if (!next) setPendingVersion(null);
         }}
-        icon={Repeat}
         tone="violet"
-        title={
-          pendingVersion === "repository"
-            ? "Switch to Repository?"
-            : "Switch to Classic?"
-        }
+        title={`Switch to ${pendingVersion ? versionMeta(pendingVersion).label : ""}?`}
         description={
           pendingVersion === "repository"
-            ? "The same content, shown as one repository across every campaign. Nothing is moved or deleted — this only changes how you work with it."
-            : "The same content, shown one campaign at a time. Nothing is moved or deleted — this only changes how you work with it."
+            ? "The same content, shown as one table across every campaign."
+            : "The same content, shown one campaign at a time."
         }
         actions={[
           { label: "Cancel", tone: "outline", onClick: () => setPendingVersion(null) },
           {
-            label: pendingVersion === "repository" ? "Open Repository" : "Open Classic",
+            // "Switch", not "Open Classic" — the title already named the
+            // destination, and a button that repeats it is a button shouting.
+            label: "Switch",
             tone: "primary",
-            icon: Repeat,
             onClick: () => {
               // Any post open in the old version would be sitting in the other
               // version's pane a frame later, so it closes with the switch.

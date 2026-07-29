@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <clipPath id="r"><rect width="32" height="32" rx="8"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect width="16" height="32" fill="#0284c7"/>
+    <rect x="16" width="16" height="32" fill="#7c3aed"/>
+  </g>
+  <text x="16" y="22.5" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif"
+        font-size="17" font-weight="700" fill="#fff" text-anchor="middle"
+        opacity="0.95">D</text>
+</svg>
