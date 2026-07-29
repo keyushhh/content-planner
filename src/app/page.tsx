@@ -735,11 +735,24 @@ export default function Home() {
       };
     });
 
+    const seeding = !sessions.some((s) => s.id.startsWith("seed-"));
+
     setSessions((prev) => {
       const withoutSeeds = prev.filter((s) => !s.id.startsWith("seed-"));
       // second click clears instead of stacking another 450
-      return prev.some((s) => s.id.startsWith("seed-")) ? withoutSeeds : [...withoutSeeds, ...seeded];
+      return seeding ? [...withoutSeeds, ...seeded] : withoutSeeds;
     });
+
+    // Classic reads one campaign at a time, so sessions that belong to no
+    // campaign are invisible there — the seed appeared to do nothing. Join them
+    // to the campaign that is open, which is the one the demo is looking at.
+    setCampaigns((prev) =>
+      prev.map((c) => {
+        const withoutSeeds = c.sessionIds.filter((id) => !id.startsWith("seed-"));
+        if (!seeding || c.id !== selectedCampaignId) return { ...c, sessionIds: withoutSeeds };
+        return { ...c, sessionIds: [...withoutSeeds, ...seeded.map((s) => s.id)] };
+      }),
+    );
   }
 
   const isCanvas = composerLayout === "canvas";
