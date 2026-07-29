@@ -23,7 +23,7 @@ const EASE = "cubic-bezier(0.2,0,0,1)";
 
 /**
  * Each type states what it needs from you, not what it is. "Image" tells you
- * nothing; "one image or video" tells you what the next screen will ask for,
+ * nothing; "one image" tells you what the next screen will ask for,
  * which is the actual decision being made here.
  */
 const TYPES: {
@@ -39,7 +39,7 @@ const TYPES: {
   {
     id: "Image",
     label: "Image",
-    hint: "One image or video",
+    hint: "One image",
     icon: ImageIcon,
     well: "bg-violet-500/[0.14] text-violet-300 inset-ring-violet-400/25",
     glow: "hover:inset-ring-violet-400/45 hover:bg-violet-500/[0.07]",

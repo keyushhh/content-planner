@@ -63,9 +63,9 @@ export const MEDIA_COPY: Record<
     section: "Assets",
     checklist: "an asset",
     attached: "Asset attached",
-    cta: "Add an image or video",
+    cta: "Add an image",
     ctaTitle: "Add assets",
-    ctaHint: "An image or a video",
+    ctaHint: "One image",
     max: Infinity,
   },
   Frames: {
