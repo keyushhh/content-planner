@@ -92,7 +92,7 @@ export function MediaLibraryView({
             </span>
             <span
               className={cn(
-                "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] tabular-nums",
+                "flex size-5 shrink-0 items-center justify-center rounded-(--r-pill) text-[10px] tabular-nums",
                 activeFolderId === ALL_MEDIA ? "bg-violet-500/20 text-violet-300" : "bg-accent",
               )}
             >
@@ -120,7 +120,7 @@ export function MediaLibraryView({
                 <span className="truncate">{folder.name}</span>
                 <span
                   className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] tabular-nums",
+                    "flex size-5 shrink-0 items-center justify-center rounded-(--r-pill) text-[10px] tabular-nums",
                     isActive ? "bg-violet-500/20 text-violet-300" : "bg-accent",
                   )}
                 >
@@ -167,7 +167,7 @@ export function MediaLibraryView({
             all lead nowhere. It states the constraint instead. */}
         {restrictType ? (
           <div className="flex items-center gap-2 border-b border-border/60 px-5 py-2.5 text-xs text-muted-foreground">
-            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 font-medium uppercase tracking-wide text-amber-300">
+            <span className="rounded-(--r-pill) bg-amber-500/15 px-2.5 py-1 font-medium uppercase tracking-wide text-amber-300">
               {restrictType}
             </span>
             {restrictReason ?? `Only ${restrictType.toUpperCase()}s can be picked here`}
@@ -179,7 +179,7 @@ export function MediaLibraryView({
               key={f.value}
               onClick={() => setActiveType(f.value)}
               className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                "rounded-(--r-pill) px-2.5 py-1 text-xs font-medium transition-colors",
                 activeType === f.value
                   ? "bg-violet-600 text-white"
                   : "bg-accent text-muted-foreground hover:text-foreground",
@@ -249,12 +249,12 @@ export function MediaLibraryView({
                       )}
                     />
                     {asset.type !== "image" && (
-                      <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur">
+                      <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur">
                         {asset.type}
                       </span>
                     )}
                     {isSelected && (
-                      <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-(--r-pill) bg-primary text-primary-foreground">
                         <Check className="size-3" />
                       </span>
                     )}

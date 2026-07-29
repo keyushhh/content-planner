@@ -54,7 +54,7 @@ function formatTime(iso: string) {
 
 export function SectionChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-white/[0.07] px-2 text-[10px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.07]">
+    <span className="inline-flex h-5 shrink-0 items-center rounded-(--r-pill) bg-(--ink)/[0.07] px-2 text-[10px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.07]">
       {label}
     </span>
   );
@@ -83,14 +83,14 @@ export function StatusChip({
             title="Change status"
             aria-label={`Status: ${meta.label}. Change it`}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full font-medium inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 hover:brightness-110 active:scale-[0.96]",
+              "flex shrink-0 items-center gap-1.5 rounded-(--r-pill) font-medium inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 hover:brightness-110 active:scale-(--press)",
               size === "sm" ? "h-5 pl-1.5 pr-1 text-[10px]" : "h-6 pl-2 pr-1.5 text-[11px]",
               meta.chip,
             )}
           />
         }
       >
-        <span className={cn("size-1.5 shrink-0 rounded-full", meta.dot)} />
+        <span className={cn("size-1.5 shrink-0 rounded-(--r-round)", meta.dot)} />
         {meta.label}
         <ChevronDown className="size-3 shrink-0 opacity-60" />
       </DropdownMenuTrigger>
@@ -101,7 +101,7 @@ export function StatusChip({
             onClick={() => onChange(s.id)}
             className="whitespace-nowrap"
           >
-            <span className={cn("size-1.5 shrink-0 rounded-full", s.dot)} />
+            <span className={cn("size-1.5 shrink-0 rounded-(--r-round)", s.dot)} />
             <span className="flex-1">{s.label}</span>
             {s.id === status && <Check className="size-3.5 text-violet-300" />}
           </DropdownMenuItem>
@@ -123,7 +123,7 @@ function Composer({
   placeholder: string;
 }) {
   return (
-    <div className="flex items-end gap-2 rounded-2xl bg-white/[0.04] py-1.5 pl-2.5 pr-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
+    <div className="flex items-end gap-2 rounded-2xl bg-(--ink)/[0.04] py-1.5 pl-2.5 pr-1.5 inset-ring-1 inset-ring-(--ink)/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-(--ink)/[0.06] focus-within:inset-ring-violet-400/50">
       <Avatar className="size-6 shrink-0 self-center">
         <AvatarFallback className={cn("text-[9px]", avatarTint(currentUser.name))}>
           {initials(currentUser.name)}
@@ -154,7 +154,7 @@ function Composer({
         onClick={onSubmit}
         aria-label="Add feedback"
         title="Add feedback (↵)"
-        className="mb-1 flex size-7 shrink-0 items-center justify-center self-end rounded-full bg-violet-600 text-white transition-[opacity,background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.92] disabled:pointer-events-none disabled:opacity-25"
+        className="mb-1 flex size-7 shrink-0 items-center justify-center self-end rounded-(--r-pill) bg-violet-600 text-white transition-[opacity,background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-25"
       >
         <ArrowUp className="size-3.5" />
       </button>
@@ -182,13 +182,13 @@ function FeedbackRow({
   return (
     <div
       className={cn(
-        "flex gap-2.5 rounded-[14px] px-2.5 py-2.5 transition-[background-color,opacity] duration-200 inset-ring-1",
+        "flex gap-2.5 rounded-(--r-float) px-2.5 py-2.5 transition-[background-color,opacity] duration-200 inset-ring-1",
         meta.active
-          ? "bg-white/[0.028] inset-ring-white/[0.07]"
-          : "bg-white/[0.014] inset-ring-white/[0.045]",
+          ? "bg-(--ink)/[0.028] inset-ring-(--ink)/[0.07]"
+          : "bg-(--ink)/[0.014] inset-ring-(--ink)/[0.045]",
       )}
     >
-      <Avatar className="mt-px size-6 shrink-0 inset-ring-1 inset-ring-white/10">
+      <Avatar className="mt-px size-6 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
         <AvatarFallback
           className={cn("text-[9px] font-medium", avatarTint(item.author.name))}
         >
@@ -277,7 +277,7 @@ export function FeedbackPanel({
   ];
 
   return (
-    <div className="flex h-full w-[356px] shrink-0 flex-col border-l border-white/[0.07] bg-black/[0.14] animate-in fade-in slide-in-from-right-4 duration-200 motion-reduce:animate-none">
+    <div className="flex h-full w-[356px] shrink-0 flex-col border-l border-(--ink)/[0.07] bg-(--sink)/[0.14] animate-in fade-in slide-in-from-right-4 duration-200 motion-reduce:animate-none">
       <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-3 pt-4">
         <h3 className="flex min-w-0 items-baseline gap-2 text-[15px] font-semibold tracking-tight">
           Feedback
@@ -293,7 +293,7 @@ export function FeedbackPanel({
               onClick={() => setConfirmClear(true)}
               aria-label="Clear change history"
               title="Clear change history"
-              className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-[0.96]"
+              className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
             >
               <Trash2 className="size-3.5" />
             </button>
@@ -301,7 +301,7 @@ export function FeedbackPanel({
           <button
             onClick={onClose}
             aria-label="Close feedback panel"
-            className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+            className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <X className="size-4" />
           </button>
@@ -311,7 +311,7 @@ export function FeedbackPanel({
       <div
         role="tablist"
         aria-label="Feedback or changes"
-        className="mx-5 mb-3 flex shrink-0 items-center gap-0.5 rounded-full bg-white/[0.03] p-0.5 inset-ring-1 inset-ring-white/[0.08]"
+        className="mx-5 mb-3 flex shrink-0 items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.03] p-0.5 inset-ring-1 inset-ring-(--ink)/[0.08]"
       >
         {TABS.map(([value, label, count]) => (
           <button
@@ -320,9 +320,9 @@ export function FeedbackPanel({
             aria-selected={tab === value}
             onClick={() => setTab(value)}
             className={cn(
-              "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-[11px] font-medium transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.97]",
+              "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-(--r-pill) text-[11px] font-medium transition-[background-color,color,box-shadow,scale] duration-150 active:scale-(--press)",
               tab === value
-                ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -381,7 +381,7 @@ export function FeedbackPanel({
             )}
           </div>
 
-          <div className="shrink-0 border-t border-white/[0.07] px-5 py-4">
+          <div className="shrink-0 border-t border-(--ink)/[0.07] px-5 py-4">
             {/* Carries the section you clicked through to the note, so it lands
                 attached rather than floating against the whole post. */}
             {pendingSectionLabel && (
@@ -391,7 +391,7 @@ export function FeedbackPanel({
                 <button
                   onClick={onClearPendingSection}
                   aria-label="Give feedback on the whole post instead"
-                  className="flex size-5 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color] duration-150 hover:bg-white/[0.08] hover:text-foreground"
+                  className="flex size-5 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground"
                 >
                   <X className="size-3" />
                 </button>
@@ -420,11 +420,11 @@ export function FeedbackPanel({
           ) : (
             <div className="relative">
               {/* rail sits on the marker centre line: 28px marker → 14px */}
-              <div className="absolute bottom-1 left-3.5 top-1 w-px bg-white/[0.07]" />
+              <div className="absolute bottom-1 left-3.5 top-1 w-px bg-(--ink)/[0.07]" />
               <div className="space-y-4">
                 {history.map((entry) => (
                   <div key={entry.id} className="relative flex items-center gap-3">
-                    <span className="z-10 flex size-7 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground ring-4 ring-background">
+                    <span className="z-10 flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) bg-background text-muted-foreground ring-4 ring-background">
                       <History className="size-3" />
                     </span>
                     <div className="min-w-0 flex-1 text-[12.5px] leading-snug text-muted-foreground">
@@ -479,7 +479,7 @@ function EmptyState({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
-      <span className="flex size-10 items-center justify-center rounded-full bg-white/[0.04] text-muted-foreground inset-ring-1 inset-ring-white/[0.06]">
+      <span className="flex size-10 items-center justify-center rounded-(--r-pill) bg-(--ink)/[0.04] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.06]">
         <Icon className="size-4" />
       </span>
       <span className="mt-1 text-sm font-medium">{title}</span>

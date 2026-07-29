@@ -74,11 +74,11 @@ export function ConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[440px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[440px]"
+        className="w-[440px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-left text-foreground shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] sm:max-w-[440px]"
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         <div
@@ -90,7 +90,7 @@ export function ConfirmDialog({
           {Icon && (
             <span
               className={cn(
-                "flex size-10 shrink-0 select-none items-center justify-center rounded-full inset-ring-1",
+                "flex size-10 shrink-0 select-none items-center justify-center rounded-(--r-pill) inset-ring-1",
                 TONE_WELL[tone],
               )}
             >
@@ -110,13 +110,13 @@ export function ConfirmDialog({
 
         {preview && (
           <div className="px-6 pb-6">
-            <div className="rounded-[14px] bg-white/[0.035] px-3.5 py-3 inset-ring-1 inset-ring-white/[0.07]">
+            <div className="rounded-(--r-float) bg-(--ink)/[0.035] px-3.5 py-3 inset-ring-1 inset-ring-(--ink)/[0.07]">
               {preview}
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] bg-black/[0.12] px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-(--ink)/[0.06] bg-(--sink)/[0.12] px-6 py-4">
           {orderedActions.map((action) => {
             const ActionIcon = action.icon;
             const isOutline = action.tone === "outline";
@@ -127,14 +127,14 @@ export function ConfirmDialog({
                 key={action.label}
                 onClick={action.onClick}
                 className={cn(
-                  "flex h-9 items-center gap-1.5 rounded-full text-[13px] font-medium transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
+                  "flex h-9 items-center gap-1.5 rounded-(--r-pill) text-[13px] font-medium transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
                   isOutline
-                    ? "px-3.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
-                    : "px-4 text-white inset-ring-1 inset-ring-white/15",
+                    ? "px-3.5 text-muted-foreground hover:bg-(--ink)/[0.06] hover:text-foreground"
+                    : "px-4 text-white inset-ring-1 inset-ring-(--ink)/15",
                   isDestructive &&
-                    "bg-red-600 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(220,38,38,0.75)] hover:bg-red-500",
+                    "bg-red-600 shadow-(--lift-destructive) hover:bg-red-500",
                   action.tone === "primary" &&
-                    "bg-violet-600 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] hover:bg-violet-500",
+                    "bg-violet-600 shadow-(--lift-accent) hover:bg-violet-500",
                 )}
               >
                 {ActionIcon && <ActionIcon className="size-3.5" />}

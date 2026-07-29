@@ -87,12 +87,12 @@ export function TagFilterBar({
             // Same shape and the same violet "a filter is on" signal as Status,
             // because it is the same kind of control.
             className={cn(
-              "flex h-8 max-w-[240px] items-center gap-1.5 rounded-full px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
+              "flex h-8 max-w-[240px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
               active.length > 0
                 ? "bg-violet-500/[0.16] text-violet-100 inset-ring-violet-400/45"
                 : open
-                ? "bg-white/[0.09] text-foreground inset-ring-white/[0.14]"
-                : "bg-white/[0.035] text-muted-foreground inset-ring-white/[0.08] hover:text-foreground",
+                ? "bg-(--ink)/[0.09] text-foreground inset-ring-(--ink)/[0.14]"
+                : "bg-(--ink)/[0.035] text-muted-foreground inset-ring-(--ink)/[0.08] hover:text-foreground",
             )}
           />
         }
@@ -106,11 +106,11 @@ export function TagFilterBar({
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-[280px] max-w-[calc(100vw-3rem)] gap-0 overflow-clip rounded-[18px] border-0 bg-[oklch(0.26_0_0)] p-0 text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_24px_56px_-28px_rgba(0,0,0,1)] ring-0 inset-ring-1 inset-ring-white/[0.09]"
+        className="w-[280px] max-w-[calc(100vw-3rem)] gap-0 overflow-clip rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-foreground shadow-(--lift-lg) ring-0 inset-ring-1 inset-ring-(--ink)/[0.09]"
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         <div className="flex items-center justify-between gap-2 px-3.5 pb-2.5 pt-3">
@@ -118,7 +118,7 @@ export function TagFilterBar({
           {active.length > 0 ? (
             <button
               onClick={onClear}
-              className="-mr-1 h-6 rounded-full px-2 text-[11px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-white/[0.06] hover:text-foreground"
+              className="-mr-1 h-6 rounded-(--r-pill) px-2 text-[11px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
             >
               Clear {active.length}
             </button>
@@ -130,7 +130,7 @@ export function TagFilterBar({
         </div>
 
         {searchable && (
-          <div className="relative border-t border-white/[0.06] px-2.5 py-2.5">
+          <div className="relative border-t border-(--ink)/[0.06] px-2.5 py-2.5">
             <Search className="pointer-events-none absolute left-5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               autoFocus
@@ -138,14 +138,14 @@ export function TagFilterBar({
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Find a tag…"
               aria-label="Find a tag"
-              className="h-8 w-full rounded-full bg-white/[0.04] pl-8 pr-2.5 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+              className="h-8 w-full rounded-(--r-pill) bg-(--ink)/[0.04] pl-8 pr-2.5 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:bg-(--ink)/[0.06] focus:inset-ring-violet-400/50"
             />
           </div>
         )}
 
         {/* Rows, not a chip cloud: you arrive here looking for a word you
             already have in mind, and a vertical list is what you can scan. */}
-        <div className="max-h-[288px] overflow-y-auto border-t border-white/[0.06] p-1.5">
+        <div className="max-h-[288px] overflow-y-auto border-t border-(--ink)/[0.06] p-1.5">
           {listed.length === 0 ? (
             <p className="py-6 text-center text-[13px] text-muted-foreground">
               No tag matches &ldquo;{query}&rdquo;
@@ -184,15 +184,15 @@ function TagOption({
       role="menuitemcheckbox"
       aria-checked={active}
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-left text-[13px] transition-colors duration-150 hover:bg-white/[0.06]"
+      className="flex w-full items-center gap-2.5 rounded-(--r-inner) px-2.5 py-1.5 text-left text-[13px] transition-colors duration-150 hover:bg-(--ink)/[0.06]"
     >
       <span
         aria-hidden
         className={cn(
-          "flex size-[15px] shrink-0 items-center justify-center rounded-[5px] transition-[background-color,box-shadow] duration-150 inset-ring-1",
+          "flex size-[15px] shrink-0 items-center justify-center rounded-(--r-inner) transition-[background-color,box-shadow] duration-150 inset-ring-1",
           active
             ? "bg-violet-500 inset-ring-violet-400"
-            : "bg-white/[0.03] inset-ring-white/[0.14]",
+            : "bg-(--ink)/[0.03] inset-ring-(--ink)/[0.14]",
         )}
       >
         <Check
@@ -207,7 +207,7 @@ function TagOption({
           scan for in the table. */}
       <span
         aria-hidden
-        className={cn("size-1.5 shrink-0 rounded-full", tagDot(label), !active && "opacity-70")}
+        className={cn("size-1.5 shrink-0 rounded-(--r-round)", tagDot(label), !active && "opacity-70")}
       />
       <span className={cn("flex-1 truncate", active ? "text-foreground" : "text-muted-foreground")}>
         {label}

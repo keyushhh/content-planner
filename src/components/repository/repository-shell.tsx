@@ -220,7 +220,7 @@ export function RepositoryShell({
                 {subtitle}
                 <span className="text-muted-foreground/30">&middot;</span>
                 <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
                   Synced to Wozku
                 </span>
               </p>
@@ -232,8 +232,12 @@ export function RepositoryShell({
                 button standing shoulder to shoulder read as the same kind of
                 thing however they are painted. */}
             <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2.5">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2.5">
-                <div className="relative">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2.5">
+                {/* Grows into whatever the filters leave, between a floor that still
+                    fits a phrase and a ceiling past which a search field stops
+                    looking like one. The actions on the right are shrink-0, so
+                    nothing here can squeeze them. */}
+                <div className="relative min-w-[240px] max-w-[460px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     value={search}
@@ -244,13 +248,13 @@ export function RepositoryShell({
                     // It is the one thing in this row you type into, and a field
                     // should look like a recess you can put something in rather
                     // than another button.
-                    className="h-8 w-[220px] rounded-full bg-white/[0.06] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.10] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.085] focus:inset-ring-violet-400/50"
+                    className="h-8 w-full rounded-(--r-pill) bg-(--ink)/[0.06] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.10] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.085] focus:inset-ring-violet-400/50"
                   />
                   {search && (
                     <button
                       onClick={() => setSearch("")}
                       aria-label="Clear search"
-                      className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                      className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-colors hover:bg-(--ink)/[0.08] hover:text-foreground"
                     >
                       <X className="size-3" />
                     </button>
@@ -270,10 +274,10 @@ export function RepositoryShell({
                         // its width, so a narrow trigger and a wider menu are
                         // the same bug seen from two ends.
                         className={cn(
-                          "flex h-8 w-[148px] items-center gap-1.5 rounded-full px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-[0.97]",
+                          "flex h-8 w-[148px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
                           statusFilter.length > 0
                             ? "bg-violet-500/[0.16] text-violet-100 inset-ring-violet-400/45"
-                            : "bg-white/[0.035] text-muted-foreground inset-ring-white/[0.08] hover:text-foreground",
+                            : "bg-(--ink)/[0.035] text-muted-foreground inset-ring-(--ink)/[0.08] hover:text-foreground",
                         )}
                       />
                     }
@@ -319,7 +323,7 @@ export function RepositoryShell({
                         // must not resize as you pick — it would shove the tag
                         // filter sideways — and the menu inherits the trigger's
                         // width, so a shrunken trigger wraps its own options.
-                        className="flex h-8 w-[184px] items-center gap-1.5 rounded-full bg-white/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-[0.97]"
+                        className="flex h-8 w-[184px] items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-(--press)"
                       />
                     }
                   >
@@ -365,7 +369,7 @@ export function RepositoryShell({
                 </button>
                 <button
                   onClick={onNewContent}
-                  className="ml-0.5 flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97]"
+                  className="ml-0.5 flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
                 >
                   <PlusCircle className="size-4" />
                   New content
@@ -379,7 +383,7 @@ export function RepositoryShell({
                 data rather than checking the filters. */}
             {isFiltered && (
               <div className="mb-2.5 flex shrink-0 items-center gap-2 pl-0.5 text-[12px] text-muted-foreground">
-                <span className="flex size-1.5 shrink-0 rounded-full bg-violet-400" />
+                <span className="flex size-1.5 shrink-0 rounded-(--r-round) bg-violet-400" />
                 <span>
                   <span className="tabular-nums text-foreground/85">{sorted.length}</span>{" "}
                   of{" "}
@@ -388,7 +392,7 @@ export function RepositoryShell({
                 </span>
                 <button
                   onClick={clearFilters}
-                  className="h-6 rounded-full px-2 text-[12px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-white/[0.06] hover:text-foreground"
+                  className="h-6 rounded-(--r-pill) px-2 text-[12px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
                 >
                   Clear all
                 </button>
@@ -491,7 +495,7 @@ export function RepositoryShell({
                   }
                   aria-pressed={active}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                    "rounded-(--r-pill) px-2.5 py-1 text-xs font-medium transition-colors",
                     active
                       ? "bg-violet-600 text-white"
                       : "bg-accent text-muted-foreground hover:text-foreground",
@@ -552,7 +556,7 @@ export function RepositoryShell({
             {sorted.length} items in repository
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-emerald-500" />
+            <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
             Synced to Wozku
           </span>
         </footer>

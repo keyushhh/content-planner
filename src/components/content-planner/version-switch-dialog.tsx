@@ -69,11 +69,11 @@ export function VersionSwitchDialog({
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[760px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[760px]"
+        className="w-[760px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-left text-foreground shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] sm:max-w-[760px]"
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         {shown && meta && (
@@ -81,7 +81,7 @@ export function VersionSwitchDialog({
             {/* The destination, shown. Its own hue washes the panel so the
                 miniature sits in the colour it is about. */}
             <div
-              className="relative flex w-[54%] shrink-0 items-center border-r border-white/[0.06] px-6 py-8"
+              className="relative flex w-[54%] shrink-0 items-center border-r border-(--ink)/[0.06] px-6 py-8"
               style={{ backgroundImage: MESH[shown] }}
             >
               {/* The miniature is lifted off the mesh rather than pasted on it:
@@ -106,16 +106,16 @@ export function VersionSwitchDialog({
                 </div>
               </DialogHeader>
 
-              <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] px-6 py-4">
+              <div className="flex items-center justify-end gap-2 border-t border-(--ink)/[0.06] px-6 py-4">
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+                  className="flex h-9 items-center rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onConfirm}
-                  className="flex h-9 items-center rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97]"
+                  className="flex h-9 items-center rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
                 >
                   Switch
                 </button>

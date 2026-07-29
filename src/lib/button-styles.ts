@@ -13,16 +13,16 @@ import { cn } from "@/lib/utils";
  * composer. They are the same kind of thing, so they get the same paint.
  */
 const SECONDARY_ACTION_BASE =
-  "flex items-center gap-1.5 rounded-full font-medium text-foreground/85 inset-ring-1 inset-ring-white/[0.12] transition-[background-color,box-shadow,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground hover:inset-ring-white/20";
+  "flex items-center gap-1.5 rounded-(--r-pill) font-medium text-foreground/85 inset-ring-1 inset-ring-(--ink)/[0.12] transition-[background-color,box-shadow,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground hover:inset-ring-(--ink)/20";
 
 /** Toolbar scale — pairs with the h-8 filters and the primary button. */
 export const SECONDARY_ACTION = cn(
   SECONDARY_ACTION_BASE,
-  "h-8 px-3 text-[13px] active:scale-[0.97]",
+  "h-8 px-3 text-[13px] active:scale-(--press)",
 );
 
 /** Inline scale, for the compact action rows inside a composer field header. */
 export const SECONDARY_ACTION_SM = cn(
   SECONDARY_ACTION_BASE,
-  "h-7 px-2.5 text-xs active:scale-[0.96]",
+  "h-7 px-2.5 text-xs active:scale-(--press)",
 );

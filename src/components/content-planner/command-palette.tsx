@@ -252,12 +252,12 @@ export function CommandPalette({
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-[20px] bg-[oklch(0.245_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.4),0_40px_90px_-40px_rgba(0,0,0,1)] duration-200 animate-in fade-in zoom-in-[0.98] slide-in-from-top-2 inset-ring-1 inset-ring-white/[0.10]"
+        className="relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-float) shadow-(--lift-lg) duration-200 animate-in fade-in zoom-in-[0.98] slide-in-from-top-2 inset-ring-1 inset-ring-(--ink)/[0.10]"
         style={{ animationTimingFunction: EASE }}
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.12] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         <div className="flex items-center gap-3 px-4 py-3.5">
@@ -273,14 +273,14 @@ export function CommandPalette({
             aria-label="Search commands"
             className="h-6 min-w-0 flex-1 bg-transparent text-[14px] caret-violet-400 outline-none placeholder:text-muted-foreground/70"
           />
-          <kbd className="hidden shrink-0 rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.08] sm:block">
+          <kbd className="hidden shrink-0 rounded-md bg-(--ink)/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] sm:block">
             esc
           </kbd>
         </div>
 
         <div
           ref={listRef}
-          className="max-h-[min(52vh,420px)] overflow-y-auto border-t border-white/[0.07] p-1.5"
+          className="max-h-[min(52vh,420px)] overflow-y-auto border-t border-(--ink)/[0.07] p-1.5"
         >
           {results.length === 0 ? (
             <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">
@@ -309,18 +309,18 @@ export function CommandPalette({
                       item.run();
                     }}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-[12px] px-2.5 py-2 text-left transition-colors duration-100",
-                      isActive ? "bg-white/[0.07]" : "hover:bg-white/[0.04]",
+                      "flex w-full items-center gap-3 rounded-(--r-inner) px-2.5 py-2 text-left transition-colors duration-100",
+                      isActive ? "bg-(--ink)/[0.07]" : "hover:bg-(--ink)/[0.04]",
                     )}
                   >
-                    <span className="relative flex size-7 shrink-0 items-center justify-center rounded-[9px] bg-white/[0.05] text-muted-foreground inset-ring-1 inset-ring-white/[0.07]">
+                    <span className="relative flex size-7 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.05] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.07]">
                       <item.icon className="size-3.5" />
                       {/* status / tag hue, as a dot on the glyph tile */}
                       {item.accent && (
                         <span
                           aria-hidden
                           className={cn(
-                            "absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-[oklch(0.245_0_0)]",
+                            "absolute -right-0.5 -top-0.5 size-2 rounded-(--r-round) ring-2 ring-(--surface-float)",
                             item.accent,
                           )}
                         />
@@ -355,12 +355,12 @@ export function CommandPalette({
           )}
         </div>
 
-        <div className="flex items-center gap-4 border-t border-white/[0.07] bg-black/[0.15] px-4 py-2.5 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-4 border-t border-(--ink)/[0.07] bg-(--sink)/[0.15] px-4 py-2.5 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <kbd className="rounded bg-white/[0.06] px-1 py-px text-[10px] inset-ring-1 inset-ring-white/[0.08]">
+            <kbd className="rounded-sm bg-(--ink)/[0.06] px-1 py-px text-[10px] inset-ring-1 inset-ring-(--ink)/[0.08]">
               ↑
             </kbd>
-            <kbd className="rounded bg-white/[0.06] px-1 py-px text-[10px] inset-ring-1 inset-ring-white/[0.08]">
+            <kbd className="rounded-sm bg-(--ink)/[0.06] px-1 py-px text-[10px] inset-ring-1 inset-ring-(--ink)/[0.08]">
               ↓
             </kbd>
             navigate

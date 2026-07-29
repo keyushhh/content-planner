@@ -31,6 +31,7 @@ import {
   useCommandPalette,
 } from "@/components/content-planner/command-palette";
 import { RepositoryShell } from "@/components/repository/repository-shell";
+import { BrandToggle, useBrandLayer } from "@/components/content-planner/brand-toggle";
 import {
   VersionChooserModal,
   versionMeta,
@@ -185,6 +186,16 @@ export default function Home() {
    * unsupported pairings unreachable instead of merely unlikely.
    */
   const composerLayout: ComposerLayout = mode === "repository" ? "canvas" : "split";
+
+  /**
+   * The Wozku brand layer, live only while the Repository model is on screen.
+   * Passing that condition in rather than gating the render alone matters: the
+   * classes sit on <html>, so switching to Classic has to actively take them
+   * off, not merely stop drawing the switch.
+   */
+  const { mode: brandMode, setMode: setBrandMode } = useBrandLayer(
+    mode === "repository",
+  );
 
   // Custom table columns live here, above the table, so adding a column, naming
   // it and filling cells all survive filtering, sorting, paging and reloads.
@@ -739,14 +750,14 @@ export default function Home() {
         "flex h-screen w-full flex-col overflow-hidden bg-background text-foreground",
         // the whole page picks up the canvas wash, not just the table
         isCanvas &&
-          "bg-[radial-gradient(140%_90%_at_50%_0%,rgba(139,92,246,0.055),transparent_55%)]",
+          "[background-image:var(--wash-page)]",
       )}
     >
       <div
         className={cn(
           "flex h-10 shrink-0 items-center justify-between px-4",
           isCanvas
-            ? "border-b border-white/[0.06] bg-black/[0.14]"
+            ? "border-b border-(--ink)/[0.06] bg-(--sink)/[0.14]"
             : "border-b border-border bg-card/40",
         )}
       >
@@ -761,8 +772,8 @@ export default function Home() {
                 <button
                   title="Switch version"
                   className={cn(
-                    "group -ml-1.5 flex h-7 items-center gap-1.5 rounded-full px-1.5 text-xs font-medium transition-[background-color,color] duration-150",
-                    isCanvas ? "hover:bg-white/[0.06]" : "hover:bg-accent/40",
+                    "group -ml-1.5 flex h-7 items-center gap-1.5 rounded-(--r-pill) px-1.5 text-xs font-medium transition-[background-color,color] duration-150",
+                    isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/40",
                   )}
                 />
               }
@@ -805,15 +816,20 @@ export default function Home() {
             onClick={() => setPaletteOpen(true)}
             title="Search everything (⌘K)"
             className={cn(
-              "group flex h-7 items-center gap-2 rounded-full pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground",
+              // Given a real width rather than sized to its label: at content
+              // width it read as a small button that happened to say "Search",
+              // and the shortcut sitting flush against the word gave it nothing
+              // to be. Wide, with the hint pushed to the far edge, it reads as
+              // the field it opens.
+              "group flex h-7 w-[240px] items-center gap-2 rounded-(--r-pill) pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground",
               isCanvas
-                ? "bg-white/[0.03] inset-ring-1 inset-ring-white/[0.08] hover:bg-white/[0.06]"
+                ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.06]"
                 : "border border-border hover:bg-accent/40",
             )}
           >
-            <Search className="size-3" />
-            Search
-            <kbd className="rounded bg-white/[0.07] px-1 py-px text-[10px] text-muted-foreground/80 inset-ring-1 inset-ring-white/[0.07] transition-colors duration-150 group-hover:text-foreground/80">
+            <Search className="size-3 shrink-0" />
+            <span className="flex-1 text-left">Search</span>
+            <kbd className="rounded-sm bg-(--ink)/[0.07] px-1 py-px text-[10px] text-muted-foreground/80 inset-ring-1 inset-ring-(--ink)/[0.07] transition-colors duration-150 group-hover:text-foreground/80">
               ⌘K
             </kbd>
           </button>
@@ -828,9 +844,9 @@ export default function Home() {
           onClick={seedDemoContent}
           title="Dev: add 450 sample items"
           className={cn(
-            "ml-1 flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+            "ml-1 flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium transition-[background-color,color,scale] duration-150 active:scale-(--press)",
             isCanvas
-              ? "bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] hover:text-foreground"
+              ? "bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] hover:text-foreground"
               : "border border-border text-muted-foreground hover:text-foreground",
           )}
         >
@@ -844,9 +860,9 @@ export default function Home() {
         <div
           title="Dev: preview the table's empty and loading states"
           className={cn(
-            "ml-1 flex items-center gap-0.5 rounded-full p-0.5 text-[11px] font-medium",
+            "ml-1 flex items-center gap-0.5 rounded-(--r-pill) p-0.5 text-[11px] font-medium",
             isCanvas
-              ? "bg-white/[0.03] inset-ring-1 inset-ring-white/[0.08]"
+              ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08]"
               : "border border-border bg-background",
           )}
         >
@@ -855,9 +871,9 @@ export default function Home() {
               key={id}
               onClick={() => setDemoState(id)}
               className={cn(
-                "rounded-full px-2 py-1 transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+                "rounded-(--r-pill) px-2 py-1 transition-[background-color,color,scale] duration-150 active:scale-(--press)",
                 demoState === id
-                  ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                  ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -866,6 +882,13 @@ export default function Home() {
           ))}
         </div>
           </>
+        )}
+
+        {/* Repository only. The brand system is being evaluated for that model,
+            and Classic exists to mirror what is live in Wozku today — restyling
+            it would defeat the only reason it is a separate build. */}
+        {mode === "repository" && (
+          <BrandToggle mode={brandMode} onChange={setBrandMode} />
         )}
         </div>
       </div>
@@ -892,7 +915,7 @@ export default function Home() {
               <header
                 className={cn(
                   "flex shrink-0 items-center justify-between gap-4 px-5",
-                  isCanvas ? "h-16 border-b border-white/[0.06]" : "h-14 border-b border-border px-4",
+                  isCanvas ? "h-16 border-b border-(--ink)/[0.06]" : "h-14 border-b border-border px-4",
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -900,7 +923,7 @@ export default function Home() {
                     className={cn(
                       "flex items-center justify-center",
                       isCanvas
-                        ? "size-9 rounded-full bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25"
+                        ? "size-9 rounded-(--r-pill) bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25"
                         : "size-7 rounded-md bg-violet-600 text-white",
                     )}
                   >
@@ -982,13 +1005,13 @@ export default function Home() {
                 className={cn(
                   "flex shrink-0 items-center justify-between text-muted-foreground",
                   isCanvas
-                    ? "h-9 border-t border-white/[0.06] px-5 text-[11px]"
+                    ? "h-9 border-t border-(--ink)/[0.06] px-5 text-[11px]"
                     : "h-8 border-t border-border px-4 text-xs",
                 )}
               >
                 <span className="tabular-nums">{campaignSessions.length} sessions</span>
                 <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
                   Synced to Wozku
                 </span>
               </footer>

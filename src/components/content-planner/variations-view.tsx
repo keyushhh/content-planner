@@ -172,13 +172,13 @@ export function VariationsView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-(--ink)/[0.07] px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onClose}
             aria-label="Back to post"
             title="Back to post (Esc)"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+            className="flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <ArrowLeft className="size-4" />
           </button>
@@ -199,14 +199,14 @@ export function VariationsView({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search…"
                 aria-label="Search variations"
-                className="h-8 w-[168px] rounded-full bg-white/[0.035] pl-8 pr-3 text-[12.5px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+                className="h-8 w-[168px] rounded-(--r-pill) bg-(--ink)/[0.035] pl-8 pr-3 text-[12.5px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.06] focus:inset-ring-violet-400/50"
               />
             </div>
           )}
           {!disabled && (
             <button
               onClick={() => addVariation()}
-              className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.04] px-3 text-[12.5px] font-medium inset-ring-1 inset-ring-white/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-100 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+              className="flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3 text-[12.5px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-100 hover:inset-ring-violet-400/40 active:scale-(--press)"
             >
               <Plus className="size-3.5" />
               Add variation
@@ -214,7 +214,7 @@ export function VariationsView({
           )}
           <button
             onClick={onClose}
-            className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[12.5px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+            className="flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[12.5px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
           >
             <Check className="size-3.5" />
             Done
@@ -222,22 +222,22 @@ export function VariationsView({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)] px-6 py-6 @container">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [background-image:var(--wash-page)] px-6 py-6 @container">
         {/* The card takes the whole height rather than floating in the top third:
             a table that stops halfway down a dark pane reads as a loading state. */}
         <Stagger
           index={0}
-          className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-[20px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08] @container"
+          className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08] @container"
         >
           <div
             aria-hidden
-            className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+            className="h-px w-full shrink-0 [background-image:var(--specular)]"
           />
 
           <div
             style={grid}
             className={cn(
-              "grid shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[oklch(0.205_0_0)] px-5 py-2.5 text-[11px] font-medium text-muted-foreground",
+              "grid shrink-0 items-center gap-3 border-b border-(--ink)/[0.06] bg-(--surface-panel) px-5 py-2.5 text-[11px] font-medium text-muted-foreground",
               gridClass,
             )}
           >
@@ -291,7 +291,7 @@ export function VariationsView({
               <button
                 onClick={onClose}
                 title="Edit the primary copy on the post"
-                className="flex h-7 items-center gap-1 rounded-full px-2.5 text-[11.5px] font-medium text-violet-200/80 transition-[background-color,color,scale] duration-150 hover:bg-violet-500/15 hover:text-violet-100 active:scale-[0.96]"
+                className="flex h-7 items-center gap-1 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium text-violet-200/80 transition-[background-color,color,scale] duration-150 hover:bg-violet-500/15 hover:text-violet-100 active:scale-(--press)"
               >
                 Edit
                 <ArrowUpRight className="size-3.5" />
@@ -299,7 +299,7 @@ export function VariationsView({
             </span>
           </div>
 
-          <GroupBand className="border-t border-white/[0.06]">
+          <GroupBand className="border-t border-(--ink)/[0.06]">
             Alternates
             {variations.length > 0 && (
               <span className="tabular-nums text-muted-foreground/55">
@@ -311,7 +311,7 @@ export function VariationsView({
           <div className="flex min-h-0 flex-1 flex-col">
           {filtered.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 py-14 text-center">
-              <span className="flex size-10 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
+              <span className="flex size-10 items-center justify-center rounded-(--r-pill) bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
                 <Layers className="size-4" />
               </span>
               <span className="mt-1 text-sm font-medium">
@@ -326,7 +326,7 @@ export function VariationsView({
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   <button
                     onClick={() => addVariation()}
-                    className="flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+                    className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
                   >
                     <Plus className="size-4" />
                     Add a variation
@@ -336,7 +336,7 @@ export function VariationsView({
                     // starting from a blank sheet makes you paste it in by hand.
                     <button
                       onClick={() => addVariation(primaryCopy)}
-                      className="flex h-9 items-center gap-1.5 rounded-full bg-white/[0.04] px-3.5 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.07] active:scale-[0.97]"
+                      className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3.5 text-[13px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-(--ink)/[0.07] active:scale-(--press)"
                     >
                       <CopyIcon className="size-3.5" />
                       Start from the primary
@@ -352,7 +352,7 @@ export function VariationsView({
                 style={grid}
                 onClick={() => setEditingId(v.id)}
                 className={cn(
-                  "group grid cursor-pointer items-center gap-3 border-b border-white/[0.05] px-5 py-3 transition-colors duration-150 last:border-b-0 hover:bg-white/[0.035]",
+                  "group grid cursor-pointer items-center gap-3 border-b border-(--ink)/[0.05] px-5 py-3 transition-colors duration-150 last:border-b-0 hover:bg-(--ink)/[0.035]",
                   gridClass,
                 )}
               >
@@ -429,9 +429,9 @@ export function VariationsView({
           {filtered.length > 0 && !disabled && !q && (
             <button
               onClick={() => addVariation()}
-              className="group flex items-center gap-2 px-5 py-3 text-left text-[12.5px] text-muted-foreground transition-colors duration-150 hover:bg-white/[0.03] hover:text-foreground"
+              className="group flex items-center gap-2 px-5 py-3 text-left text-[12.5px] text-muted-foreground transition-colors duration-150 hover:bg-(--ink)/[0.03] hover:text-foreground"
             >
-              <span className="flex size-5 items-center justify-center rounded-full bg-white/[0.05] transition-[background-color,color] duration-150 group-hover:bg-violet-500/20 group-hover:text-violet-200">
+              <span className="flex size-5 items-center justify-center rounded-(--r-pill) bg-(--ink)/[0.05] transition-[background-color,color] duration-150 group-hover:bg-violet-500/20 group-hover:text-violet-200">
                 <Plus className="size-3" />
               </span>
               Add variation
@@ -440,7 +440,7 @@ export function VariationsView({
           </div>
 
           {/* Anchors the bottom edge so the card reads as finished at any height. */}
-          <div className="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-white/[0.06] bg-[oklch(0.205_0_0)] px-5 py-2.5 text-[11px] text-muted-foreground">
+          <div className="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.06] bg-(--surface-panel) px-5 py-2.5 text-[11px] text-muted-foreground">
             <span className="tabular-nums">
               {variations.length === 0
                 ? "The post · no alternates yet"
@@ -479,7 +479,7 @@ function GroupBand({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center gap-2 bg-white/[0.012] px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/75",
+        "flex shrink-0 items-center gap-2 bg-(--ink)/[0.012] px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/75",
         className,
       )}
     >
@@ -506,10 +506,10 @@ function RowAction({
       title={label}
       style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
       className={cn(
-        "flex size-8 translate-x-1.5 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-[0.94] group-hover:translate-x-0 group-hover:opacity-100",
+        "flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100",
         destructive
           ? "hover:bg-destructive/15 hover:text-destructive"
-          : "hover:bg-white/[0.08] hover:text-foreground",
+          : "hover:bg-(--ink)/[0.08] hover:text-foreground",
       )}
     >
       <Icon className="size-3.5" />
@@ -533,7 +533,7 @@ function ThumbStack({
       {assetIds.slice(0, 3).map((id, i) => (
         <span
           key={id}
-          className="size-7 shrink-0 overflow-hidden rounded-[7px] shadow-[0_1px_2px_rgba(0,0,0,0.35)] outline outline-1 -outline-offset-1 outline-white/10 ring-2 ring-[oklch(0.185_0_0)]"
+          className="size-7 shrink-0 overflow-hidden rounded-(--r-inner) shadow-(--lift-sm) outline outline-1 -outline-offset-1 outline-(--ink)/10 ring-2 ring-(--surface-raised)"
           style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i }}
         >
           <MediaThumb
@@ -542,7 +542,7 @@ function ThumbStack({
             type={mediaAssets.find((a) => a.id === id)?.type}
             url={mediaAssets.find((a) => a.id === id)?.url}
             name={mediaAssets.find((a) => a.id === id)?.name}
-            className="size-full !rounded-[7px]"
+            className="size-full !rounded-(--r-inner)"
           />
         </span>
       ))}
@@ -567,10 +567,10 @@ function LengthCell({ count }: { count: number }) {
   const pct = Math.min(100, (count / PRIMARY_LIMIT.limit) * 100);
   return (
     <span className="flex items-center gap-2.5">
-      <span className="relative h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.09]">
+      <span className="relative h-1 min-w-0 flex-1 overflow-hidden rounded-(--r-pill) bg-(--ink)/[0.09]">
         <span
           className={cn(
-            "absolute inset-y-0 left-0 rounded-full transition-[width] duration-300",
+            "absolute inset-y-0 left-0 rounded-(--r-pill) transition-[width] duration-300",
             LIMIT_ZONE[zone].bar,
           )}
           style={{ width: `${pct}%`, transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
@@ -618,7 +618,7 @@ function VariationNameEdit({
         }
       }}
       aria-label="Variation name"
-      className="h-7 w-full rounded-md bg-white/[0.06] px-2 text-[13px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50 outline-none"
+      className="h-7 w-full rounded-md bg-(--ink)/[0.06] px-2 text-[13px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50 outline-none"
     />
   );
 }
@@ -713,13 +713,13 @@ function VariationEditor({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-(--ink)/[0.07] px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={back}
             aria-label="Back to all variations"
             title="Back to all variations (Esc)"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+            className="flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <ArrowLeft className="size-4" />
           </button>
@@ -738,7 +738,7 @@ function VariationEditor({
           {!disabled && (
             <button
               onClick={onRemove}
-              className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-[0.96]"
+              className="flex h-8 items-center gap-1.5 rounded-(--r-pill) px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
             >
               <Trash2 className="size-3.5" />
               Remove
@@ -757,7 +757,7 @@ function VariationEditor({
           )}
           <button
             onClick={back}
-            className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[12.5px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+            className="flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[12.5px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
           >
             <Check className="size-3.5" />
             Done
@@ -765,20 +765,20 @@ function VariationEditor({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)] @container">
+      <div className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] @container">
         <div className="flex min-h-full items-start justify-center px-6 pb-12 pt-6">
           <Stagger
             index={0}
             className={cn(
-              "flex w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] transition-[filter,box-shadow,background-color] duration-500",
+              "flex w-full max-w-[760px] flex-col overflow-hidden rounded-(--r-surface) transition-[filter,box-shadow,background-color] duration-500",
               disabled
-                ? "bg-white/[0.018] shadow-[0_1px_3px_rgba(0,0,0,0.45)] saturate-50 inset-ring-1 inset-ring-white/[0.05]"
-                : "bg-white/[0.028] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]",
+                ? "bg-(--ink)/[0.018] shadow-(--lift-sm) saturate-50 inset-ring-1 inset-ring-(--ink)/[0.05]"
+                : "bg-(--ink)/[0.028] shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]",
             )}
           >
             <div
               aria-hidden
-              className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+              className="h-px w-full shrink-0 [background-image:var(--specular)]"
             />
 
             <div className="px-9 pb-7 pt-8">
@@ -789,11 +789,11 @@ function VariationEditor({
                 disabled={disabled}
                 aria-label="Variation name"
                 placeholder="Untitled variation"
-                className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[22px] font-semibold leading-tight tracking-[-0.02em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+                className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[22px] font-semibold leading-tight tracking-[-0.02em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
               />
             </div>
 
-            <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
+            <div className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
               <div className="flex min-h-11 items-center px-9 py-2">
                 <label
                   htmlFor="variation-copy"
@@ -820,7 +820,7 @@ function VariationEditor({
 
             <div
               className={cn(
-                "grid grid-cols-1 gap-x-4 gap-y-3 border-t border-white/[0.06] px-9 py-4",
+                "grid grid-cols-1 gap-x-4 gap-y-3 border-t border-(--ink)/[0.06] px-9 py-4",
                 "@[560px]:grid-cols-[132px_minmax(0,1fr)]",
                 hasAssets ? "items-start" : "items-center",
               )}
@@ -848,14 +848,14 @@ function VariationEditor({
                 {variation.assetIds.map((assetId) => (
                   <div
                     key={assetId}
-                    className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
+                    className="group relative size-20 shrink-0 rounded-(--r-inner) shadow-(--lift-sm) outline outline-1 -outline-offset-1 outline-(--ink)/10"
                   >
                     <MediaThumb
                       assetId={assetId}
                       type={mediaAssets.find((a) => a.id === assetId)?.type}
                       url={mediaAssets.find((a) => a.id === assetId)?.url}
                       name={mediaAssets.find((a) => a.id === assetId)?.name}
-                      className="size-full !rounded-[10px]"
+                      className="size-full !rounded-(--r-inner)"
                     />
                     {!disabled && (
                       <button
@@ -865,7 +865,7 @@ function VariationEditor({
                           })
                         }
                         aria-label="Remove image"
-                        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-[0.96] group-hover:opacity-100"
+                        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-(--r-pill) bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-(--press) group-hover:opacity-100"
                       >
                         <X className="size-3" />
                       </button>
@@ -884,7 +884,7 @@ function VariationEditor({
                       }}
                       title="Pick from Media Library"
                       aria-label="Add another image"
-                      className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+                      className="flex size-20 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-(--press)"
                     >
                       <ImagePlus className="size-5" />
                     </button>
@@ -894,9 +894,9 @@ function VariationEditor({
                         flush();
                         onOpenMediaLibrary();
                       }}
-                      className="group flex items-center gap-2.5 rounded-full bg-white/[0.04] py-1.5 pl-1.5 pr-3.5 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/10 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+                      className="group flex items-center gap-2.5 rounded-(--r-pill) bg-(--ink)/[0.04] py-1.5 pl-1.5 pr-3.5 text-[13px] font-medium inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/10 hover:inset-ring-violet-400/40 active:scale-(--press)"
                     >
-                      <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
+                      <span className="flex size-6 items-center justify-center rounded-(--r-pill) bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
                         <ImagePlus className="size-3.5" />
                       </span>
                       Add an image from the library

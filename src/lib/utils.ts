@@ -56,7 +56,7 @@ function hashOf(value: string): number {
 }
 
 export function avatarTint(name: string | undefined | null): string {
-  if (!name) return "bg-white/[0.07] text-muted-foreground";
+  if (!name) return "bg-(--ink)/[0.07] text-muted-foreground";
   return AVATAR_TINTS[hashOf(name) % AVATAR_TINTS.length];
 }
 

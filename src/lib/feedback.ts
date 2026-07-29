@@ -45,7 +45,7 @@ export const FEEDBACK_STATUSES: {
   {
     id: "wont_do",
     label: "Won’t do",
-    chip: "bg-white/[0.06] text-muted-foreground inset-ring-white/[0.10]",
+    chip: "bg-(--ink)/[0.06] text-muted-foreground inset-ring-(--ink)/[0.10]",
     dot: "bg-muted-foreground/60",
     active: false,
   },

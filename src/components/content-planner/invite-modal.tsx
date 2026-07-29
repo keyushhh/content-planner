@@ -125,16 +125,16 @@ export function InviteModal({
           sections, and a footer that holds the action rather than a full-width slab. */}
       <DialogContent
         showCloseButton={false}
-        className="w-[520px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[520px]"
+        className="w-[520px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-foreground shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] sm:max-w-[520px]"
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         <DialogHeader className="p-0 text-left">
           <div className="flex items-start gap-3.5 px-6 pb-5 pt-6">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-(--r-pill) bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
               <UserPlus className="size-[18px]" />
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
@@ -150,7 +150,7 @@ export function InviteModal({
         </DialogHeader>
 
         <form onSubmit={handleSend}>
-          <div className="space-y-4 border-t border-white/[0.06] px-6 py-5">
+          <div className="space-y-4 border-t border-(--ink)/[0.06] px-6 py-5">
             <div>
               <span className="mb-1.5 block text-[13px] font-medium text-muted-foreground">
                 Person
@@ -162,17 +162,17 @@ export function InviteModal({
                       type="button"
                       aria-label="Choose a person from your account"
                       className={cn(
-                        "flex h-11 w-full items-center gap-2.5 rounded-[10px] bg-white/[0.04] px-2.5 text-left inset-ring-1 transition-[background-color,box-shadow] duration-200 hover:bg-white/[0.06]",
+                        "flex h-11 w-full items-center gap-2.5 rounded-(--r-inner) bg-(--ink)/[0.04] px-2.5 text-left inset-ring-1 transition-[background-color,box-shadow] duration-200 hover:bg-(--ink)/[0.06]",
                         pickerOpen
                           ? "inset-ring-violet-400/50"
-                          : "inset-ring-white/[0.08]",
+                          : "inset-ring-(--ink)/[0.08]",
                       )}
                     />
                   }
                 >
                   {person ? (
                     <>
-                      <Avatar className="size-7 shrink-0 inset-ring-1 inset-ring-white/10">
+                      <Avatar className="size-7 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
                         <AvatarFallback
                           className={cn("text-[10px] font-medium", avatarTint(person.name))}
                         >
@@ -198,10 +198,10 @@ export function InviteModal({
 
                 <PopoverContent
                   align="start"
-                  className="w-[var(--anchor-width)] overflow-hidden rounded-[14px] border-0 bg-[oklch(0.23_0_0)] p-0 shadow-[0_2px_4px_rgba(0,0,0,0.35),0_24px_56px_-28px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09]"
+                  className="w-[var(--anchor-width)] overflow-hidden rounded-(--r-float) border-0 bg-(--surface-float) p-0 shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09]"
                 >
                   {subAccounts.length > 5 && (
-                    <div className="border-b border-white/[0.06] p-2">
+                    <div className="border-b border-(--ink)/[0.06] p-2">
                       <div className="relative">
                         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         <input
@@ -210,7 +210,7 @@ export function InviteModal({
                           onChange={(e) => setQuery(e.target.value)}
                           placeholder="Search people…"
                           aria-label="Search people"
-                          className="h-8 w-full rounded-lg bg-white/[0.05] pl-7.5 pr-2.5 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
+                          className="h-8 w-full rounded-lg bg-(--ink)/[0.05] pl-7.5 pr-2.5 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
                         />
                       </div>
                     </div>
@@ -226,14 +226,14 @@ export function InviteModal({
                           disabled={s.alreadyHasAccess}
                           onClick={() => choose(s)}
                           className={cn(
-                            "flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition-colors duration-100",
+                            "flex w-full items-center gap-2.5 rounded-(--r-inner) px-2 py-1.5 text-left transition-colors duration-100",
                             s.alreadyHasAccess
                               ? "cursor-default opacity-55"
-                              : "hover:bg-white/[0.06]",
+                              : "hover:bg-(--ink)/[0.06]",
                             isSelected && "bg-violet-500/[0.12]",
                           )}
                         >
-                          <Avatar className="size-7 shrink-0 inset-ring-1 inset-ring-white/10">
+                          <Avatar className="size-7 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
                             <AvatarFallback
                               className={cn(
                                 "text-[10px] font-medium",
@@ -290,10 +290,10 @@ export function InviteModal({
                       aria-checked={active}
                       onClick={() => setRole(id)}
                       className={cn(
-                        "flex flex-col gap-1 rounded-[12px] px-3 py-2.5 text-left inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-[0.98]",
+                        "flex flex-col gap-1 rounded-(--r-inner) px-3 py-2.5 text-left inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press-lg)",
                         active
                           ? "bg-violet-500/[0.12] inset-ring-violet-400/45"
-                          : "bg-white/[0.03] inset-ring-white/[0.07] hover:bg-white/[0.055]",
+                          : "bg-(--ink)/[0.03] inset-ring-(--ink)/[0.07] hover:bg-(--ink)/[0.055]",
                       )}
                     >
                       <span className="flex items-center gap-1.5">
@@ -330,18 +330,18 @@ export function InviteModal({
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] bg-black/[0.12] px-6 py-4">
+          <div className="flex items-center justify-end gap-2 border-t border-(--ink)/[0.06] bg-(--sink)/[0.12] px-6 py-4">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+              className="flex h-9 items-center rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!canSend}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+              className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
             >
               <UserPlus className="size-3.5" />
               Send invitation

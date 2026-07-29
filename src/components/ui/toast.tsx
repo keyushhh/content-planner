@@ -219,8 +219,8 @@ function ToastViewport({
  */
 const TONES = {
   default: {
-    medallion: "bg-white/[0.07] text-muted-foreground inset-ring-1 inset-ring-white/[0.12]",
-    bar: "bg-white/20",
+    medallion: "bg-(--ink)/[0.07] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.12]",
+    bar: "bg-(--ink)/20",
   },
   success: {
     medallion: "bg-emerald-500/[0.14] text-emerald-300 inset-ring-1 inset-ring-emerald-400/30",
@@ -254,7 +254,7 @@ function ToastCard({
   return (
     <div
       className={cn(
-        "pointer-events-auto relative overflow-hidden rounded-[16px] bg-[oklch(0.235_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.35),0_20px_48px_-24px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09]",
+        "pointer-events-auto relative overflow-hidden rounded-(--r-float) bg-(--surface-float) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09]",
         // Arrives rising from below; leaves toward the right edge, so dismissal
         // reads as the card going away rather than the entrance played backwards.
         "transition-[opacity,translate,scale] duration-240 motion-reduce:transition-none",
@@ -280,7 +280,7 @@ function ToastCard({
           neutral, because it describes the light in the room, not the message. */}
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+        className="absolute inset-x-0 top-0 h-px [background-image:var(--specular)]"
       />
 
       {/* The life left on the clock, drawn as it drains. Also the thing that
@@ -292,7 +292,7 @@ function ToastCard({
           className={cn(
             // Inset from the corners so it reads as a measure inside the card
             // rather than a stripe stuck to its edge.
-            "absolute bottom-0 left-3.5 right-3.5 h-px origin-left rounded-full motion-reduce:hidden",
+            "absolute bottom-0 left-3.5 right-3.5 h-px origin-left rounded-(--r-pill) motion-reduce:hidden",
             t.bar,
           )}
           style={{
@@ -306,7 +306,7 @@ function ToastCard({
       <div className="relative flex items-start gap-3 px-3.5 py-3">
       <span
         className={cn(
-          "mt-px flex size-6 shrink-0 items-center justify-center rounded-full",
+          "mt-px flex size-6 shrink-0 items-center justify-center rounded-(--r-pill)",
           t.medallion,
         )}
       >
@@ -328,7 +328,7 @@ function ToastCard({
               toast.action?.onClick();
               onDismiss();
             }}
-            className="mt-2 flex h-7 items-center gap-1.5 rounded-full bg-white/[0.05] px-2.5 text-[12px] font-medium inset-ring-1 inset-ring-white/[0.10] transition-[background-color,box-shadow,scale] duration-150 hover:bg-white/[0.09] hover:inset-ring-white/20 active:scale-[0.97]"
+            className="mt-2 flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 text-[12px] font-medium inset-ring-1 inset-ring-(--ink)/[0.10] transition-[background-color,box-shadow,scale] duration-150 hover:bg-(--ink)/[0.09] hover:inset-ring-(--ink)/20 active:scale-(--press)"
           >
             <Undo2 className="size-3" />
             {toast.action.label}
@@ -339,7 +339,7 @@ function ToastCard({
       <button
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="-mr-1 -mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-70 transition-[background-color,color,opacity,scale] duration-150 hover:bg-white/[0.08] hover:text-foreground hover:opacity-100 active:scale-[0.94]"
+        className="-mr-1 -mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-70 transition-[background-color,color,opacity,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground hover:opacity-100 active:scale-(--press)"
       >
         <X className="size-3.5" />
       </button>

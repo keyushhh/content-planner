@@ -294,7 +294,7 @@ export function SessionComposer({
         className={cn(
           "z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
           scrolled
-            ? "border-white/[0.07] shadow-[0_10px_24px_-20px_rgba(0,0,0,0.9)]"
+            ? "border-(--ink)/[0.07] shadow-(--lift-md)"
             : "border-transparent",
         )}
       >
@@ -319,7 +319,7 @@ export function SessionComposer({
               size="sm"
               // Appears the instant the last checklist item lands — the sheet's
               // most triumphant moment, so it arrives rather than blinking in.
-              className="h-8 animate-in gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-white/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-[0.96]"
+              className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
               onClick={onOpenSend}
             >
               {needsResend ? (
@@ -347,7 +347,7 @@ export function SessionComposer({
             onClick={onToggleFeedback}
           />
 
-          <div className="mx-1 h-5 w-px bg-white/10" />
+          <div className="mx-1 h-5 w-px bg-(--ink)/10" />
 
           <button
             onClick={() => {
@@ -356,7 +356,7 @@ export function SessionComposer({
             }}
             aria-label="Save and collapse session"
             title="Save and collapse"
-            className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+            className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <ChevronsRight className="size-4" />
           </button>
@@ -371,7 +371,7 @@ export function SessionComposer({
           </span>
           <button
             onClick={onRequestUnlock}
-            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-violet-200 inset-ring-1 inset-ring-violet-400/30 transition-[background-color,scale] duration-150 hover:bg-violet-400/15 active:scale-[0.96]"
+            className="shrink-0 rounded-(--r-pill) px-2.5 py-1 text-xs font-medium text-violet-200 inset-ring-1 inset-ring-violet-400/30 transition-[background-color,scale] duration-150 hover:bg-violet-400/15 active:scale-(--press)"
           >
             Unlock to Edit
           </button>
@@ -413,7 +413,7 @@ export function SessionComposer({
                   placeholder="Untitled session"
                   // The landing pad for the row title's flight — see title-flight.ts
                   data-pane-title
-                  className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+                  className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
               </Stagger>
 
@@ -429,7 +429,7 @@ export function SessionComposer({
                         <GhostAction onClick={onOpenVariations} icon={Layers}>
                           Post Variations
                           {session.variations.length > 0 && (
-                            <span className="ml-1 rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
+                            <span className="ml-1 rounded-(--r-pill) bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
                               {session.variations.length}
                             </span>
                           )}
@@ -457,7 +457,7 @@ export function SessionComposer({
                       />
                     )}
                   </div>
-                  <div className="border-t border-white/[0.06] px-4 py-2.5">
+                  <div className="border-t border-(--ink)/[0.06] px-4 py-2.5">
                     <CopyMeta words={wordCount} count={copyDraft.length} />
                   </div>
                 </Card>
@@ -505,9 +505,9 @@ export function SessionComposer({
                       <button
                         disabled={isCampaignLocked}
                         onClick={onOpenMediaLibrary}
-                        className="group flex w-full items-center gap-3 rounded-[12px] bg-white/[0.03] px-3 py-2.5 text-left inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500/[0.06] hover:inset-ring-violet-400/40 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="group flex w-full items-center gap-3 rounded-(--r-inner) bg-(--ink)/[0.03] px-3 py-2.5 text-left inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500/[0.06] hover:inset-ring-violet-400/40 active:scale-(--press-lg) disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25 transition-transform duration-200 group-hover:scale-[1.06]">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25 transition-transform duration-200 group-hover:scale-[1.06]">
                           <UploadCloud className="size-4" />
                         </span>
                         <span className="min-w-0">
@@ -524,7 +524,7 @@ export function SessionComposer({
                         {session.visualAssetIds.map((assetId) => (
                           <div
                             key={assetId}
-                            className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
+                            className="group relative size-20 shrink-0 rounded-(--r-inner) shadow-(--lift-sm) outline outline-1 -outline-offset-1 outline-(--ink)/10"
                           >
                             <MediaThumb
                               compact
@@ -532,7 +532,7 @@ export function SessionComposer({
                               type={mediaAssets.find((a) => a.id === assetId)?.type}
                               url={mediaAssets.find((a) => a.id === assetId)?.url}
                               name={mediaAssets.find((a) => a.id === assetId)?.name}
-                              className="size-full !rounded-[10px]"
+                              className="size-full !rounded-(--r-inner)"
                             />
                             {!isCampaignLocked && (
                               <button
@@ -544,7 +544,7 @@ export function SessionComposer({
                                   })
                                 }
                                 aria-label="Remove asset"
-                                className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-[0.96] group-hover:opacity-100"
+                                className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-(--r-pill) bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-(--press) group-hover:opacity-100"
                               >
                                 <X className="size-3" />
                               </button>
@@ -556,7 +556,7 @@ export function SessionComposer({
                             onClick={onOpenMediaLibrary}
                             title="Pick from Media Library"
                             aria-label="Add another asset"
-                            className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+                            className="flex size-20 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-(--press)"
                           >
                             <UploadCloud className="size-5" />
                           </button>
@@ -572,7 +572,7 @@ export function SessionComposer({
 
           {/* Right rail — secondary fields + context, so the main column keeps a readable measure.
               Below the breakpoint it becomes the bottom of the same single column. */}
-          <aside className="min-w-0 border-white/[0.06] @[880px]:min-h-0 @[880px]:overflow-y-auto @[880px]:border-l @[880px]:bg-black/[0.14]">
+          <aside className="min-w-0 border-(--ink)/[0.06] @[880px]:min-h-0 @[880px]:overflow-y-auto @[880px]:border-l @[880px]:bg-(--sink)/[0.14]">
             <div className="mx-auto w-full max-w-[860px] space-y-4 px-8 pb-16 pt-2 @[880px]:max-w-none @[880px]:px-5 @[880px]:pt-7">
               {!isCampaignLocked && (
                 <Stagger index={1}>
@@ -592,8 +592,8 @@ export function SessionComposer({
                         <span
                           key={item.label}
                           className={cn(
-                            "h-1 flex-1 rounded-full transition-colors duration-300",
-                            i < doneCount ? "bg-violet-400" : "bg-white/10",
+                            "h-1 flex-1 rounded-(--r-pill) transition-colors duration-300",
+                            i < doneCount ? "bg-violet-400" : "bg-(--ink)/10",
                           )}
                         />
                       ))}
@@ -603,10 +603,10 @@ export function SessionComposer({
                         <li key={item.label} className="flex items-center gap-2.5 text-[13px]">
                           <span
                             className={cn(
-                              "flex size-4 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+                              "flex size-4 shrink-0 items-center justify-center rounded-(--r-pill) transition-colors duration-200",
                               item.done
                                 ? "bg-emerald-500/20 text-emerald-300 inset-ring-1 inset-ring-emerald-400/30"
-                                : "inset-ring-1 inset-ring-white/15",
+                                : "inset-ring-1 inset-ring-(--ink)/15",
                             )}
                           >
                             {item.done && <Check className="size-2.5" />}
@@ -636,14 +636,14 @@ export function SessionComposer({
                   feedback={feedbackFor("Tags")}
                   onFeedback={() => onOpenFeedback("Tags")}
                 >
-                  <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
+                  <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-(--r-inner) bg-(--ink)/[0.04] p-1.5 inset-ring-1 inset-ring-(--ink)/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-(--ink)/[0.06] focus-within:inset-ring-violet-400/50">
                     {session.tags.map((tag) => (
                       <span
                         key={tag}
                         // Its own hue, so the same tag is the same colour here as
                         // it is in the table row and the filter menu.
                         className={cn(
-                          "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium inset-ring-1 inset-ring-white/[0.06]",
+                          "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium inset-ring-1 inset-ring-(--ink)/[0.06]",
                           tagTint(tag),
                         )}
                       >
@@ -654,7 +654,7 @@ export function SessionComposer({
                               onUpdate({ tags: session.tags.filter((t) => t !== tag) })
                             }
                             aria-label={`Remove tag ${tag}`}
-                            className="-mr-0.5 flex size-4 items-center justify-center rounded-full text-muted-foreground transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
+                            className="-mr-0.5 flex size-4 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
                           >
                             <X className="size-3" />
                           </button>
@@ -704,7 +704,7 @@ export function SessionComposer({
 
               <Stagger index={3}>
                 <RailCard label="Details">
-                  <dl className="divide-y divide-white/[0.06]">
+                  <dl className="divide-y divide-(--ink)/[0.06]">
                     {/* "Last edited" lived here and in the toolbar byline — the
                         same fact twice, six inches apart. */}
                     <DetailRow label="Created" value={formatDate(session.createdAt)} />
@@ -773,7 +773,7 @@ function Card({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-2xl bg-white/[0.025] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_12px_28px_-20px_rgba(0,0,0,0.8)] inset-ring-1 inset-ring-white/[0.07] transition-[box-shadow] duration-200",
+        "overflow-hidden rounded-2xl bg-(--ink)/[0.025] shadow-(--lift-md) inset-ring-1 inset-ring-(--ink)/[0.07] transition-[box-shadow] duration-200",
         fill && "flex min-h-0 flex-1 flex-col",
         // A lit hairline is enough. The 4px violet halo this used to add read as
         // an error state stacked on top of a focus state.
@@ -797,7 +797,7 @@ function CardHeader({
   onFeedback?: () => void;
 }) {
   return (
-    <div className="group/row flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-1.5">
+    <div className="group/row flex min-h-11 items-center justify-between gap-3 border-b border-(--ink)/[0.06] bg-(--ink)/[0.015] px-4 py-1.5">
       {/* Label and its feedback control travel together — see FeedbackButton */}
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -824,7 +824,7 @@ export function RailCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="group/row rounded-2xl bg-white/[0.022] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)] inset-ring-1 inset-ring-white/[0.06]">
+    <section className="group/row rounded-2xl bg-(--ink)/[0.022] p-4 shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.06]">
       <div className="mb-2.5 flex min-h-6 items-center gap-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
@@ -860,15 +860,15 @@ export function FeedbackToolbarButton({
       aria-pressed={isOpen}
       title={openCount > 0 ? `${openCount} open feedback` : "Feedback"}
       className={cn(
-        "relative flex size-8 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 active:scale-[0.96]",
+        "relative flex size-8 items-center justify-center rounded-(--r-pill) transition-[background-color,color,scale] duration-150 active:scale-(--press)",
         isOpen
-          ? "bg-white/[0.09] text-foreground"
-          : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+          ? "bg-(--ink)/[0.09] text-foreground"
+          : "text-muted-foreground hover:bg-(--ink)/[0.06] hover:text-foreground",
       )}
     >
       <MessageSquare className="size-4" />
       {openCount > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-semibold tabular-nums text-black/80 ring-2 ring-background">
+        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-(--r-pill) bg-amber-500 text-[9px] font-semibold tabular-nums text-black/80 ring-2 ring-background">
           {openCount}
         </span>
       )}
@@ -910,7 +910,7 @@ export function FeedbackButton({
         onClick={onClick}
         aria-label="Add feedback"
         title="Add feedback on this section"
-        className="relative flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 opacity-0 transition-[opacity,background-color,color,scale] duration-200 before:absolute before:-inset-1.5 before:content-[''] hover:bg-white/[0.08] hover:text-foreground focus-visible:opacity-100 active:scale-[0.94] group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+        className="relative flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 opacity-0 transition-[opacity,background-color,color,scale] duration-200 before:absolute before:-inset-1.5 before:content-[''] hover:bg-(--ink)/[0.08] hover:text-foreground focus-visible:opacity-100 active:scale-(--press) group-hover/row:opacity-100 group-focus-within/row:opacity-100"
       >
         <MessageSquarePlus className="size-3.5" />
       </button>
@@ -924,10 +924,10 @@ export function FeedbackButton({
       aria-label={`${items.length} feedback, ${open} open`}
       title={open > 0 ? `${open} open of ${items.length}` : "All feedback closed"}
       className={cn(
-        "relative flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] font-medium tabular-nums inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:brightness-110 active:scale-[0.94]",
+        "relative flex h-5 shrink-0 items-center gap-1 rounded-(--r-pill) px-1.5 text-[10px] font-medium tabular-nums inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:brightness-110 active:scale-(--press)",
         open > 0
           ? "bg-amber-500/[0.14] text-amber-200 inset-ring-amber-400/30"
-          : "bg-white/[0.06] text-muted-foreground inset-ring-white/[0.09]",
+          : "bg-(--ink)/[0.06] text-muted-foreground inset-ring-(--ink)/[0.09]",
       )}
     >
       <MessageSquare className="size-2.5" />
@@ -948,7 +948,7 @@ export function Byline({ session }: { session: Session }) {
     // reports on the file and the chip reports on the save, so they should not
     // read as one cluster.
     <span className="mr-2 hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
-      <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-white/10">
+      <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
         <AvatarFallback className="text-[8px]">
           {session.lastEditedBy?.name?.[0] ?? "?"}
         </AvatarFallback>
@@ -956,7 +956,7 @@ export function Byline({ session }: { session: Session }) {
       <span className="max-w-[120px] truncate">
         {session.lastEditedBy?.name ?? "Unknown"}
       </span>
-      <span aria-hidden className="size-1 shrink-0 rounded-full bg-muted-foreground/40" />
+      <span aria-hidden className="size-1 shrink-0 rounded-(--r-round) bg-muted-foreground/40" />
       <span className="shrink-0 tabular-nums">{formatDate(session.updatedAt)}</span>
     </span>
   );
@@ -978,7 +978,7 @@ export function GhostAction({
       // Link blue: these two navigate away from the copy field rather than
       // acting on it, and blue is the one colour the web already reads as "goes
       // somewhere". It also keeps them out of the violet the app spends on state.
-      className="flex h-7 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-[#60a5fa] transition-[background-color,color,scale] duration-150 hover:bg-[#60a5fa]/10 hover:text-[#93c5fd] active:scale-[0.96]"
+      className="flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-blue-400 transition-[background-color,color,scale] duration-150 hover:bg-blue-400/10 hover:text-blue-300 active:scale-(--press)"
     >
       <Icon className="size-3.5" />
       {children}
@@ -1000,10 +1000,10 @@ export function LimitMeter({
   return (
     <div className="flex items-center gap-2">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
-      <span className="relative hidden h-1 w-10 overflow-hidden rounded-full bg-white/10 @[460px]:block">
+      <span className="relative hidden h-1 w-10 overflow-hidden rounded-(--r-pill) bg-(--ink)/10 @[460px]:block">
         <span
           className={cn(
-            "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-300",
+            "absolute inset-y-0 left-0 rounded-(--r-pill) transition-[width,background-color] duration-300",
             LIMIT_ZONE[zone].bar,
           )}
           style={{ width: `${pct}%`, transitionTimingFunction: EASE }}
@@ -1155,7 +1155,7 @@ export function Chip({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-8 items-center rounded-full bg-white/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-200 hover:inset-ring-violet-400/40 active:scale-[0.96]"
+      className="flex h-8 items-center rounded-(--r-pill) bg-(--ink)/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-200 hover:inset-ring-violet-400/40 active:scale-(--press)"
     >
       {children}
     </button>
@@ -1172,7 +1172,7 @@ export function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export function Dot() {
-  return <span className="size-1 rounded-full bg-muted-foreground/40" />;
+  return <span className="size-1 rounded-(--r-round) bg-muted-foreground/40" />;
 }
 
 export function Banner({
@@ -1216,10 +1216,10 @@ export function SaveChip({
       onClick={onClick}
       title="Save now (⌘S). Also autosaves on focus loss or every 30 seconds"
       className={cn(
-        "flex h-8 items-center gap-1.5 rounded-full px-3 text-xs inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-[0.96]",
+        "flex h-8 items-center gap-1.5 rounded-(--r-pill) px-3 text-xs inset-ring-1 transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
         state === "dirty"
           ? "bg-amber-500/[0.08] inset-ring-amber-400/25 hover:bg-amber-500/15"
-          : "bg-white/[0.03] inset-ring-white/[0.08] hover:bg-white/[0.07] hover:inset-ring-white/15",
+          : "bg-(--ink)/[0.03] inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.07] hover:inset-ring-(--ink)/15",
       )}
     >
       {/* all three icons stay mounted and cross-fade, so swaps animate in and out */}
@@ -1233,7 +1233,7 @@ export function SaveChip({
         />
         <span
           className={cn(
-            "absolute size-1.5 rounded-full bg-amber-400 transition-[opacity,scale,filter] duration-200",
+            "absolute size-1.5 rounded-(--r-round) bg-amber-400 transition-[opacity,scale,filter] duration-200",
             state === "dirty" ? "scale-100 opacity-100 blur-0" : "scale-[0.25] opacity-0 blur-[4px]",
           )}
           style={{ transitionTimingFunction: EASE }}

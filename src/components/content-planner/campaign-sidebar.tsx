@@ -94,7 +94,7 @@ export function CampaignSidebar({
             >
               <span
                 className={cn(
-                  "absolute inset-y-2 left-0 w-0.5 rounded-full bg-gradient-to-b transition-opacity",
+                  "absolute inset-y-2 left-0 w-0.5 rounded-(--r-pill) bg-gradient-to-b transition-opacity",
                   accentFor(campaign.id),
                   isSelected ? "opacity-100" : "opacity-0",
                 )}

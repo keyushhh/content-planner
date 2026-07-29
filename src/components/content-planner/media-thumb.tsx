@@ -71,7 +71,7 @@ export function MediaThumb({
         src={url}
         alt={name ?? "Asset preview"}
         draggable={false}
-        className={cn("rounded-xl bg-white/[0.03] object-cover", className)}
+        className={cn("rounded-xl bg-(--ink)/[0.03] object-cover", className)}
       />
     );
   }
@@ -91,7 +91,7 @@ export function MediaThumb({
       <div
         title={name ?? "PDF"}
         className={cn(
-          "relative overflow-hidden rounded-xl bg-[oklch(0.28_0_0)]",
+          "relative overflow-hidden rounded-xl bg-(--surface-well)",
           className,
         )}
       >
@@ -106,7 +106,7 @@ export function MediaThumb({
           </span>
         </object>
         {/* Says which format without a caption stealing a line of the tile */}
-        <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 py-px text-[8px] font-semibold uppercase tracking-wider text-white/80">
+        <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 py-px text-[8px] font-semibold uppercase tracking-wider text-(--ink)/80">
           pdf
         </span>
       </div>
@@ -123,7 +123,7 @@ export function MediaThumb({
       <div
         title={theme.label}
         className={cn(
-          "flex items-center justify-center rounded-xl bg-white/[0.05] text-muted-foreground",
+          "flex items-center justify-center rounded-xl bg-(--ink)/[0.05] text-muted-foreground",
           className,
         )}
       >

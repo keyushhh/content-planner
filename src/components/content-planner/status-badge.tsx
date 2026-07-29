@@ -30,7 +30,7 @@ export const STATUS_TONE: Record<
     label: "Draft",
     dot: "bg-muted-foreground/60",
     text: "text-muted-foreground",
-    bar: "bg-white/20",
+    bar: "bg-(--ink)/20",
   },
 };
 
@@ -53,7 +53,7 @@ export function StatusBadge({
     const { label, dot, text } = DOT[status];
     return (
       <span className={cn("inline-flex items-center gap-2 text-xs font-medium", text)}>
-        <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", dot)} />
+        <span aria-hidden className={cn("size-1.5 shrink-0 rounded-(--r-round)", dot)} />
         {label}
       </span>
     );
@@ -63,7 +63,7 @@ export function StatusBadge({
     return (
       <Badge
         variant="outline"
-        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-full border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-400"
+        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-(--r-pill) border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-400"
       >
         <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
         <span>Approved</span>
@@ -74,7 +74,7 @@ export function StatusBadge({
     return (
       <Badge
         variant="outline"
-        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-full border-violet-500/50 bg-violet-500/10 text-xs font-medium text-violet-400"
+        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-(--r-pill) border-violet-500/50 bg-violet-500/10 text-xs font-medium text-violet-400"
       >
         <PencilLine className="size-3.5 shrink-0 text-violet-400" />
         <span>WIP</span>
@@ -84,7 +84,7 @@ export function StatusBadge({
   return (
     <Badge
       variant="outline"
-      className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-full border-border/80 bg-accent/30 text-xs font-medium text-muted-foreground"
+      className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-(--r-pill) border-border/80 bg-accent/30 text-xs font-medium text-muted-foreground"
     >
       <Circle className="size-3.5 shrink-0 text-muted-foreground/70" />
       <span>Draft</span>

@@ -98,11 +98,11 @@ export function PostTypeModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[440px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[440px]"
+        className="w-[440px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-left text-foreground shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] sm:max-w-[440px]"
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         <DialogHeader className="p-0 text-left">
@@ -120,7 +120,7 @@ export function PostTypeModal({
 
         {/* Rows, not a grid of tiles: the hints are the point, and they need the
             width to be read. Each row is one click straight into the composer. */}
-        <div className="flex flex-col gap-1.5 border-t border-white/[0.06] p-3">
+        <div className="flex flex-col gap-1.5 border-t border-(--ink)/[0.06] p-3">
           {TYPES.map(({ id, label, hint, icon: Icon, well, glow }, i) => {
             const isCurrent = isChange && current === id;
             return (
@@ -131,16 +131,16 @@ export function PostTypeModal({
               aria-current={isCurrent ? "true" : undefined}
               style={{ animation: `post-type-in 400ms ${EASE} ${i * 55}ms both` }}
               className={cn(
-                "group flex items-center gap-3.5 rounded-[16px] px-3.5 py-3.5 text-left inset-ring-1 transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.985]",
+                "group flex items-center gap-3.5 rounded-(--r-float) px-3.5 py-3.5 text-left inset-ring-1 transition-[background-color,box-shadow,scale] duration-200 active:scale-(--press-lg)",
                 isCurrent
-                  ? "bg-white/[0.07] inset-ring-white/[0.16]"
-                  : cn("bg-white/[0.028] inset-ring-white/[0.07]", glow),
+                  ? "bg-(--ink)/[0.07] inset-ring-(--ink)/[0.16]"
+                  : cn("bg-(--ink)/[0.028] inset-ring-(--ink)/[0.07]", glow),
               )}
               onMouseDown={(e) => e.preventDefault()}
             >
               <span
                 className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-[12px] inset-ring-1 transition-transform duration-300 group-hover:scale-[1.06]",
+                  "flex size-10 shrink-0 items-center justify-center rounded-(--r-inner) inset-ring-1 transition-transform duration-300 group-hover:scale-[1.06]",
                   well,
                 )}
                 style={{ transitionTimingFunction: EASE }}
@@ -174,13 +174,13 @@ export function PostTypeModal({
 
         {/* Hairline only, no filled band: Cancel is the least important thing
             here and a black slab gave it the visual weight of a decision. */}
-        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-6 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
             {isChange ? "Your copy is never touched" : "Set once, at the start"}
           </span>
           <button
             onClick={() => onOpenChange(false)}
-            className="flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+            className="flex h-9 items-center rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             Cancel
           </button>

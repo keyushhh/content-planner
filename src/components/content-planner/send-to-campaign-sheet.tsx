@@ -145,7 +145,7 @@ export function SendToCampaignSheet({
         // `!` throughout: the base sheet hard-codes a 3/4-viewport width and a
         // 384px cap for the right side, both variant-prefixed, so nothing but an
         // important wins against them.
-        className="flex !w-[464px] !max-w-[calc(100vw-2rem)] flex-col gap-0 border-0 bg-[oklch(0.145_0_0)] p-0 text-foreground shadow-[-40px_0_80px_-40px_rgba(0,0,0,1)]"
+        className="flex !w-[464px] !max-w-[calc(100vw-2rem)] flex-col gap-0 border-0 bg-(--surface-canvas) p-0 text-foreground shadow-(--lift-edge)"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
@@ -157,7 +157,7 @@ export function SendToCampaignSheet({
             same way the canvas sheets catch it along the top. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/[0.14] to-transparent"
+          className="pointer-events-none absolute inset-y-0 left-0 w-px [background-image:var(--specular-v)]"
         />
 
         <div className="flex shrink-0 items-start justify-between gap-3 px-7 pb-4 pt-6">
@@ -188,7 +188,7 @@ export function SendToCampaignSheet({
           <button
             onClick={() => onOpenChange(false)}
             aria-label="Close"
-            className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground focus-visible:inset-ring-2 focus-visible:inset-ring-violet-400/60 active:scale-[0.96]"
+            className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground outline-none transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground focus-visible:inset-ring-2 focus-visible:inset-ring-violet-400/60 active:scale-(--press)"
           >
             <X className="size-4" />
           </button>
@@ -203,13 +203,13 @@ export function SendToCampaignSheet({
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search campaigns…"
                 aria-label="Search campaigns"
-                className="h-9 w-full rounded-full bg-white/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-white/[0.06] focus:inset-ring-violet-400/50"
+                className="h-9 w-full rounded-(--r-pill) bg-(--ink)/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.06] focus:inset-ring-violet-400/50"
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
-                  className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                  className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-colors hover:bg-(--ink)/[0.08] hover:text-foreground"
                 >
                   <X className="size-3" />
                 </button>
@@ -223,18 +223,18 @@ export function SendToCampaignSheet({
         <div
           ref={bodyRef}
           tabIndex={-1}
-          className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(120%_70%_at_50%_0%,rgba(139,92,246,0.05),transparent_62%)] px-6 pb-6 pt-1 outline-none"
+          className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] px-6 pb-6 pt-1 outline-none"
         >
           {/* ONE elevated sheet, rows divided by hairlines — the sessions-table
               material. `items-start` equivalent: no flex-1, so it sizes to its
               content instead of stretching into a lake of empty surface. */}
           <Stagger
             index={0}
-            className="overflow-hidden rounded-[18px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]"
+            className="overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]"
           >
             <div
               aria-hidden
-              className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+              className="h-px w-full shrink-0 [background-image:var(--specular)]"
             />
 
             {isEmpty ? (
@@ -271,7 +271,7 @@ export function SendToCampaignSheet({
                 pickable. */}
             {canCreate &&
               (creating ? (
-                <div className="border-t border-white/[0.06] bg-violet-500/[0.05] px-4 py-3">
+                <div className="border-t border-(--ink)/[0.06] bg-violet-500/[0.05] px-4 py-3">
                   <input
                     autoFocus
                     value={newName}
@@ -288,7 +288,7 @@ export function SendToCampaignSheet({
                         setNewName("");
                       }
                     }}
-                    className="h-9 w-full rounded-[10px] bg-white/[0.05] px-3 text-[13px] caret-violet-400 inset-ring-1 inset-ring-white/[0.10] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
+                    className="h-9 w-full rounded-(--r-inner) bg-(--ink)/[0.05] px-3 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.10] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
                   />
                   <div className="mt-2 flex justify-end gap-1.5">
                     <button
@@ -296,14 +296,14 @@ export function SendToCampaignSheet({
                         setCreating(false);
                         setNewName("");
                       }}
-                      className="flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+                      className="flex h-8 items-center rounded-(--r-pill) px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
                     >
                       Cancel
                     </button>
                     <button
                       disabled={!newName.trim()}
                       onClick={commitNewCampaign}
-                      className="flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3 text-xs font-medium text-white inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
+                      className="flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-xs font-medium text-white inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40"
                     >
                       <Plus className="size-3.5" />
                       Create &amp; select
@@ -313,7 +313,7 @@ export function SendToCampaignSheet({
               ) : (
                 <button
                   onClick={() => setCreating(true)}
-                  className="flex h-12 w-full items-center gap-2 border-t border-white/[0.06] px-4 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-white/[0.035] hover:text-foreground"
+                  className="flex h-12 w-full items-center gap-2 border-t border-(--ink)/[0.06] px-4 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-(--ink)/[0.035] hover:text-foreground"
                 >
                   <Plus className="size-4 shrink-0 text-muted-foreground/70" />
                   New campaign
@@ -322,7 +322,7 @@ export function SendToCampaignSheet({
           </Stagger>
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/[0.07] bg-black/[0.22] px-7 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.07] bg-(--sink)/[0.22] px-7 py-4">
           {/* Names, not a bare number: "2 selected" makes you scroll back up to
               check which two. */}
           <span
@@ -342,7 +342,7 @@ export function SendToCampaignSheet({
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => onOpenChange(false)}
-              className="flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.97]"
+              className="flex h-9 items-center rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
             >
               Cancel
             </button>
@@ -350,7 +350,7 @@ export function SendToCampaignSheet({
               disabled={count === 0}
               onClick={send}
               title="Send (⌘↵)"
-              className="flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-4 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+              className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
             >
               <Send className="size-3.5" />
               {count > 1 ? `Send to ${count}` : "Send"}
@@ -365,7 +365,7 @@ export function SendToCampaignSheet({
 /** A band inside the sheet, darker than the rows, so it reads as structure. */
 function GroupHeading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-y border-white/[0.06] bg-[oklch(0.205_0_0)] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/70">
+    <div className="border-y border-(--ink)/[0.06] bg-(--surface-panel) px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/70">
       {children}
     </div>
   );
@@ -391,10 +391,10 @@ function CampaignRow({
       className={cn(
         // Fixed height is what makes a run of rows read as a rhythm rather than
         // as a stack of separate objects.
-        "group relative flex h-[62px] w-full items-center gap-3 border-b border-white/[0.05] px-4 text-left transition-colors duration-150 last:border-b-0",
+        "group relative flex h-[62px] w-full items-center gap-3 border-b border-(--ink)/[0.05] px-4 text-left transition-colors duration-150 last:border-b-0",
         selected
           ? "bg-violet-500/[0.10]"
-          : "hover:bg-white/[0.035]",
+          : "hover:bg-(--ink)/[0.035]",
       )}
     >
       <span className="min-w-0 flex-1">
@@ -407,7 +407,7 @@ function CampaignRow({
           >
             {campaign.name}
           </span>
-          <span className="shrink-0 rounded-[5px] bg-white/[0.06] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/85">
+          <span className="shrink-0 rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/85">
             {campaign.tag}
           </span>
         </span>
@@ -418,13 +418,13 @@ function CampaignRow({
             {campaign.sessionIds.length}{" "}
             {campaign.sessionIds.length === 1 ? "item" : "items"}
           </span>
-          <span aria-hidden className="size-1 shrink-0 rounded-full bg-current opacity-40" />
+          <span aria-hidden className="size-1 shrink-0 rounded-(--r-round) bg-current opacity-40" />
           <span className="truncate">{ends.date}</span>
           {ends.soon && (
             <>
               <span
                 aria-hidden
-                className="size-1 shrink-0 rounded-full bg-current opacity-40"
+                className="size-1 shrink-0 rounded-(--r-round) bg-current opacity-40"
               />
               <span className="shrink-0 text-amber-300/80">{ends.soon}</span>
             </>
@@ -436,10 +436,10 @@ function CampaignRow({
           answer is allowed. */}
       <span
         className={cn(
-          "flex size-[19px] shrink-0 items-center justify-center rounded-[6px] transition-[background-color,box-shadow] duration-150 inset-ring-1",
+          "flex size-[19px] shrink-0 items-center justify-center rounded-(--r-inner) transition-[background-color,box-shadow] duration-150 inset-ring-1",
           selected
             ? "bg-violet-500 text-white inset-ring-violet-400"
-            : "bg-transparent inset-ring-white/[0.18] group-hover:inset-ring-white/35",
+            : "bg-transparent inset-ring-(--ink)/[0.18] group-hover:inset-ring-(--ink)/35",
         )}
       >
         <Check
@@ -457,7 +457,7 @@ function CampaignRow({
 function SentRow({ campaign, now }: { campaign: Campaign; now: number }) {
   const ends = endsLabel(campaign.endDate, now);
   return (
-    <div className="flex h-[54px] items-center gap-3 border-b border-white/[0.05] px-4 last:border-b-0">
+    <div className="flex h-[54px] items-center gap-3 border-b border-(--ink)/[0.05] px-4 last:border-b-0">
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-medium text-muted-foreground">
           {campaign.name}

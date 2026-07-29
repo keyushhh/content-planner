@@ -26,9 +26,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  /* Indirected through --app-font-* so the brand layer can swap families at
+     runtime. Tailwind inlines these (@theme inline), so `font-sans` compiles to
+     `font-family: var(--app-font-sans)` — one variable to override, rather than
+     a font utility on every element. */
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
+  --font-heading: var(--app-font-heading);
+  --font-display: var(--app-font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -136,6 +141,430 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ---------------------------------------------------------------------------
+   Themeable primitives
+   ---------------------------------------------------------------------------
+   Everything below is a visual decision that a THEME is allowed to change.
+   The rule for what belongs here: if the Wozku brand layer would answer this
+   question differently, it is a token; if it is layout, density or behaviour,
+   it stays a literal utility. So geometry, elevation, ambient light and press
+   feedback are tokens — grid columns, gaps and hit areas are not.
+
+   Colour is deliberately ABSENT from this list. Tailwind v4 compiles
+   `bg-violet-500/[0.14]` to `color-mix(in oklab, var(--color-violet-500) 14%,
+   transparent)` — it references the palette variable rather than baking the
+   value — so a theme re-tints all 189 accent call sites by overriding
+   `--color-violet-*` alone. Wrapping those in tokens of our own would be work
+   that buys nothing.
+   --------------------------------------------------------------------------- */
+:root {
+  /* Type. Today every role resolves to the same two families, which is why the
+     app reads as one voice; the brand layer is what splits them into three. */
+  --app-font-sans: var(--font-geist-sans);
+  --app-font-mono: var(--font-geist-mono);
+  --app-font-heading: var(--font-geist-sans);
+  --app-font-display: var(--font-geist-sans);
+
+  /* Uppercase wide-tracked labels — "STATUS", "CAMPAIGN", column heads. They
+     are already a distinct voice in the app; this token is what lets a brand
+     give them a distinct FACE too. Inherits by default, so nothing changes. */
+  --font-label: inherit;
+
+  /* The colour that low-alpha surfaces, hairlines and inset rings are made of.
+     265 utilities are written as `bg-(--ink)/[0.03]`, `inset-ring-(--ink)/[0.09]`
+     and so on, which is the whole depth language of this app: translucent light
+     layered over a dark page. On a LIGHT page that logic inverts — depth comes
+     from translucent dark — and one variable is what flips all of it.
+
+     Solid `text-white` is deliberately not part of this. White on the accent
+     stays white in both modes, which is why the migration required the trailing
+     slash: `text-white/70` inverts, `text-white` does not. */
+  --ink: #ffffff;
+
+  /* The opposite move: a recess. Header and footer bands are washed DOWN from
+     their surface rather than lifted out of it. On a dark page that is black;
+     on a light one, black at these alphas would read as a bruise, so the light
+     layer softens it to a grey that lands near --surface-sunken. */
+  --sink: #000000;
+
+  /* Keyboard focus. A token because the ring is the accent's job, and the base
+     rule that draws it is unlayered — restating that whole selector per theme
+     would mean maintaining the same list of roles in three places. */
+  --focus-ring: oklch(0.72 0.17 297);
+
+  /* The opaque surface ladder. These exist alongside shadcn's --background /
+     --card because they are not the same thing: those are semantic slots a
+     component inherits, these are explicit steps a component reaches for when
+     it must sit at a KNOWN depth regardless of what it is nested in — a sticky
+     header that has to hide rows scrolling under it, a dialog that must read as
+     the frontmost thing on screen. Opaque on purpose: a translucent sticky
+     header shows the content it is supposed to be occluding. */
+  --surface-canvas: oklch(0.145 0 0); /* the page itself */
+  --surface-raised: oklch(0.185 0 0); /* sticky headers, table chrome, fades */
+  --surface-panel: oklch(0.205 0 0); /* panels and footers within a surface */
+  --surface-float: oklch(0.245 0 0); /* palette, toasts — floating over all */
+  --surface-dialog: oklch(0.26 0 0); /* dialogs and sheets */
+  --surface-well: oklch(0.28 0 0); /* inset wells — media thumbs */
+
+  /* Radius, by the three families documented at the top of this file. Call
+     sites reference the FAMILY, not a measurement, which is what stops a
+     fourth family appearing. */
+  --r-inner: 10px; /* inside a surface — thumbs, cells, asset tiles */
+  --r-float: 14px; /* small floating objects — toasts, menu rows */
+  --r-surface: 24px; /* owns the screen — sheets, dialogs, the composer */
+  --r-pill: 9999px; /* controls whose SHAPE is a pill — chips, buttons */
+
+  /* A circle is not a radius. Avatars and status dots are round because they
+     are round things, so they are not themeable and never go square. */
+  --r-round: 9999px;
+
+  /* Elevation. Three depths plus one accent glow; the glow carries its own
+     hue because a primary button's shadow is part of the accent, not the
+     neutral shadow scale. */
+  --lift-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --lift-md: 0 10px 24px -18px rgba(0, 0, 0, 0.95);
+  --lift-lg: 0 2px 4px rgba(0, 0, 0, 0.35), 0 28px 64px -32px rgba(0, 0, 0, 1);
+  --lift-accent: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px -8px rgba(139, 92, 246, 0.7);
+  --lift-destructive: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px -8px rgba(220, 38, 38, 0.75);
+
+  /* Directional, not a depth: the detail pane casts left onto the table it
+     covers, which is what makes it read as being ON TOP rather than beside. */
+  --lift-edge: -40px 0 80px -40px rgba(0, 0, 0, 1);
+
+  /* The specular hairline across the top of a raised surface — the single
+     detail that reads as "lit from above" on these dark panels. Brightest at
+     the centre and vanishing at both ends, because a hairline of even width
+     reads as a border instead of a highlight. */
+  --specular: linear-gradient(to right, transparent, oklch(1 0 0 / 0.11), transparent);
+  --specular-v: linear-gradient(to bottom, transparent, oklch(1 0 0 / 0.14), transparent);
+
+  /* The same rim, dimmed — a locked surface catches less light. */
+  --specular-dim: linear-gradient(to right, transparent, oklch(1 0 0 / 0.04), transparent);
+
+  /* Press feedback. Two amounts: controls shrink visibly, large surfaces
+     barely move — a row that shrinks like a button feels flimsy. */
+  --press: 0.96;
+  --press-lg: 0.985;
+
+  /* Ambient light. A wash is the only gradient in the app that isn't a
+     hairline, and it exists to stop a full-bleed dark page reading as flat.
+     Four of them, because the light means something different each time:
+     the accent glow of a live surface, the absence of it when locked, a
+     success moment, and a centred pool under an empty state. */
+  --wash-page: radial-gradient(130% 85% at 50% 0%, rgba(139, 92, 246, 0.055), transparent 58%);
+  --wash-neutral: radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.02), transparent 60%);
+  --wash-success: radial-gradient(120% 100% at 50% 0%, rgba(16, 185, 129, 0.12), transparent 65%);
+  --wash-center: radial-gradient(60% 70% at 50% 45%, rgba(139, 92, 246, 0.07), transparent 70%);
+}
+
+/* ---------------------------------------------------------------------------
+   Wozku brand layer
+   ---------------------------------------------------------------------------
+   Opt-in and additive: with `.wozku` absent, every value above is untouched
+   and the app is exactly what it was. Applied as a class on <html> next to
+   `.dark`, after it in source order so it wins at equal specificity.
+
+   Values are taken from the design system's own dark theme
+   (tokens/colors-dark.css), not derived by us. That matters — the brand ships
+   an authored dark variant, so nothing here is an interpretation.
+
+   Four brand rules drive almost all of it:
+     "Emerald is the single accent, used sparingly; everything else is a
+      near-monochrome neutral scale."
+     "The Generator and presentation are deliberately SHARP for an editorial,
+      print-like feel; buttons, inputs, cards are all square."
+     "Interface relies on spacing + contrast, not shadow."
+     "No bounces, no springy overshoot. No scale-shrink in product."
+   --------------------------------------------------------------------------- */
+.wozku {
+  /* ---- Accent: violet becomes emerald, with no call-site changes ----
+     Tailwind v4 utilities reference the palette variable rather than baking
+     the value, and alpha variants resolve through color-mix on that same
+     variable — so re-pointing the ramp re-tints all 189 accent utilities,
+     arbitrary alphas included. Steps are the brand's emerald scale verbatim. */
+  --focus-ring: #34d399; /* brand-400, per the dark theme */
+  --color-violet-50: #ecfdf5;
+  --color-violet-100: #d1fae5;
+  --color-violet-200: #a7f3d0;
+  --color-violet-300: #6ee7b7;
+  --color-violet-400: #34d399;
+  --color-violet-500: #10b981; /* canonical brand emerald */
+  --color-violet-600: #059669;
+  --color-violet-700: #047857;
+  --color-violet-950: #022c22;
+
+  /* ---- Success becomes neutral ----
+     Emerald is now the accent, so it cannot also mean "approved" — a primary
+     action and a ready post would be the same colour, which is the exact
+     confusion the single-accent rule exists to prevent. Ready loses its
+     colour and is carried by its check glyph and the neutral ladder instead.
+     Amber and red keep theirs, which leaves a better rule than we had:
+     neutral means fine, colour means it needs you. */
+  --color-emerald-100: #f2f2f2;
+  --color-emerald-200: #e2e2e2;
+  --color-emerald-300: #c8c8c8;
+  --color-emerald-400: #a8a8a8;
+  --color-emerald-500: #8a8a8a;
+  --color-emerald-950: #1a1a1a;
+
+  /* Links. The brand answers this with emerald too (--text-link is brand-400
+     in dark), so the one blue in the app follows the accent rather than
+     staying the web's default link colour. */
+  --color-blue-300: #6ee7b7;
+  --color-blue-400: #34d399;
+
+  /* Amber, red and sky need no override: Tailwind's amber-500 (#f59e0b),
+     red-500 (#ef4444) and sky-500 (#0ea5e9) are byte-identical to the brand's
+     warning, error and info ramps. The tag tints (rose, teal, indigo,
+     fuchsia) also stay — they encode which tag a chip is, so they are data,
+     not chrome, and the near-monochrome rule is about chrome. */
+
+  /* ---- Type: three families, strict roles ---- */
+  --app-font-sans: var(--font-satoshi); /* interface + body */
+  --app-font-heading: var(--font-space-grotesk); /* titles */
+  --app-font-display: var(--font-space-grotesk); /* oversized numerals */
+  --app-font-mono: var(--font-jetbrains-mono);
+  --font-label: var(--font-jetbrains-mono); /* uppercase HUD labels */
+
+  /* ---- Geometry: square ----
+     --radius drives every named utility (rounded-md/lg/xl/2xl and the
+     min(--radius-md, Npx) sites), so zeroing it squares them all at once. */
+  --radius: 0px;
+  --r-inner: 0px;
+  --r-float: 0px;
+  --r-surface: 0px;
+  --r-pill: 0px;
+  /* --r-round is deliberately absent. Avatars and status dots are circles
+     because they are round things; the brand's own scale keeps --radius-full
+     for "pills, avatars, dots", and a squared headshot reads as a bug. */
+
+  /* ---- Surfaces: the brand's dark neutral ladder ----
+     A purpose-built scale, not an inversion of the light one. */
+  --surface-canvas: #0a0a0a;
+  --surface-raised: #111111;
+  --surface-panel: #1a1a1a;
+  --surface-float: #1f1f1f;
+  --surface-dialog: #1f1f1f;
+  --surface-well: #2a2a2a;
+
+  --background: #0a0a0a;
+  --foreground: #f2f2f2;
+  --card: #1a1a1a;
+  --card-foreground: #f2f2f2;
+  --popover: #1f1f1f;
+  --popover-foreground: #f2f2f2;
+  --secondary: #1f1f1f;
+  --muted: #1a1a1a;
+  --muted-foreground: #a8a8a8;
+  --accent: #1f1f1f;
+  --destructive: #ef4444;
+  /* Hairlines, not translucency: a 1px neutral rule is how the brand
+     separates zones, and it is the one border it admits. */
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #34d399;
+
+  /* ---- Elevation: spacing and contrast, not shadow ----
+     The two survivors are the brand's own --shadow-soft and --shadow-lift,
+     deepened for dark exactly as colors-dark.css deepens them. Everything
+     that existed to make a surface glow is gone: an accent-coloured shadow is
+     decoration, and the brand does not spend light on decoration.
+
+     `0 0 #0000` rather than `none` for the ones that switch off: Tailwind
+     composes box-shadow as a comma-joined list that also carries the inset
+     rings, and `none` inside a shadow list invalidates the whole declaration —
+     which would take every inset-ring on the element down with it. */
+  --lift-sm: 0 0 #0000;
+  --lift-md: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+  --lift-lg: 0 2px 4px rgba(0, 0, 0, 0.5), 0 24px 48px -16px rgba(0, 0, 0, 0.8);
+  --lift-accent: 0 0 #0000;
+  --lift-destructive: 0 0 #0000;
+  --lift-edge: 0 0 #0000;
+
+  /* The specular rim becomes a flat hairline. Not `none`: these are h-px
+     elements doing real work as dividers, and removing the paint would leave
+     a 1px gap where a rule belongs. */
+  --specular: linear-gradient(#2a2a2a, #2a2a2a);
+  --specular-v: linear-gradient(#2a2a2a, #2a2a2a);
+  --specular-dim: linear-gradient(#1f1f1f, #1f1f1f);
+
+  /* ---- Motion: no scale-shrink in product ----
+     Press feedback survives as colour, which every control already changes. */
+  --press: 1;
+  --press-lg: 1;
+
+  /* ---- Backgrounds: flat ----
+     "Gradients avoided as a rule." The one sanctioned exception is a
+     barely-there brand glow, which the brand specifies for SLIDES, not for
+     the app shell — so the shell goes flat. */
+  --wash-page: none;
+  --wash-neutral: none;
+  --wash-success: none;
+  --wash-center: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Wozku brand layer — light
+   ---------------------------------------------------------------------------
+   Light is the brand's DEFAULT and canonical appearance; dark is the opt-in
+   variant. Ours is the other way round, so this is the mode that has to work
+   hardest — the app was built dark-only.
+
+   Scoped `.wozku.wozku-light` rather than `.wozku-light` alone for two reasons:
+   it beats both `.dark` and `.wozku` at (0,2,0) without depending on source
+   order, and it states the constraint — light exists only WITH the brand on.
+   Our own visual language has no light mode and is not gaining one.
+
+   Two variables do most of the work. --ink flips the depth language from
+   translucent light on a dark page to translucent dark on a light one, which
+   re-points all 265 surface, hairline and inset-ring utilities at once. --sink
+   does the same for the recessed bands.
+
+   The ramps need more than a flip. Every hue in the app follows one pattern:
+   steps 50–300 are TEXT, 400 is text/fill/line, 500–600 are vivid fills, and
+   900/950 are dark fills. On a dark page the text steps are the light end; on a
+   light page they must become the DARK end, while the vivid mids stay put. So
+   the low steps invert and the high steps hold — which is why this block looks
+   like it is fighting the palette. It isn't: the ramps are being read from the
+   other side.
+   --------------------------------------------------------------------------- */
+.wozku.wozku-light {
+  color-scheme: light;
+
+  --focus-ring: #059669; /* brand-600 — 400 is too pale on white */
+  --ink: #171717; /* depth is now translucent dark */
+  --sink: #a3a3a3; /* a recess on white is a pale grey, not a bruise */
+
+  /* Accent — emerald, read from the dark end for text */
+  --color-violet-50: #065f46;
+  --color-violet-100: #065f46;
+  --color-violet-200: #047857;
+  --color-violet-300: #047857;
+  --color-violet-400: #059669;
+  --color-violet-500: #10b981;
+  --color-violet-600: #059669;
+  --color-violet-700: #047857;
+  --color-violet-950: #ecfdf5;
+
+  /* Status success — still neutral, still not the accent */
+  --color-emerald-100: #171717;
+  --color-emerald-200: #262626;
+  --color-emerald-300: #404040;
+  --color-emerald-400: #525252;
+  --color-emerald-500: #737373;
+  --color-emerald-950: #f5f5f5;
+
+  /* Links follow the accent */
+  --color-blue-300: #047857;
+  --color-blue-400: #059669;
+  --color-blue-900: #d1fae5;
+
+  /* Warning */
+  --color-amber-100: #92400e;
+  --color-amber-200: #92400e;
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+
+  /* Error */
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-red-900: #fee2e2;
+
+  /* Tag tints — data, so they keep their hues; only the reading direction
+     changes, exactly as above. */
+  --color-rose-100: #9f1239;
+  --color-rose-200: #9f1239;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+  --color-rose-950: #fff1f2;
+  --color-sky-100: #075985;
+  --color-sky-200: #075985;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
+  --color-sky-950: #f0f9ff;
+  --color-teal-100: #115e59;
+  --color-teal-200: #115e59;
+  --color-teal-300: #0f766e;
+  --color-teal-400: #0d9488;
+  --color-teal-900: #ccfbf1;
+  --color-indigo-100: #3730a3;
+  --color-indigo-200: #3730a3;
+  --color-indigo-300: #4338ca;
+  --color-indigo-400: #4f46e5;
+  --color-fuchsia-100: #86198f;
+  --color-fuchsia-200: #86198f;
+  --color-fuchsia-300: #a21caf;
+  --color-fuchsia-400: #c026d3;
+  --color-purple-900: #f3e8ff;
+
+  /* Surfaces. The ladder does not reverse — raised things still step AWAY from
+     the page — but on white, away means brighter, and a well is the one thing
+     that goes darker. */
+  --surface-canvas: #fbfbfb;
+  --surface-raised: #ffffff;
+  --surface-panel: #ffffff;
+  --surface-float: #ffffff;
+  --surface-dialog: #ffffff;
+  --surface-well: #f5f5f5;
+
+  --background: #fbfbfb;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --destructive: #dc2626;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #10b981;
+  /* "The primary CTA in the shell is neutral-900; brand carries accents." */
+  --primary: #171717;
+  --primary-foreground: #ffffff;
+
+  /* Elevation — the brand's light shadow-soft and shadow-lift, which are far
+     gentler than the dark pair because on white a shadow reads at a fraction
+     of the opacity. */
+  --lift-md: 0 1px 2px rgba(15, 23, 20, 0.04), 0 12px 32px -12px rgba(15, 23, 20, 0.1);
+  --lift-lg: 0 2px 4px rgba(15, 23, 20, 0.05), 0 24px 48px -16px rgba(15, 23, 20, 0.16);
+
+  /* Hairlines, now dark-on-light */
+  --specular: linear-gradient(#e5e5e5, #e5e5e5);
+  --specular-v: linear-gradient(#e5e5e5, #e5e5e5);
+  --specular-dim: linear-gradient(#f5f5f5, #f5f5f5);
+}
+
+.wozku.wozku-light .session-pane-surface {
+  --background: #ffffff;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f5f5f5;
+  --muted: #f5f5f5;
+  --accent: #f5f5f5;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+}
+
+/* The detail pane's raised surface, in brand neutrals. Same idea as the base
+   rule below — the active panel sits one step above the page — but expressed
+   in the ladder rather than in oklch. */
+.wozku .session-pane-surface {
+  --background: #111111;
+  --card: #1a1a1a;
+  --popover: #1f1f1f;
+  --secondary: #1f1f1f;
+  --muted: #1a1a1a;
+  --accent: #1f1f1f;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+}
+
+
 /* Session detail pane renders on a slightly lighter surface than the rest
    of the app so it reads as the "active" panel without changing the
    platform's overall theme. */
@@ -189,7 +618,7 @@
   [role="option"],
   [tabindex]:not([tabindex="-1"])
 ):focus-visible {
-  outline: 2px solid oklch(0.72 0.17 297);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: inherit;
 }
@@ -198,7 +627,7 @@
    these surfaces — too wide, and it carries its own background. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(1 0 0 / 14%) transparent;
+  scrollbar-color: color-mix(in oklab, var(--ink) 14%, transparent) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -214,18 +643,18 @@
 /* The transparent border + content-box clip is what insets the thumb, so it
    floats in the gutter instead of filling it edge to edge. */
 ::-webkit-scrollbar-thumb {
-  background-color: oklch(1 0 0 / 13%);
+  background-color: color-mix(in oklab, var(--ink) 13%, transparent);
   background-clip: content-box;
   border: 3px solid transparent;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(1 0 0 / 24%);
+  background-color: color-mix(in oklab, var(--ink) 24%, transparent);
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background-color: oklch(1 0 0 / 32%);
+  background-color: color-mix(in oklab, var(--ink) 32%, transparent);
 }
 
 /* Fake caret for the empty copy field. A textarea shows no caret until it is

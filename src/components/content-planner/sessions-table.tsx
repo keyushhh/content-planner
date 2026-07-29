@@ -114,7 +114,7 @@ function SortableHeader({
         onClick={() => onSort(columnKey)}
         aria-label={`Sort by ${label}`}
         className={cn(
-          "group/sort -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-white/[0.06]",
+          "group/sort -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-(--ink)/[0.06]",
           active ? "text-foreground" : "hover:text-foreground",
         )}
       >
@@ -487,22 +487,22 @@ export function SessionsTable({
             and left a lake of empty surface under four rows. With auto height it
             sizes to its content, and flex-shrink caps it at the space available,
             at which point the body starts scrolling. Short list: short table. */}
-        <div className="relative flex min-h-0 flex-col overflow-clip rounded-[20px] bg-[oklch(0.185_0_0)] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08] @container">
+        <div className="relative flex min-h-0 flex-col overflow-clip rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08] @container">
             <div
               aria-hidden
-              className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+              className="h-px w-full shrink-0 [background-image:var(--specular)]"
             />
 
             <div
               style={canvasGrid}
               className={cn(
-                "z-10 grid shrink-0 items-center gap-3 border-b bg-[oklch(0.205_0_0)] px-5 py-2.5 text-[11px] font-medium text-muted-foreground transition-[border-color,box-shadow] duration-200",
+                "z-10 grid shrink-0 items-center gap-3 border-b bg-(--surface-panel) px-5 py-2.5 text-[11px] font-medium text-muted-foreground transition-[border-color,box-shadow] duration-200",
                 canvasGridClass,
                 // the header acknowledges scroll with the same lift the detail
                 // pane's toolbar uses, so the two read as one system
                 bodyScrolled
-                  ? "border-white/[0.10] shadow-[0_10px_22px_-18px_rgba(0,0,0,1)]"
-                  : "border-white/[0.06]",
+                  ? "border-(--ink)/[0.10] shadow-(--lift-md)"
+                  : "border-(--ink)/[0.06]",
               )}
             >
               <SortableHeader
@@ -532,7 +532,7 @@ export function SessionsTable({
                     title="Filter by status"
                     aria-label={`Filter by status, currently ${statusLabel}`}
                     className={cn(
-                      "group/status -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-white/[0.06]",
+                      "group/status -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-(--ink)/[0.06]",
                       statusFiltered ? "text-violet-200" : "hover:text-foreground",
                     )}
                   >
@@ -572,7 +572,7 @@ export function SessionsTable({
                   onClick={handleAddColumn}
                   title="Add column"
                   aria-label="Add column"
-                  className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.08] hover:text-foreground active:scale-[0.94]"
+                  className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
                 >
                   <Plus className="size-3.5" />
                 </button>
@@ -606,7 +606,7 @@ export function SessionsTable({
                       // A FIXED row height is what makes 15 rows read as a
                       // rhythm: with padding alone, a row with tags stood 14px
                       // taller than one without and the whole list stuttered.
-                      "group relative grid h-[58px] cursor-pointer items-center gap-3 border-b border-white/[0.05] px-5 last:border-b-0",
+                      "group relative grid h-[58px] cursor-pointer items-center gap-3 border-b border-(--ink)/[0.05] px-5 last:border-b-0",
                       "transition-[height,opacity,translate,background-color,box-shadow] duration-220",
                       canvasGridClass,
                       // Collapses and slips left on its way out, so the rows
@@ -619,14 +619,14 @@ export function SessionsTable({
                       // this" and "my cursor is here" are different kinds of
                       // signal, which is what lets them coexist on one row.
                       isSelected
-                        ? "z-10 bg-violet-500/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.35),0_10px_28px_-14px_rgba(0,0,0,0.9)] inset-ring-1 inset-ring-violet-400/35"
-                        : "hover:bg-white/[0.035]",
+                        ? "z-10 bg-violet-500/[0.09] shadow-(--lift-md) inset-ring-1 inset-ring-violet-400/35"
+                        : "hover:bg-(--ink)/[0.035]",
                       // The keyboard cursor: lighter than selection, because it
                       // is a place you are pointing at rather than a thing you
                       // have opened.
                       !isSelected &&
                         session.id === cursorId &&
-                        "bg-white/[0.05] inset-ring-1 inset-ring-white/[0.14]",
+                        "bg-(--ink)/[0.05] inset-ring-1 inset-ring-(--ink)/[0.14]",
                     )}
                   >
                     {/* Status, as a hairline down the leading edge. Fifteen of
@@ -669,7 +669,7 @@ export function SessionsTable({
                               <span
                                 aria-hidden
                                 className={cn(
-                                  "size-1 rounded-full opacity-80 transition-opacity duration-150 group-hover:opacity-100",
+                                  "size-1 rounded-(--r-round) opacity-80 transition-opacity duration-150 group-hover:opacity-100",
                                   tagDot(tag),
                                 )}
                               />
@@ -688,7 +688,7 @@ export function SessionsTable({
                     <div className="hidden min-w-0 items-center gap-2 text-[13px] text-muted-foreground @[640px]:flex">
                       {session.lastEditedBy ? (
                         <>
-                          <Avatar className="size-6 shrink-0 inset-ring-1 inset-ring-white/10">
+                          <Avatar className="size-6 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
                             <AvatarFallback
                               className={cn(
                                 "text-[10px] font-medium",
@@ -721,7 +721,7 @@ export function SessionsTable({
                         <button
                           onClick={() => setConfirmUnlockId(session.id)}
                           title="Sent and unchanged since. Click to unlock and edit."
-                          className="inline-flex h-7 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-emerald-300/80 transition-[background-color,color,scale] duration-150 hover:bg-emerald-500/10 hover:text-emerald-200 active:scale-[0.96]"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-emerald-300/80 transition-[background-color,color,scale] duration-150 hover:bg-emerald-500/10 hover:text-emerald-200 active:scale-(--press)"
                         >
                           <Lock className="size-3" />
                           Locked
@@ -729,7 +729,7 @@ export function SessionsTable({
                       ) : session.status === "approved" ? (
                         <button
                           onClick={() => onOpenSend(session.id)}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-full bg-violet-600 px-3 text-xs font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_5px_14px_-8px_rgba(139,92,246,0.8)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-xs font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
                         >
                           {needsResend ? (
                             <RefreshCw className="size-3" />
@@ -781,7 +781,7 @@ export function SessionsTable({
                           aria-label="Duplicate"
                           title="Duplicate"
                           style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-                          className="flex size-8 translate-x-1.5 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-white/[0.08] hover:text-foreground focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-[0.94] group-hover:translate-x-0 group-hover:opacity-100"
+                          className="flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-(--ink)/[0.08] hover:text-foreground focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100"
                         >
                           <Copy className="size-3.5" />
                         </button>
@@ -791,7 +791,7 @@ export function SessionsTable({
                         aria-label="Delete"
                         title="Delete"
                         style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-                        className="flex size-8 translate-x-1.5 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-destructive/15 hover:text-destructive focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-[0.94] group-hover:translate-x-0 group-hover:opacity-100"
+                        className="flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-destructive/15 hover:text-destructive focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -808,7 +808,7 @@ export function SessionsTable({
             <div
               aria-hidden
               className={cn(
-                "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[oklch(0.185_0_0)] via-[oklch(0.185_0_0)]/70 to-transparent transition-opacity duration-300",
+                "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-(--surface-raised) via-(--surface-raised)/70 to-transparent transition-opacity duration-300",
                 bodyAtEnd ? "opacity-0" : "opacity-100",
               )}
             />
@@ -833,7 +833,7 @@ export function SessionsTable({
             {totalPages > 1 && (
             <nav
               aria-label="Pagination"
-              className="flex items-center gap-0.5 rounded-full bg-white/[0.03] p-1 inset-ring-1 inset-ring-white/[0.08]"
+              className="flex items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.03] p-1 inset-ring-1 inset-ring-(--ink)/[0.08]"
             >
               <PagerButton
                 label="Previous page"
@@ -843,7 +843,7 @@ export function SessionsTable({
                 <ChevronLeft className="size-4" />
               </PagerButton>
 
-              <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-white/[0.08]" />
+              <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-(--ink)/[0.08]" />
 
               {pageItems.map((item, i) =>
                 item === "gap" ? (
@@ -862,10 +862,10 @@ export function SessionsTable({
                     aria-current={item === safePage ? "page" : undefined}
                     className={cn(
                       // pseudo-element extends the tap target past the 32px pill
-                      "relative flex h-8 min-w-8 items-center justify-center rounded-full px-2.5 text-[12px] font-medium tabular-nums transition-[background-color,color,box-shadow,scale] duration-150 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] active:scale-[0.96]",
+                      "relative flex h-8 min-w-8 items-center justify-center rounded-(--r-pill) px-2.5 text-[12px] font-medium tabular-nums transition-[background-color,color,box-shadow,scale] duration-150 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] active:scale-(--press)",
                       item === safePage
-                        ? "bg-violet-500/[0.17] text-violet-100 shadow-[0_1px_2px_rgba(0,0,0,0.3)] inset-ring-1 inset-ring-violet-400/40"
-                        : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+                        ? "bg-violet-500/[0.17] text-violet-100 shadow-(--lift-sm) inset-ring-1 inset-ring-violet-400/40"
+                        : "text-muted-foreground hover:bg-(--ink)/[0.06] hover:text-foreground",
                     )}
                   >
                     {item}
@@ -873,7 +873,7 @@ export function SessionsTable({
                 ),
               )}
 
-              <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-white/[0.08]" />
+              <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-(--ink)/[0.08]" />
 
               <PagerButton
                 label="Next page"
@@ -925,7 +925,7 @@ export function SessionsTable({
             <button
               onClick={handleAddColumn}
               title="Add column"
-              className="flex size-6 items-center justify-center rounded bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 hover:text-violet-300 transition-colors"
+              className="flex size-6 items-center justify-center rounded-sm bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 hover:text-violet-300 transition-colors"
             >
               <Plus className="size-3.5" />
             </button>
@@ -961,7 +961,7 @@ export function SessionsTable({
                   "group relative grid min-w-max items-center border-b border-border/60 px-4 py-3 cursor-pointer gap-3",
                   "transition-[height,padding,opacity,translate,background-color,box-shadow] duration-220",
                   isSelected
-                    ? "z-10 bg-primary/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.3),0_8px_24px_-14px_rgba(0,0,0,0.8)] inset-ring-1 inset-ring-violet-400/30"
+                    ? "z-10 bg-primary/[0.06] shadow-(--lift-md) inset-ring-1 inset-ring-violet-400/30"
                     : "hover:bg-accent/30",
                   // Same exit as the canvas rows — see confirmDelete
                   session.id === leavingId &&
@@ -1209,18 +1209,18 @@ function SkeletonRows({ rows = 8 }: { rows?: number }) {
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}
-          className="flex h-[58px] items-center gap-3 border-b border-white/[0.04] px-5 last:border-b-0"
+          className="flex h-[58px] items-center gap-3 border-b border-(--ink)/[0.04] px-5 last:border-b-0"
         >
           <div
-            className="h-2.5 rounded-full bg-white/[0.055]"
+            className="h-2.5 rounded-(--r-pill) bg-(--ink)/[0.055]"
             // Varied widths: equal bars read as a grid of placeholders, uneven
             // ones read as titles of different lengths.
             style={{ width: `${28 + ((i * 37) % 22)}%` }}
           />
-          <div className="h-2.5 w-14 rounded-full bg-white/[0.04]" />
+          <div className="h-2.5 w-14 rounded-(--r-pill) bg-(--ink)/[0.04]" />
           <div className="ml-auto flex items-center gap-3">
-            <div className="h-2.5 w-20 rounded-full bg-white/[0.035]" />
-            <div className="size-6 rounded-full bg-white/[0.04]" />
+            <div className="h-2.5 w-20 rounded-(--r-pill) bg-(--ink)/[0.035]" />
+            <div className="size-6 rounded-(--r-pill) bg-(--ink)/[0.04]" />
           </div>
         </div>
       ))}
@@ -1271,11 +1271,11 @@ function EmptyRows({
           a surface is a place where something begins. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_45%,rgba(139,92,246,0.07),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 [background-image:var(--wash-center)]"
       />
 
       <div className="relative flex flex-col items-center gap-2 px-8 py-12 text-center">
-        <span className="flex size-11 items-center justify-center rounded-full bg-violet-500/[0.10] text-violet-300 inset-ring-1 inset-ring-violet-400/25">
+        <span className="flex size-11 items-center justify-center rounded-(--r-pill) bg-violet-500/[0.10] text-violet-300 inset-ring-1 inset-ring-violet-400/25">
           <Glyph className="size-[17px]" />
         </span>
         <span className="mt-1.5 text-[14px] font-semibold tracking-[-0.01em]">
@@ -1289,12 +1289,12 @@ function EmptyRows({
           <button
             onClick={emptyState.action.onClick}
             className={cn(
-              "mt-3.5 flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-[0.97]",
+              "mt-3.5 flex h-9 items-center gap-1.5 rounded-(--r-pill) px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
               // Creating content is the primary act; clearing a filter is a way
               // back. Only one of the two earns the violet.
               emptyState.filtered
-                ? "bg-white/[0.04] inset-ring-1 inset-ring-white/[0.09] hover:bg-white/[0.08] hover:inset-ring-white/20"
-                : "bg-violet-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 hover:bg-violet-500",
+                ? "bg-(--ink)/[0.04] inset-ring-1 inset-ring-(--ink)/[0.09] hover:bg-(--ink)/[0.08] hover:inset-ring-(--ink)/20"
+                : "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500",
             )}
           >
             {!emptyState.filtered && <Plus className="size-4" />}
@@ -1393,8 +1393,8 @@ function CustomColumnHeader({
           className={cn(
             "h-6",
             isCanvas
-              ? "rounded-md bg-white/[0.06] px-1.5 text-[11px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50"
-              : "rounded border border-violet-500/50 bg-background px-1.5 text-xs font-medium uppercase tracking-wide text-foreground",
+              ? "rounded-md bg-(--ink)/[0.06] px-1.5 text-[11px] font-medium caret-violet-400 inset-ring-1 inset-ring-violet-400/50"
+              : "rounded-sm border border-violet-500/50 bg-background px-1.5 text-xs font-medium uppercase tracking-wide text-foreground",
           )}
         />
       </div>
@@ -1421,7 +1421,7 @@ function CustomColumnHeader({
               title="Column options"
               className={cn(
                 "flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-[opacity,background-color,color] duration-150 focus-visible:opacity-100 group-hover/col:opacity-100 data-[popup-open]:opacity-100",
-                isCanvas ? "hover:bg-white/[0.10] hover:text-foreground" : "hover:bg-accent",
+                isCanvas ? "hover:bg-(--ink)/[0.10] hover:text-foreground" : "hover:bg-accent",
               )}
             />
           }
@@ -1482,8 +1482,8 @@ function CustomCell({
           className={cn(
             "h-7",
             isCanvas
-              ? "rounded-md bg-white/[0.06] px-2 text-xs caret-violet-400 inset-ring-1 inset-ring-violet-400/50"
-              : "rounded border border-violet-500/50 bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-violet-500",
+              ? "rounded-md bg-(--ink)/[0.06] px-2 text-xs caret-violet-400 inset-ring-1 inset-ring-violet-400/50"
+              : "rounded-sm border border-violet-500/50 bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-violet-500",
           )}
         />
       ) : (
@@ -1492,7 +1492,7 @@ function CustomCell({
           title={`Edit ${columnName}`}
           className={cn(
             "block max-w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs transition-colors",
-            isCanvas ? "hover:bg-white/[0.06]" : "hover:bg-accent/60",
+            isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/60",
             value
               ? "font-medium"
               : // Nothing written yet: stay out of the way until the row is
@@ -1653,7 +1653,7 @@ function PagerButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96] disabled:pointer-events-none disabled:text-muted-foreground/30"
+      className="relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press) disabled:pointer-events-none disabled:text-muted-foreground/30"
     >
       {children}
     </button>

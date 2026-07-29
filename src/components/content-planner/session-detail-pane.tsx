@@ -349,7 +349,7 @@ function StatusMenu({
         ) : (
           <span
             className={cn(
-              "size-1.5 rounded-full",
+              "size-1.5 rounded-(--r-round)",
               status === "approved"
                 ? "bg-emerald-500"
                 : status === "wip"

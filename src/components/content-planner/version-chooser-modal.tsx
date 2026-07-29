@@ -76,11 +76,11 @@ export function VersionChooserModal({
     <Dialog open={open}>
       <DialogContent
         showCloseButton={false}
-        className="w-[600px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[600px]"
+        className="w-[600px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-left text-foreground shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] sm:max-w-[600px]"
       >
         <div
           aria-hidden
-          className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-white/[0.11] to-transparent"
+          className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
         <DialogHeader className="p-0 text-left">
@@ -94,14 +94,14 @@ export function VersionChooserModal({
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 border-t border-white/[0.06] p-3">
+        <div className="grid grid-cols-2 gap-3 border-t border-(--ink)/[0.06] p-3">
           {VERSIONS.map(({ id, label, hint, icon: Icon, well, glow, ring }, i) => (
             <button
               key={id}
               onClick={() => onChoose(id)}
               style={{ animation: `post-type-in 400ms ${EASE} ${i * 55}ms both` }}
               className={cn(
-                "group flex flex-col gap-3 rounded-[16px] bg-white/[0.028] p-3 text-left inset-ring-1 inset-ring-white/[0.07] transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.985]",
+                "group flex flex-col gap-3 rounded-(--r-float) bg-(--ink)/[0.028] p-3 text-left inset-ring-1 inset-ring-(--ink)/[0.07] transition-[background-color,box-shadow,scale] duration-200 active:scale-(--press-lg)",
                 glow,
               )}
               // Without this the tile keeps a focus ring after the click, which
@@ -121,7 +121,7 @@ export function VersionChooserModal({
               <span className="flex items-center gap-2.5 px-0.5 pb-0.5">
                 <span
                   className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-[10px] inset-ring-1 transition-transform duration-300 group-hover:scale-[1.06]",
+                    "flex size-8 shrink-0 items-center justify-center rounded-(--r-inner) inset-ring-1 transition-transform duration-300 group-hover:scale-[1.06]",
                     well,
                   )}
                   style={{ transitionTimingFunction: EASE }}
@@ -143,7 +143,7 @@ export function VersionChooserModal({
 
         {/* Hairline, not a filled band: there is nothing to cancel to, so the
             footer only orients — it holds no action. */}
-        <div className="border-t border-white/[0.06] px-6 py-3">
+        <div className="border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
             Switch any time from the title menu
           </span>

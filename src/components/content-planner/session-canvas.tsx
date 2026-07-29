@@ -112,7 +112,7 @@ export function SessionCanvas({
         className={cn(
           "z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
           scrolled
-            ? "border-white/[0.07] shadow-[0_10px_24px_-20px_rgba(0,0,0,0.9)]"
+            ? "border-(--ink)/[0.07] shadow-(--lift-md)"
             : "border-transparent",
         )}
       >
@@ -138,7 +138,7 @@ export function SessionCanvas({
               size="sm"
               // Appears the instant the last checklist item lands — the sheet's
               // most triumphant moment, so it arrives rather than blinking in.
-              className="h-8 animate-in gap-1.5 rounded-full bg-violet-600 px-3.5 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-white/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-[0.96]"
+              className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
               onClick={onOpenSend}
               title={`${needsResend ? "Send update" : "Send to campaign"} (⌘↵)`}
             >
@@ -167,7 +167,7 @@ export function SessionCanvas({
             onClick={onToggleFeedback}
           />
 
-          <div className="mx-1 h-5 w-px bg-white/10" />
+          <div className="mx-1 h-5 w-px bg-(--ink)/10" />
 
           <button
             onClick={() => {
@@ -176,7 +176,7 @@ export function SessionCanvas({
             }}
             aria-label="Save and collapse session"
             title="Save and collapse"
-            className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.96]"
+            className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <ChevronsRight className="size-4" />
           </button>
@@ -191,7 +191,7 @@ export function SessionCanvas({
           </span>
           <button
             onClick={onRequestUnlock}
-            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-violet-200 inset-ring-1 inset-ring-violet-400/30 transition-[background-color,scale] duration-150 hover:bg-violet-400/15 active:scale-[0.96]"
+            className="shrink-0 rounded-(--r-pill) px-2.5 py-1 text-xs font-medium text-violet-200 inset-ring-1 inset-ring-violet-400/30 transition-[background-color,scale] duration-150 hover:bg-violet-400/15 active:scale-(--press)"
           >
             Unlock to Edit
           </button>
@@ -214,8 +214,8 @@ export function SessionCanvas({
           "min-h-0 flex-1 overflow-y-auto transition-[background-image] duration-500",
           // the canvas itself loses its violet cast when the post is locked
           isCampaignLocked
-            ? "bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.02),transparent_60%)]"
-            : "bg-[radial-gradient(120%_80%_at_50%_0%,rgba(139,92,246,0.055),transparent_60%)]",
+            ? "[background-image:var(--wash-neutral)]"
+            : "[background-image:var(--wash-page)]",
         )}
       >
         {/* items-start: the sheet sizes to its content instead of stretching, so no
@@ -224,12 +224,12 @@ export function SessionCanvas({
           <Stagger
             index={0}
             className={cn(
-              "flex w-full max-w-[900px] flex-col overflow-hidden rounded-[28px] transition-[filter,box-shadow,background-color] duration-500",
+              "flex w-full max-w-[900px] flex-col overflow-hidden rounded-(--r-surface) transition-[filter,box-shadow,background-color] duration-500",
               // A locked document should look locked from across the room: colour
               // drains out and it settles lower, as though set down rather than held.
               isCampaignLocked
-                ? "bg-white/[0.018] shadow-[0_1px_3px_rgba(0,0,0,0.45)] saturate-50 inset-ring-1 inset-ring-white/[0.05]"
-                : "bg-white/[0.028] shadow-[0_2px_4px_rgba(0,0,0,0.3),0_28px_64px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.08]",
+                ? "bg-(--ink)/[0.018] shadow-(--lift-sm) saturate-50 inset-ring-1 inset-ring-(--ink)/[0.05]"
+                : "bg-(--ink)/[0.028] shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]",
             )}
           >
             {/* Readiness reads as a hairline at the sheet's edge, not another card.
@@ -241,7 +241,7 @@ export function SessionCanvas({
                     key={item.label}
                     className={cn(
                       "h-full flex-1 transition-colors duration-500",
-                      i < doneCount ? "bg-violet-400" : "bg-white/[0.06]",
+                      i < doneCount ? "bg-violet-400" : "bg-(--ink)/[0.06]",
                     )}
                     style={{ transitionTimingFunction: EASE }}
                   />
@@ -252,7 +252,7 @@ export function SessionCanvas({
             <div
               className={cn(
                 "h-px w-full shrink-0 bg-gradient-to-r from-transparent to-transparent transition-colors duration-500",
-                isCampaignLocked ? "via-white/[0.04]" : "via-white/[0.09]",
+                isCampaignLocked ? "via-(--ink)/[0.04]" : "via-(--ink)/[0.09]",
               )}
             />
 
@@ -268,7 +268,7 @@ export function SessionCanvas({
                   placeholder="Untitled session"
                   // The landing pad for the row title's flight — see title-flight.ts
                   data-pane-title
-                  className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-white/[0.03] focus:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+                  className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
                 {/* Byline moved to the toolbar, so this line now carries one
                     thought only: how close this post is to being sendable. */}
@@ -304,7 +304,7 @@ export function SessionCanvas({
               {/* Focus is a barely-there warming of the whole section, nothing
                   more. Tinting the section's own border violet drew a full-width
                   line across the sheet — a hard rule where a hint belongs. */}
-              <div className="flex flex-col border-t border-white/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
+              <div className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
               <div className="group/row flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
                 <span className="flex min-w-0 items-center gap-1.5">
                   <label
@@ -322,7 +322,7 @@ export function SessionCanvas({
                   <GhostAction onClick={onOpenVariations} icon={Layers}>
                     Post Variations
                     {session.variations.length > 0 && (
-                      <span className="ml-1 rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
+                      <span className="ml-1 rounded-(--r-pill) bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
                         {session.variations.length}
                       </span>
                     )}
@@ -399,9 +399,9 @@ export function SessionCanvas({
                 <button
                   disabled={isCampaignLocked}
                   onClick={onOpenMediaLibrary}
-                  className="group flex items-center gap-2.5 rounded-full bg-white/[0.04] py-1.5 pl-1.5 pr-3.5 text-[13px] font-medium inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/10 hover:inset-ring-violet-400/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="group flex items-center gap-2.5 rounded-(--r-pill) bg-(--ink)/[0.04] py-1.5 pl-1.5 pr-3.5 text-[13px] font-medium inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/10 hover:inset-ring-violet-400/40 active:scale-(--press) disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
+                  <span className="flex size-6 items-center justify-center rounded-(--r-pill) bg-violet-500/15 text-violet-300 transition-transform duration-200 group-hover:scale-[1.08]">
                     <UploadCloud className="size-3.5" />
                   </span>
                   {media.cta}
@@ -411,7 +411,7 @@ export function SessionCanvas({
                   {session.visualAssetIds.map((assetId) => (
                     <div
                       key={assetId}
-                      className="group relative size-20 shrink-0 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.3)] outline outline-1 -outline-offset-1 outline-white/10"
+                      className="group relative size-20 shrink-0 rounded-(--r-inner) shadow-(--lift-sm) outline outline-1 -outline-offset-1 outline-(--ink)/10"
                     >
                       <MediaThumb
                         compact
@@ -419,7 +419,7 @@ export function SessionCanvas({
                         type={mediaAssets.find((a) => a.id === assetId)?.type}
                         url={mediaAssets.find((a) => a.id === assetId)?.url}
                         name={mediaAssets.find((a) => a.id === assetId)?.name}
-                        className="size-full !rounded-[10px]"
+                        className="size-full !rounded-(--r-inner)"
                       />
                       {!isCampaignLocked && (
                         <button
@@ -431,7 +431,7 @@ export function SessionCanvas({
                             })
                           }
                           aria-label="Remove asset"
-                          className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-[0.96] group-hover:opacity-100"
+                          className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-(--r-pill) bg-black/70 text-white opacity-0 backdrop-blur-sm transition-[opacity,background-color,scale] duration-150 before:absolute before:-inset-1.5 before:content-[''] hover:bg-destructive focus-visible:opacity-100 active:scale-(--press) group-hover:opacity-100"
                         >
                           <X className="size-3" />
                         </button>
@@ -445,7 +445,7 @@ export function SessionCanvas({
                       aria-label="Add another asset"
                       // solid hairline, not dashed — a dashed edge reads as a
                       // wireframe placeholder rather than a real control
-                      className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.03] text-muted-foreground inset-ring-1 inset-ring-white/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-[0.97]"
+                      className="flex size-20 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-(--press)"
                     >
                       <UploadCloud className="size-5" />
                     </button>
@@ -464,7 +464,7 @@ export function SessionCanvas({
               staggerIndex={5}
             >
               <div className="group/field w-full">
-                <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-[10px] bg-white/[0.04] p-1.5 inset-ring-1 inset-ring-white/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:inset-ring-violet-400/50">
+                <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-(--r-inner) bg-(--ink)/[0.04] p-1.5 inset-ring-1 inset-ring-(--ink)/[0.08] transition-[box-shadow,background-color] duration-200 focus-within:bg-(--ink)/[0.06] focus-within:inset-ring-violet-400/50">
                   {session.tags.map((tag) => (
                     <span
                       key={tag}
@@ -474,7 +474,7 @@ export function SessionCanvas({
                           ? "scale-[1.06] bg-amber-500/20 inset-ring-amber-400/50"
                           // Its own hue, so the same tag is the same colour here
                           // as it is in the table row and the filter menu.
-                          : cn(tagTint(tag), "inset-ring-white/[0.06]"),
+                          : cn(tagTint(tag), "inset-ring-(--ink)/[0.06]"),
                       )}
                     >
                       {tag}
@@ -484,7 +484,7 @@ export function SessionCanvas({
                             onUpdate({ tags: session.tags.filter((t) => t !== tag) })
                           }
                           aria-label={`Remove tag ${tag}`}
-                          className="-mr-0.5 flex size-4 items-center justify-center rounded-full text-muted-foreground transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
+                          className="-mr-0.5 flex size-4 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
                         >
                           <X className="size-3" />
                         </button>
@@ -538,7 +538,7 @@ export function SessionCanvas({
             {/* Colophon — metadata as a quiet footer, not a card */}
             <Stagger
               index={6}
-              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] bg-white/[0.012] px-9 py-3 text-[11px] text-muted-foreground"
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-(--ink)/[0.06] bg-(--ink)/[0.012] px-9 py-3 text-[11px] text-muted-foreground"
             >
               {/* Only facts that exist. "No variations · No comments" was two
                   lines of nothing, stated every time. */}
@@ -606,7 +606,7 @@ function SettingRow({
     <Stagger index={staggerIndex}>
       <div
         className={cn(
-          "group/row grid gap-x-4 gap-y-2.5 border-t border-white/[0.06] px-9 py-4",
+          "group/row grid gap-x-4 gap-y-2.5 border-t border-(--ink)/[0.06] px-9 py-4",
           "grid-cols-1 @[560px]:grid-cols-[168px_minmax(0,1fr)]",
           "transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]",
           align === "center" ? "items-center" : "items-start",
