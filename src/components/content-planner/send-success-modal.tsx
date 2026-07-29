@@ -24,12 +24,15 @@ export function SendSuccessModal({
   open,
   onOpenChange,
   sessionTitle,
+  plural,
   campaigns,
   onViewCampaign,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionTitle: string;
+  /** True when the title names several posts, so the verb agrees with it. */
+  plural?: boolean;
   campaigns: Campaign[];
   /** Offered only when there is one obvious place to go next. */
   onViewCampaign?: (campaignId: string) => void;
@@ -95,7 +98,8 @@ export function SendSuccessModal({
               <span className="text-foreground/85">
                 {sessionTitle?.trim() || "Untitled content"}
               </span>{" "}
-              is now with {single ? "the team on it" : "the teams on them"}.
+              {plural ? "are" : "is"} now with{" "}
+              {single ? (plural ? "the team on them" : "the team on it") : "the teams on them"}.
             </DialogDescription>
           </DialogHeader>
         </div>

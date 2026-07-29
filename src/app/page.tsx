@@ -170,8 +170,11 @@ export default function Home() {
   const [feedbackSection, setFeedbackSection] = useState<string | undefined>(undefined);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   /** What the last send actually did, for the confirmation that follows it. */
+  /** Repository only: the ticked rows, and the batch send they feed. */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkSendIds, setBulkSendIds] = useState<string[] | null>(null);
   const [sendResult, setSendResult] = useState<
-    { title: string; campaignIds: string[] } | null
+    { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
   // Assets have to be state, not the imported constant: an upload that cannot
   // add to the library is not an upload, and the old file input threw the file
@@ -339,6 +342,12 @@ export default function Home() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedSessionId]);
+
+  /** The ticked posts the batch send is actually going to act on. */
+  const bulkBatch =
+    bulkSendIds && bulkSendIds.length > 0
+      ? sessions.filter((s) => bulkSendIds.includes(s.id))
+      : null;
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId)!;
   const campaignSessions = sessions
@@ -533,6 +542,36 @@ export default function Home() {
     setSendResult({ title: session.title, campaignIds: [selectedCampaignId] });
   }
 
+  /**
+   * Sending a batch is N single sends, not a new kind of write: same merge, same
+   * additive rule, same history entries. Doing it any other way would give the
+   * repository two send paths that could drift apart.
+   */
+  function shareManyToCampaigns(sessionIds: string[], campaignIds: string[]) {
+    if (campaignIds.length === 0 || sessionIds.length === 0) return;
+    const now = new Date().toISOString();
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (!sessionIds.includes(session.id)) return session;
+        const merged = Array.from(
+          new Set([...session.sentToCampaignIds, ...campaignIds]),
+        );
+        return { ...session, sentToCampaignIds: merged, sentAt: now };
+      }),
+    );
+  }
+
+  /**
+   * Changing version, which is the only way to leave the repository table. The
+   * ticks go with it: Classic has no table to tick, so a selection left standing
+   * would come back live — and pointed at rows you can no longer see — the next
+   * time you switched over.
+   */
+  function changeVersion(next: AppVersion) {
+    setMode(next);
+    setSelectedIds([]);
+  }
+
   function unlockSession(id: string) {
     updateSession(id, { status: "wip" });
   }
@@ -598,6 +637,9 @@ export default function Home() {
     if (!removed) return;
 
     setSessions((prev) => prev.filter((s) => s.id !== id));
+    // A deleted post cannot stay in the batch — the count would report a row
+    // that is no longer on screen.
+    setSelectedIds((prev) => prev.filter((sid) => sid !== id));
     setCustomCellValues((prev) => {
       const { [id]: _removed, ...rest } = prev;
       return rest;
@@ -991,6 +1033,7 @@ export default function Home() {
                     <SessionsTable
                       variant="canvas"
                       sessions={demoState === "empty" ? [] : campaignSessions}
+                      campaigns={campaigns}
                       loading={demoState === "loading"}
                       selectedSessionId={selectedSessionId}
                       onSelectSession={openSession}
@@ -1003,6 +1046,7 @@ export default function Home() {
                 ) : (
                 <SessionsTable
                   sessions={demoState === "empty" ? [] : campaignSessions}
+                  campaigns={campaigns}
                   loading={demoState === "loading"}
                   selectedSessionId={selectedSessionId}
                   onSelectSession={openSession}
@@ -1035,6 +1079,7 @@ export default function Home() {
             // Dev states win over the real data, so the demo can show an empty
             // repository without anyone having to delete their content first.
             sessions={demoState === "empty" ? [] : sessions}
+            campaigns={campaigns}
             tableLoading={demoState === "loading"}
             selectedSessionId={selectedSessionId}
             onSelectSession={openSession}
@@ -1043,6 +1088,9 @@ export default function Home() {
             onUnlockSession={unlockSession}
             onDuplicateSession={duplicateSession}
             onNewContent={handleNewContent}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            onBulkSend={(ids) => setBulkSendIds(ids)}
             tableStyle={composerLayout}
             {...customColumnProps}
           />
@@ -1119,18 +1167,45 @@ export default function Home() {
       {/* The destination picker belongs to the repository model alone — only
           `requestSend` opens it, and only in that mode. */}
       <SendToCampaignSheet
-        open={sendSheetSessionId !== null}
+        open={sendSheetSessionId !== null || bulkBatch !== null}
         onOpenChange={(open) => {
-          if (!open) setSendSheetSessionId(null);
+          if (open) return;
+          setSendSheetSessionId(null);
+          setBulkSendIds(null);
         }}
         campaigns={campaigns}
         session={sessions.find((s) => s.id === sendSheetSessionId) ?? null}
+        sessions={bulkBatch ?? undefined}
         // Which campaigns it is already in, so the sheet can mark them as sent
-        // rather than offering them again as a fresh destination.
+        // rather than offering them again as a fresh destination. For a batch
+        // that is the INTERSECTION: a campaign only counts as somewhere the
+        // selection already lives if every post in it is already there.
         alreadySentTo={
-          sessions.find((s) => s.id === sendSheetSessionId)?.sentToCampaignIds ?? []
+          bulkBatch
+            ? campaigns
+                .filter((c) =>
+                  bulkBatch.every((s) => s.sentToCampaignIds.includes(c.id)),
+                )
+                .map((c) => c.id)
+            : sessions.find((s) => s.id === sendSheetSessionId)?.sentToCampaignIds ?? []
         }
         onShare={(campaignIds) => {
+          if (bulkBatch) {
+            shareManyToCampaigns(
+              bulkBatch.map((s) => s.id),
+              campaignIds,
+            );
+            setSendResult({
+              title: `${bulkBatch.length} posts`,
+              plural: true,
+              campaignIds,
+            });
+            // The batch is spent: leaving the rows ticked invites a second send
+            // of the same posts to the same places.
+            setSelectedIds([]);
+            setBulkSendIds(null);
+            return;
+          }
           if (!sendSheetSessionId) return;
           const shared = sessions.find((s) => s.id === sendSheetSessionId);
           shareSessionToCampaigns(sendSheetSessionId, campaignIds);
@@ -1172,6 +1247,7 @@ export default function Home() {
           if (!next) setSendResult(null);
         }}
         sessionTitle={sendResult?.title ?? ""}
+        plural={sendResult?.plural}
         campaigns={campaigns.filter((c) => sendResult?.campaignIds.includes(c.id))}
         onViewCampaign={(campaignId) => {
           setSendResult(null);
@@ -1195,7 +1271,7 @@ export default function Home() {
           flash before the saved choice has been read back off localStorage. */}
       <VersionChooserModal
         open={mounted && mode === null}
-        onChoose={(v) => setMode(v)}
+        onChoose={(v) => changeVersion(v)}
       />
 
       <VersionSwitchDialog
@@ -1207,7 +1283,7 @@ export default function Home() {
           // Any post open in the old version would be sitting in the other
           // version's pane a frame later, so it closes with the switch.
           setSelectedSessionId(null);
-          setMode(pendingVersion);
+          if (pendingVersion) changeVersion(pendingVersion);
           setPendingVersion(null);
         }}
       />

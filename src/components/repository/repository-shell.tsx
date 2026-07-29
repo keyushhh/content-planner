@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { InviteModal } from "@/components/content-planner/invite-modal";
@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, isSessionLocked } from "@/lib/utils";
 import { SECONDARY_ACTION } from "@/lib/button-styles";
 import {
   Database,
@@ -25,8 +25,9 @@ import {
   CircleDot,
   ChevronDown,
   Check,
+  Send,
 } from "lucide-react";
-import type { CustomCellValues, CustomColumn, Session } from "@/lib/types";
+import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 /** Custom-column state is owned by the page, so it travels as one bundle. */
 export interface CustomColumnProps {
@@ -40,6 +41,8 @@ export interface CustomColumnProps {
 
 interface RepositoryShellProps extends CustomColumnProps {
   sessions: Session[];
+  /** So the table can name the campaigns a post has been sent to. */
+  campaigns?: Campaign[];
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   onOpenSend: (id: string) => void;
@@ -47,6 +50,11 @@ interface RepositoryShellProps extends CustomColumnProps {
   onUnlockSession: (id: string) => void;
   onDuplicateSession: (id: string) => void;
   onNewContent: () => void;
+  /** Repository only: multi-select in the table, and what to do with a batch. */
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
+  /** Called with the posts in the batch that are actually sendable. */
+  onBulkSend?: (ids: string[]) => void;
   /** Dev-controls override: show the table's skeleton instead of its rows. */
   tableLoading?: boolean;
   tableStyle: ComposerLayout;
@@ -93,6 +101,7 @@ const SORTS: Record<SortKey, { label: string; compare: (a: Session, b: Session) 
 
 export function RepositoryShell({
   sessions,
+  campaigns,
   selectedSessionId,
   onSelectSession,
   onOpenSend,
@@ -100,6 +109,9 @@ export function RepositoryShell({
   onUnlockSession,
   onDuplicateSession,
   onNewContent,
+  selectedIds,
+  onSelectionChange,
+  onBulkSend,
   tableLoading = false,
   tableStyle,
   ...columnProps
@@ -177,6 +189,24 @@ export function RepositoryShell({
   const sorted = [...searched].sort(
     reversed ? (a, b) => SORTS[sort].compare(b, a) : SORTS[sort].compare,
   );
+  /**
+   * A batch is only as sendable as its members: approved, and not already sent
+   * and untouched since. Ticking a draft is allowed — you cannot know it is not
+   * ready until you have looked — so the bar says how many of the ticks can
+   * actually go, and Send acts on those and only those.
+   */
+  const picked = (selectedIds ?? []).length;
+  const sendable = useMemo(
+    () =>
+      sessions.filter(
+        (s) =>
+          (selectedIds ?? []).includes(s.id) &&
+          s.status === "approved" &&
+          !isSessionLocked(s),
+      ),
+    [sessions, selectedIds],
+  );
+
   const isFiltered = q.length > 0 || activeTags.length > 0 || statusFilter.length > 0;
 
   /** One way out of every filter at once, from the line that reports them. */
@@ -381,7 +411,47 @@ export function RepositoryShell({
                 know their own state, but nothing told you the TABLE was short
                 because of them — which is the moment people start doubting the
                 data rather than checking the filters. */}
-            {isFiltered && (
+            {/* One strip, two jobs, never both at once: while rows are ticked it
+                reports the batch, because "3 of 450 items, filtered" is not what
+                you are thinking about with three rows ticked. It sits in the flow
+                above the table rather than floating over it — the table's own top
+                edge is where the batch came from. */}
+            {picked > 0 ? (
+              <div className="mb-2.5 flex min-h-8 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pl-0.5">
+                <span className="text-[12px] text-foreground/85">
+                  <span className="font-medium tabular-nums">{picked}</span> selected
+                  {sendable.length !== picked && (
+                    <span className="text-muted-foreground">
+                      {" · "}
+                      <span className="tabular-nums">{sendable.length}</span> ready to
+                      send
+                    </span>
+                  )}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onBulkSend?.(sendable.map((s) => s.id))}
+                    disabled={sendable.length === 0}
+                    title={
+                      sendable.length === 0
+                        ? "Approve these posts to send them"
+                        : "Send the ready posts to campaigns"
+                    }
+                    className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-[12px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+                  >
+                    <Send className="size-3" />
+                    Send to campaigns
+                  </button>
+                  <button
+                    onClick={() => onSelectionChange?.([])}
+                    className="h-7 rounded-(--r-pill) px-2 text-[12px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            ) : isFiltered ? (
               <div className="mb-2.5 flex shrink-0 items-center gap-2 pl-0.5 text-[12px] text-muted-foreground">
                 <span className="flex size-1.5 shrink-0 rounded-(--r-round) bg-violet-400" />
                 <span>
@@ -397,7 +467,7 @@ export function RepositoryShell({
                   Clear all
                 </button>
               </div>
-            )}
+            ) : null}
 
             <SessionsTable
               // remount on filter change so the row window restarts at page 1
@@ -411,6 +481,7 @@ export function RepositoryShell({
               statusFiltered={statusFilter.length > 0}
               onCycleStatus={cycleStatus}
               sessions={sorted}
+              campaigns={campaigns}
               loading={tableLoading}
               selectedSessionId={selectedSessionId}
               onSelectSession={onSelectSession}
@@ -418,6 +489,8 @@ export function RepositoryShell({
               onDeleteSession={onDeleteSession}
               onUnlockSession={onUnlockSession}
               onDuplicateSession={onDuplicateSession}
+              selectedIds={selectedIds}
+              onSelectionChange={onSelectionChange}
               {...columnProps}
               emptyState={
                 isFiltered
@@ -521,6 +594,7 @@ export function RepositoryShell({
             // remount on filter change so the row window restarts at page 1
             key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}`}
             sessions={sorted}
+            campaigns={campaigns}
             loading={tableLoading}
             selectedSessionId={selectedSessionId}
             onSelectSession={onSelectSession}

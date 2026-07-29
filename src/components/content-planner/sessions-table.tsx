@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { StatusBadge, STATUS_TONE } from "./status-badge";
 import { ConfirmDialog } from "./confirm-dialog";
 import {
@@ -15,9 +14,9 @@ import {
 } from "@/lib/utils";
 import {
   Send,
+  Check,
   Lock,
   LockOpen,
-  Info,
   Trash2,
   RefreshCw,
   Copy,
@@ -30,6 +29,8 @@ import {
   ChevronRight,
   ChevronUp,
   ListFilter,
+  Tag,
+  Minus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,7 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { CustomCellValues, CustomColumn, Session } from "@/lib/types";
+import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 interface SessionsTableProps {
   /** Custom columns are owned above the table so they outlive filtering,
@@ -49,6 +50,9 @@ interface SessionsTableProps {
   onDeleteColumn: (colId: string) => void;
   onSetCellValue: (sessionId: string, colId: string, value: string) => void;
   sessions: Session[];
+  /** Canvas only: so the Campaign column can name where a post went, rather
+   *  than reporting that it went somewhere. */
+  campaigns?: Campaign[];
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   onOpenSend: (id: string) => void;
@@ -80,10 +84,222 @@ interface SessionsTableProps {
   statusLabel?: string;
   statusFiltered?: boolean;
   onCycleStatus?: () => void;
+  /** Canvas only. Passing both turns on the select column; the ids live above
+   *  the table so a selection survives paging, sorting and filtering. */
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 /** How long a deleted row takes to collapse before the data is dropped. */
 const ROW_EXIT_MS = 220;
+
+/**
+ * The multi-select box — the same 17px square, and the same violet, as the one
+ * in the send sheet: ticking a row here and ticking a campaign there are the
+ * same gesture, so they cannot look like two different controls.
+ *
+ * Square rather than round because round means "one of these", and this is the
+ * other thing. Always present, never hover-revealed: a reserved gutter with
+ * nothing in it reads as a rendering fault, and a control you cannot see is a
+ * control most people never find. The restraint is in the WEIGHT instead — a
+ * hairline ring at rest, firmer under the cursor, solid violet when on — so a
+ * full page of them stays quiet without going missing.
+ */
+function SelectBox({
+  checked,
+  indeterminate,
+  label,
+  onToggle,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  label: string;
+  onToggle: (shiftKey: boolean) => void;
+}) {
+  const on = checked || Boolean(indeterminate);
+  return (
+    <button
+      role="checkbox"
+      aria-checked={indeterminate ? "mixed" : checked}
+      aria-label={label}
+      title={label}
+      onClick={(e) => onToggle(e.shiftKey)}
+      className={cn(
+        "flex size-[17px] shrink-0 items-center justify-center rounded-[5px] transition-[background-color,box-shadow,opacity,scale] duration-150 active:scale-90",
+        on
+          ? "bg-violet-500 text-white inset-ring-1 inset-ring-violet-400"
+          : "bg-transparent inset-ring-1 inset-ring-(--ink)/[0.16] group-hover:inset-ring-(--ink)/40 hover:!inset-ring-(--ink)/55",
+      )}
+    >
+      {indeterminate ? (
+        <Minus className="size-3" strokeWidth={3} />
+      ) : (
+        <Check
+          className={cn(
+            "size-3 transition-[scale,opacity] duration-150",
+            checked ? "scale-100 opacity-100" : "scale-50 opacity-0",
+          )}
+          strokeWidth={3}
+        />
+      )}
+    </button>
+  );
+}
+
+/**
+ * "This is live in a campaign", said on the row itself.
+ *
+ * The Campaign column can only be read once you look at it, and at 900px it is
+ * not there at all. A post being sent is the most consequential fact about it —
+ * it is out in the world — so it earns a mark next to the name, where the eye
+ * already is. Emerald, because every other accent in this table is violet
+ * (selection, sorting, send) and "already gone" is not the same kind of thing as
+ * "you can act on this".
+ *
+ * Named, not counted: "Sent" tells you nothing you could not infer from the
+ * column, where the campaign's NAME is the fact you came for.
+ */
+function SentChip({
+  session,
+  campaigns,
+}: {
+  session: Session;
+  campaigns: Campaign[];
+}) {
+  if (session.sentToCampaignIds.length === 0) return null;
+  const names = session.sentToCampaignIds
+    .map((id) => campaigns.find((c) => c.id === id)?.name)
+    .filter((name): name is string => Boolean(name));
+  const label = names.length
+    ? names.length === 1
+      ? names[0]
+      : `${names[0]} +${names.length - 1}`
+    : `${session.sentToCampaignIds.length} campaigns`;
+
+  return (
+    <span
+      title={names.length ? `Sent to ${names.join(", ")}` : "Sent"}
+      className="flex h-[15px] shrink-0 items-center gap-1 rounded-[5px] bg-emerald-500/[0.09] px-1.5 text-[10.5px] font-medium text-emerald-300/90 inset-ring-1 inset-ring-emerald-400/30"
+    >
+      <Check className="size-2.5 shrink-0" strokeWidth={3} />
+      <span className="max-w-[130px] truncate">{label}</span>
+    </span>
+  );
+}
+
+/**
+ * The Campaign cell: where the post went, and the way to send it somewhere else.
+ *
+ * It used to be one button that changed identity — Send, then Update, then
+ * "Locked" once it had gone and not been touched since. Which meant the moment a
+ * post was actually IN a campaign, the column stopped naming the campaign, and
+ * the only thing you could do from it was unlock the post for editing. Sending
+ * the same post to a second campaign then took three unrelated steps: unlock,
+ * which dropped it back to WIP, re-approve, and only then did an action return.
+ *
+ * Locking is about editing, not about distribution: a post being live somewhere
+ * is no reason it cannot also go somewhere new. So the cell now carries the
+ * destination on top and the action under it, the action is always live for an
+ * approved post, and the lock moved to the row's edit actions where it belongs.
+ */
+function CampaignCell({
+  session,
+  campaigns,
+  onOpenSend,
+  singleDestination,
+}: {
+  session: Session;
+  campaigns: Campaign[];
+  onOpenSend: (id: string) => void;
+  /** Classic: one campaign, so there is nowhere else to send it. */
+  singleDestination?: boolean;
+}) {
+  const locked = isSessionLocked(session);
+  const needsResend = sessionNeedsResend(session);
+  const sent = session.sentToCampaignIds.length > 0;
+  const approved = session.status === "approved";
+
+  if (!sent) {
+    return approved ? (
+      <button
+        onClick={() => onOpenSend(session.id)}
+        className="inline-flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-xs font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+      >
+        <Send className="size-3" />
+        Send
+      </button>
+    ) : (
+      // plain text, not a dead button that reads as broken chrome
+      <span
+        title="Approve this post to send it"
+        className="text-xs text-muted-foreground/70"
+      >
+        Not ready
+      </span>
+    );
+  }
+
+  const names = session.sentToCampaignIds
+    .map((id) => campaigns.find((c) => c.id === id)?.name)
+    .filter((name): name is string => Boolean(name));
+  // One name plus a count, not a list: the first destination is the one people
+  // recognise the post by, and three names do not fit a 132px column anyway.
+  const label = names.length
+    ? names.length === 1
+      ? names[0]
+      : `${names[0]} +${names.length - 1}`
+    : `${session.sentToCampaignIds.length} campaigns`;
+
+  const action = needsResend
+    ? approved
+      ? "Send update"
+      : "Approve to update"
+    : singleDestination
+      ? "Up to date"
+      : "Send to another";
+  const actionable = approved && (needsResend || !singleDestination);
+
+  return (
+    <button
+      onClick={() => onOpenSend(session.id)}
+      disabled={!actionable}
+      title={
+        names.length
+          ? `In ${names.join(", ")}${
+              actionable
+                ? needsResend
+                  ? " · send the update"
+                  : " · send it to another campaign"
+                : approved
+                  ? " · sent and unchanged since"
+                  : " · approve it to send the update"
+            }`
+          : undefined
+      }
+      className="group/send -mx-1.5 flex max-w-full flex-col items-start gap-px rounded-md px-1.5 py-1 text-left transition-colors duration-150 hover:bg-(--ink)/[0.06] disabled:pointer-events-none"
+    >
+      <span className="flex max-w-full items-center gap-1">
+        {locked && (
+          <Lock className="size-2.5 shrink-0 text-muted-foreground/55" />
+        )}
+        <span className="truncate text-[12px] text-foreground/85">{label}</span>
+      </span>
+      <span
+        className={cn(
+          "flex max-w-full items-center gap-1 text-[11px] font-medium transition-colors duration-150",
+          !actionable
+            ? "text-muted-foreground/60"
+            : needsResend
+              ? "text-violet-200"
+              : "text-muted-foreground/70 group-hover/send:text-violet-200",
+        )}
+      >
+        {actionable && <RefreshCw className="size-2.5 shrink-0" />}
+        <span className="truncate">{action}</span>
+      </span>
+    </button>
+  );
+}
 
 /**
  * A column title that sorts. Inactive headers stay plain text with the arrow
@@ -145,6 +361,7 @@ function initials(name: string) {
 
 export function SessionsTable({
   sessions,
+  campaigns = [],
   selectedSessionId,
   onSelectSession,
   onOpenSend,
@@ -164,6 +381,8 @@ export function SessionsTable({
   statusLabel = "Status",
   statusFiltered = false,
   onCycleStatus,
+  selectedIds,
+  onSelectionChange,
   customColumns,
   customCellValues,
   onAddColumn,
@@ -341,6 +560,19 @@ export function SessionsTable({
   );
 
   /**
+   * Selection.
+   *
+   * The ids belong to the page above, so ticking three rows, filtering, paging
+   * and coming back does not quietly drop them. What lives here is only the
+   * arithmetic the table can see: what is on THIS page, and where the last tick
+   * was, so shift-click can fill the run between two rows the way a file list
+   * does.
+   */
+  const selectable = Boolean(selectedIds && onSelectionChange);
+  const selectedSet = new Set<string>(selectedIds ?? []);
+  const lastPickedRef = useRef<number | null>(null);
+
+  /**
    * Custom columns describe rows. With no rows to describe, "Column 1ds" is a
    * heading over nothing — it makes an empty table look misconfigured rather
    * than new. They come back the moment there is content, since the columns
@@ -365,10 +597,14 @@ export function SessionsTable({
   // rendering six columns at 480px is just six truncated columns. Inline styles
   // cannot answer container queries, so the templates ride in as custom
   // properties and Tailwind's @-variants pick which one applies.
+  // The select column is a fixed 26px gutter rather than something that appears
+  // on hover: a column that materialises shoves every title 26px sideways under
+  // the cursor, and a table that moves when you point at it is unusable.
+  const pick = selectable ? "26px " : "";
   const canvasGrid = {
-    "--cols-sm": "minmax(0,1fr) 104px 72px",
-    "--cols-md": "minmax(0,1fr) 168px 112px 72px",
-    "--cols-lg": `minmax(0,1fr) 176px 116px 132px ${headerColumns
+    "--cols-sm": `${pick}minmax(0,1fr) 104px 72px`,
+    "--cols-md": `${pick}minmax(0,1fr) 168px 112px 72px`,
+    "--cols-lg": `${pick}minmax(0,1fr) 176px 116px 132px ${headerColumns
       .map(() => "140px")
       .join(" ")} 80px`,
   } as React.CSSProperties;
@@ -386,6 +622,54 @@ export function SessionsTable({
   const rangeStart = sessions.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const rangeEnd = Math.min(safePage * pageSize, sessions.length);
   const pageRows = sessions.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const pageIds = pageRows.map((r) => r.id);
+  const pagePicked = pageIds.filter((id) => selectedSet.has(id)).length;
+  const allPagePicked = pageIds.length > 0 && pagePicked === pageIds.length;
+
+  function commitSelection(next: Set<string>) {
+    onSelectionChange?.(Array.from(next));
+  }
+
+  // Memoised, and reading the page out of `sessions` rather than closing over the
+  // derived `pageRows`: the keyboard handler depends on this function, and a new
+  // identity every render would tear down and rebuild the listener every render.
+  const toggleRow = useCallback(
+    (index: number, id: string, shiftKey: boolean) => {
+      const rows = sessions.slice((safePage - 1) * pageSize, safePage * pageSize);
+      const next = new Set<string>(selectedIds ?? []);
+      const turningOn = !next.has(id);
+      // Shift extends from the last row you touched, inclusive, and applies THAT
+      // row's new state to the whole run — so a shift-click can clear a block too.
+      if (shiftKey && lastPickedRef.current !== null) {
+        const from = Math.min(lastPickedRef.current, index);
+        const to = Math.max(lastPickedRef.current, index);
+        for (const row of rows.slice(from, to + 1)) {
+          if (turningOn) next.add(row.id);
+          else next.delete(row.id);
+        }
+      } else if (turningOn) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      lastPickedRef.current = index;
+      onSelectionChange?.(Array.from(next));
+    },
+    [sessions, safePage, pageSize, selectedIds, onSelectionChange],
+  );
+
+  /** The header box takes the page, not the whole repository: it can only speak
+      for the rows it is sitting above. */
+  function togglePage() {
+    const next = new Set<string>(selectedSet);
+    for (const id of pageIds) {
+      if (allPagePicked) next.delete(id);
+      else next.add(id);
+    }
+    lastPickedRef.current = null;
+    commitSelection(next);
+  }
 
   /**
    * Keyboard row cursor: j/k (and the arrow keys) move it, Enter opens.
@@ -418,8 +702,19 @@ export function SessionsTable({
 
       const down = e.key === "j" || e.key === "ArrowDown";
       const up = e.key === "k" || e.key === "ArrowUp";
-      if (!down && !up && e.key !== "Enter" && e.key !== "Escape") return;
+      const tick = e.key === "x" || e.key === "X";
+      if (!down && !up && !tick && e.key !== "Enter" && e.key !== "Escape") return;
       if (pageRows.length === 0) return;
+
+      // x ticks the row the cursor is on, the way Mail and Gmail do — the whole
+      // point of a keyboard cursor is to act without reaching for the mouse.
+      if (tick) {
+        if (selectable && cursor !== null && cursorId) {
+          e.preventDefault();
+          toggleRow(cursor, cursorId, e.shiftKey);
+        }
+        return;
+      }
 
       if (e.key === "Escape") {
         setCursor(null);
@@ -444,7 +739,15 @@ export function SessionsTable({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pageRows, cursorId, onSelectSession, selectedSessionId]);
+  }, [
+    pageRows,
+    cursor,
+    cursorId,
+    onSelectSession,
+    selectedSessionId,
+    selectable,
+    toggleRow,
+  ]);
 
   /** Keeps the cursor row on screen when it walks past the fold. */
   useEffect(() => {
@@ -505,6 +808,20 @@ export function SessionsTable({
                   : "border-(--ink)/[0.06]",
               )}
             >
+              {selectable && (
+                <div className="group flex items-center">
+                  <SelectBox
+                    checked={allPagePicked}
+                    indeterminate={pagePicked > 0 && !allPagePicked}
+                    label={
+                      allPagePicked
+                        ? "Clear the selection on this page"
+                        : "Select every post on this page"
+                    }
+                    onToggle={togglePage}
+                  />
+                </div>
+              )}
               <SortableHeader
                 label="Name"
                 columnKey="name"
@@ -591,10 +908,12 @@ export function SessionsTable({
             ) : sessions.length === 0 ? (
               <EmptyRows emptyState={emptyState} />
             ) : (
-              pageRows.map((session) => {
+              pageRows.map((session, rowIndex) => {
                 const isSelected = session.id === selectedSessionId;
+                const picked = selectedSet.has(session.id);
+                // Only the lock is needed out here now — the Campaign cell works
+                // out its own state from the session.
                 const locked = isSessionLocked(session);
-                const needsResend = sessionNeedsResend(session);
 
                 return (
                   <div
@@ -620,7 +939,12 @@ export function SessionsTable({
                       // signal, which is what lets them coexist on one row.
                       isSelected
                         ? "z-10 bg-violet-500/[0.09] shadow-(--lift-md) inset-ring-1 inset-ring-violet-400/35"
-                        : "hover:bg-(--ink)/[0.035]",
+                        // Ticked is a WASH, not a lift: a row you have marked for
+                        // a later action is not a row you are reading, so it must
+                        // not compete with the one that is open.
+                        : picked
+                          ? "bg-violet-500/[0.05] hover:bg-violet-500/[0.075]"
+                          : "hover:bg-(--ink)/[0.035]",
                       // The keyboard cursor: lighter than selection, because it
                       // is a place you are pointing at rather than a thing you
                       // have opened.
@@ -643,19 +967,40 @@ export function SessionsTable({
                         isSelected ? "opacity-100" : "opacity-70 group-hover:opacity-100",
                       )}
                     />
-                    <div className="min-w-0 pr-4">
-                      {/* title brightens on row hover — the row answers the
-                          cursor instead of merely being highlighted */}
+                    {selectable && (
                       <div
-                        data-row-title
-                        className={cn(
-                          "truncate text-[13.5px] font-medium transition-colors duration-150",
-                          isSelected
-                            ? "text-foreground"
-                            : "text-foreground/85 group-hover:text-foreground",
-                        )}
+                        className="flex items-center"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {session.title}
+                        <SelectBox
+                          checked={picked}
+                          label={picked ? `Deselect ${session.title}` : `Select ${session.title}`}
+                          onToggle={(shiftKey) =>
+                            toggleRow(rowIndex, session.id, shiftKey)
+                          }
+                        />
+                      </div>
+                    )}
+                    <div className="min-w-0 pr-4">
+                      {/* The badge rides with the NAME, not with the tags. The
+                          tag line is a set of colour-coded topics; a coloured
+                          chip inside it reads as a fourth topic in the same
+                          series. Being sent is not a topic, it is state, so it
+                          belongs at the altitude of identity. Title truncates
+                          first: the badge is short, and never the thing to lose. */}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div
+                          data-row-title
+                          className={cn(
+                            "truncate text-[13.5px] font-medium transition-colors duration-150",
+                            isSelected
+                              ? "text-foreground"
+                              : "text-foreground/85 group-hover:text-foreground",
+                          )}
+                        >
+                          {session.title}
+                        </div>
+                        <SentChip session={session} campaigns={campaigns} />
                       </div>
                       {/* Tags as quiet text, not pills. Filled chips here put a
                           second chip treatment on screen competing with the
@@ -664,6 +1009,12 @@ export function SessionsTable({
                           topic down the column, nowhere near enough to shout. */}
                       {session.tags.length > 0 && (
                         <div className="mt-0.5 flex items-center gap-2 truncate text-[11px] text-muted-foreground/70">
+                          {/* The glyph says what the dots ARE. Unlabelled, a row
+                              of coloured dots is a legend with no key. */}
+                          <Tag
+                            aria-hidden
+                            className="size-2.5 shrink-0 text-muted-foreground/45"
+                          />
                           {session.tags.slice(0, 2).map((tag) => (
                             <span key={tag} className="flex shrink-0 items-center gap-1.5">
                               <span
@@ -715,38 +1066,11 @@ export function SessionsTable({
                     </div>
 
                     <div className={wideOnly} onClick={(e) => e.stopPropagation()}>
-                      {locked ? (
-                        // Quiet: a filled emerald pill in every sent row made the
-                        // column read as clutter. Only Send stays loud.
-                        <button
-                          onClick={() => setConfirmUnlockId(session.id)}
-                          title="Sent and unchanged since. Click to unlock and edit."
-                          className="inline-flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-emerald-300/80 transition-[background-color,color,scale] duration-150 hover:bg-emerald-500/10 hover:text-emerald-200 active:scale-(--press)"
-                        >
-                          <Lock className="size-3" />
-                          Locked
-                        </button>
-                      ) : session.status === "approved" ? (
-                        <button
-                          onClick={() => onOpenSend(session.id)}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-xs font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
-                        >
-                          {needsResend ? (
-                            <RefreshCw className="size-3" />
-                          ) : (
-                            <Send className="size-3" />
-                          )}
-                          {needsResend ? "Update" : "Send"}
-                        </button>
-                      ) : (
-                        // plain text, not a dead button that reads as broken chrome
-                        <span
-                          title={`Approve this post to ${needsResend ? "send the update" : "send it"}`}
-                          className="text-xs text-muted-foreground/70"
-                        >
-                          Not ready
-                        </span>
-                      )}
+                      <CampaignCell
+                        session={session}
+                        campaigns={campaigns}
+                        onOpenSend={onOpenSend}
+                      />
                     </div>
 
                     {customColumns.map((col) => (
@@ -775,6 +1099,20 @@ export function SessionsTable({
                       {/* Reveal drifts in from the right rather than blinking on.
                           The 2px of travel is what turns a state change into a
                           gesture; the row's own hover tint carries the rest. */}
+                      {/* Unlocking is about EDITING, so it lives with the row's
+                          other verbs. It used to occupy the Campaign column,
+                          where it blocked the one action that column is for. */}
+                      {locked && (
+                        <button
+                          onClick={() => setConfirmUnlockId(session.id)}
+                          aria-label="Unlock to edit"
+                          title="Live on Wozku and locked from editing. Unlock to edit."
+                          style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
+                          className="flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-(--ink)/[0.08] hover:text-foreground focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100"
+                        >
+                          <LockOpen className="size-3.5" />
+                        </button>
+                      )}
                       {onDuplicateSession && (
                         <button
                           onClick={() => onDuplicateSession(session.id)}
@@ -950,7 +1288,6 @@ export function SessionsTable({
           pageRows.map((session) => {
             const isSelected = session.id === selectedSessionId;
             const locked = isSessionLocked(session);
-            const needsResend = sessionNeedsResend(session);
 
             return (
               <div
@@ -977,9 +1314,12 @@ export function SessionsTable({
                     isSelected ? "opacity-100" : "opacity-70 group-hover:opacity-100",
                   )}
                 />
-                <span data-row-title className="truncate pr-4 font-medium text-sm">
-                  {session.title}
-                </span>
+                <div className="flex min-w-0 items-center gap-2 pr-4">
+                  <span data-row-title className="truncate font-medium text-sm">
+                    {session.title}
+                  </span>
+                  <SentChip session={session} campaigns={campaigns} />
+                </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   {session.lastEditedBy ? (
@@ -1005,57 +1345,15 @@ export function SessionsTable({
                 </div>
 
                 <div onClick={(e) => e.stopPropagation()}>
-                  {locked ? (
-                    <button
-                      onClick={() => setConfirmUnlockId(session.id)}
-                      title="Sent and unchanged since. Click to unlock and edit."
-                      className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20"
-                    >
-                      <Lock className="size-3" />
-                      Locked
-                    </button>
-                  ) : needsResend ? (
-                    session.status === "approved" ? (
-                      <Button
-                        size="sm"
-                        className="h-7 gap-1.5 bg-violet-600 text-xs text-white hover:bg-violet-500"
-                        onClick={() => onOpenSend(session.id)}
-                      >
-                        <RefreshCw className="size-3" />
-                        Update
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled
-                        title="Approve this post to send the update"
-                        className="h-7 gap-1.5 text-xs text-muted-foreground/60"
-                      >
-                        <Info className="size-3" />
-                        Update
-                      </Button>
-                    )
-                  ) : session.status === "approved" ? (
-                    <Button
-                      size="sm"
-                      className="h-7 gap-1.5 bg-violet-600 text-xs text-white hover:bg-violet-500"
-                      onClick={() => onOpenSend(session.id)}
-                    >
-                      <Send className="size-3" />
-                      Send
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled
-                      className="h-7 gap-1.5 text-xs text-muted-foreground/60"
-                    >
-                      <Info className="size-3" />
-                      Send
-                    </Button>
-                  )}
+                  <CampaignCell
+                    session={session}
+                    campaigns={campaigns}
+                    onOpenSend={onOpenSend}
+                    // Classic has exactly one destination — the campaign in the
+                    // sidebar — so "send it to another" is an offer it cannot
+                    // keep. A sent, untouched post there is simply up to date.
+                    singleDestination
+                  />
                 </div>
 
                 {/* Custom Column Cell Values */}
@@ -1082,6 +1380,16 @@ export function SessionsTable({
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center justify-end gap-1"
                 >
+                  {locked && (
+                    <button
+                      onClick={() => setConfirmUnlockId(session.id)}
+                      aria-label="Unlock to edit"
+                      title="Live on Wozku and locked from editing. Unlock to edit."
+                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                    >
+                      <LockOpen className="size-3.5" />
+                    </button>
+                  )}
                   {onDuplicateSession && (
                     <button
                       onClick={() => onDuplicateSession(session.id)}

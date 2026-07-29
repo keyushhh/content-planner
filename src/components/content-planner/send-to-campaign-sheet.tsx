@@ -13,6 +13,9 @@ interface SendToCampaignSheetProps {
   campaigns: Campaign[];
   /** What is being sent, so the sheet can name it rather than imply it. */
   session?: Session | null;
+  /** A batch, when more than one post is going at once. Named as a count with
+   *  the first title, because fifteen titles is a list nobody reads. */
+  sessions?: Session[];
   /** Campaigns this post already lives in — offered as state, not as targets. */
   alreadySentTo?: string[];
   onShare: (campaignIds: string[]) => void;
@@ -59,6 +62,7 @@ export function SendToCampaignSheet({
   onOpenChange,
   campaigns,
   session,
+  sessions,
   alreadySentTo = [],
   onShare,
   allowCreateCampaign,
@@ -104,6 +108,8 @@ export function SendToCampaignSheet({
     };
   }, [campaigns, q, alreadySentTo]);
 
+  /** A batch of two or more; one post is just the single-post flow. */
+  const batch = sessions && sessions.length > 1 ? sessions : null;
   const showSearch = campaigns.length > 6;
   const count = selectedIds.length;
   const selectedNames = campaigns
@@ -164,7 +170,25 @@ export function SendToCampaignSheet({
           <div className="min-w-0">
             {/* Provenance line, not a card. As an outlined pill it looked
                 selectable — a fourth row you could not tick. */}
-            {session && (
+            {batch ? (
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="shrink-0 uppercase tracking-[0.09em] text-muted-foreground/60">
+                  Sending
+                </span>
+                <span className="shrink-0 font-medium text-foreground/85 tabular-nums">
+                  {batch.length} posts
+                </span>
+                <span aria-hidden className="shrink-0 text-muted-foreground/30">
+                  ·
+                </span>
+                {/* One title carries the batch: it is the row you were looking at
+                    when you ticked, so it tells you the selection is the one you
+                    meant without printing a list you would have to read. */}
+                <span className="truncate">
+                  {batch[0].title} and {batch.length - 1} more
+                </span>
+              </div>
+            ) : session ? (
               <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="shrink-0 uppercase tracking-[0.09em] text-muted-foreground/60">
                   Sending
@@ -177,12 +201,14 @@ export function SendToCampaignSheet({
                 </span>
                 <span className="shrink-0">{session.postType}</span>
               </div>
-            )}
+            ) : null}
             <h2 className="text-[21px] font-semibold leading-tight tracking-[-0.022em]">
               Send to campaigns
             </h2>
             <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground text-pretty">
-              Pick as many as you need. Nothing is removed from where it already is.
+              {batch
+                ? "Every post goes to every campaign you pick. Nothing is removed from where it already is."
+                : "Pick as many as you need. Nothing is removed from where it already is."}
             </p>
           </div>
           <button
