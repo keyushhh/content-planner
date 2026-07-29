@@ -27,7 +27,7 @@ import { cn, tagTint } from "@/lib/utils";
 import { SECONDARY_ACTION_SM } from "@/lib/button-styles";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
-import type { Feedback, MediaAsset, Platform, PostType, Session } from "@/lib/types";
+import type { Feedback, MediaAsset, PostType, Session } from "@/lib/types";
 
 /** Post types offered in the composer, matching the creation modal. */
 export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [

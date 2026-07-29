@@ -3,46 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ChevronDown,
-  UserPlus,
-  UploadCloud,
-  FolderOpen,
-  Sparkles,
-  AtSign,
-  X,
-  Check,
-  Loader2,
-  Save,
-  ImageIcon,
-  FileText,
-  Frame,
-  Repeat2,
-  MessageSquare,
-  Plus,
-  Send,
-  RefreshCw,
-  ChevronsRight,
-  AlertCircle,
   Lock,
   LockOpen,
-  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "./confirm-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,16 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
-import { openFeedback } from "@/lib/feedback";
 import { MediaLibraryView } from "./media-library-view";
-import { MediaThumb } from "./media-thumb";
-import {
-  COPY_LIMITS,
-  FeedbackButton,
-  LIMIT_ZONE,
-  limitZone,
-  SessionComposer,
-} from "./session-composer";
+import { SessionComposer } from "./session-composer";
 import { SessionCanvas } from "./session-canvas";
 
 export type ComposerLayout = "split" | "canvas";
@@ -72,33 +29,11 @@ export function readStoredLayout(): ComposerLayout {
   return stored === "canvas" || stored === "split" ? stored : "split";
 }
 import type {
-  Feedback,
   MediaAsset,
   MediaFolder,
-  Platform,
-  PostType,
   Session,
   SessionStatus,
 } from "@/lib/types";
-
-const POST_TYPE_META: Record<PostType, { icon: typeof ImageIcon; label: string }> = {
-  Image: { icon: ImageIcon, label: "Image" },
-  Reshare: { icon: Repeat2, label: "Reshare" },
-  Frames: { icon: Frame, label: "Frames" },
-  PDF: { icon: FileText, label: "PDF" },
-};
-const POST_TYPES = Object.keys(POST_TYPE_META) as PostType[];
-
-const PLATFORM_META: Record<
-  Platform,
-  { mark: string; label: string; color: string; locked?: boolean }
-> = {
-  linkedin: { mark: "in", label: "LinkedIn", color: "bg-[#0A66C2]", locked: true },
-  instagram: { mark: "ig", label: "Instagram", color: "bg-pink-600" },
-  facebook: { mark: "f", label: "Facebook", color: "bg-blue-600" },
-  x: { mark: "x", label: "X", color: "bg-neutral-700" },
-};
-const PLATFORMS: Platform[] = ["linkedin"];
 
 import { VariationsView } from "./variations-view";
 
@@ -114,12 +49,7 @@ interface SessionDetailPaneProps {
   isFeedbackOpen: boolean;
   onToggleFeedback: () => void;
   onOpenSend: () => void;
-  hidePlatforms?: boolean;
-  hidePostType?: boolean;
-  postTypeAsSegmented?: boolean;
-  isRepositoryModel?: boolean;
   composerLayout?: ComposerLayout;
-  onComposerLayoutChange?: (layout: ComposerLayout) => void;
 }
 
 export function SessionDetailPane({
@@ -133,12 +63,7 @@ export function SessionDetailPane({
   isFeedbackOpen,
   onToggleFeedback,
   onOpenSend,
-  hidePlatforms = false,
-  hidePostType = false,
-  postTypeAsSegmented = false,
-  isRepositoryModel = false,
   composerLayout,
-  onComposerLayoutChange,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
   /**
@@ -155,7 +80,6 @@ export function SessionDetailPane({
   // The table owns this now; fall back to the stored value if the pane is ever
   // rendered uncontrolled.
   const layout = composerLayout ?? readStoredLayout();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local draft states for blur & 30-second timer autosave
   const [titleDraft, setTitleDraft] = useState(session.title);
@@ -290,9 +214,6 @@ export function SessionDetailPane({
     );
   }
 
-  const feedbackFor = (sectionLabel: string) =>
-    session.feedback.filter((f) => f.sectionLabel === sectionLabel);
-
   const sendReadinessIssues: string[] = [];
   if (!copyDraft.trim()) sendReadinessIssues.push("copy");
   const canApprove = sendReadinessIssues.length === 0;
@@ -348,583 +269,54 @@ export function SessionDetailPane({
   // layout switcher of its own.
   const layoutToggle = null;
 
-  // The repository model gets the polished composer layouts (Split / Canvas). The
-  // classic model keeps the original single-column form below, unchanged.
-  if (isRepositoryModel) {
-    const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
-    return (
-      <LayoutComponent
-        // Keyed on the session too, not just the layout: the stagger is what
-        // makes the sheet feel authored, and without a remount it only ever
-        // played on the first open. Clicking row after row swapped the text in
-        // place and the whole choreography went missing. Drafts live in THIS
-        // component, so remounting the layout costs nothing but the animation.
-        key={`${layout}:${session.id}`}
-        session={session}
-        mediaAssets={mediaAssets}
-        isCampaignLocked={isCampaignLocked}
-        titleDraft={titleDraft}
-        onTitleChange={setTitleDraft}
-        copyDraft={copyDraft}
-        onCopyChange={setCopyDraft}
-        hashtagsDraft={hashtagsDraft}
-        onHashtagsChange={setHashtagsDraft}
-        tagDraft={tagDraft}
-        onTagDraftChange={setTagDraft}
-        saveStatus={saveStatus}
-        saveSource={saveSource}
-        isDirty={isDirty}
-        savePendingChanges={savePendingChanges}
-        onUpdate={onUpdate}
-        onUpdateWithPendingSave={handleUpdateWithPendingSave}
-        onClose={onClose}
-        onOpenFeedback={onOpenFeedback}
-        isFeedbackOpen={isFeedbackOpen}
-        onToggleFeedback={onToggleFeedback}
-        onOpenSend={onOpenSend}
-        onOpenMediaLibrary={() => setView("media-library")}
-        onOpenVariations={() => {
-          // Entering from the composer starts at the table, never inside
-          // whichever variation last borrowed the media library.
-          setMediaTarget({ kind: "post" });
-          setView("variations");
-        }}
-        onRequestUnlock={() => setShowUnlockDialog(true)}
-        sendReadinessIssues={sendReadinessIssues}
-        readyToSend={readyToSend}
-        needsResend={needsResend}
-        statusMenu={statusMenu}
-        layoutToggle={layoutToggle}
-        unlockDialog={unlockDialog}
-      />
-    );
-  }
-
+  // Both models get a composer layout now — the model decides WHICH, because
+  // each was designed around one: Classic the split pane, Repository the canvas.
+  const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={() => {
-          handleUpdateWithPendingSave({
-            visualAssetIds: [...session.visualAssetIds, `device-upload-${Date.now()}`],
-          });
-        }}
-      />
-
-      <div className="flex shrink-0 items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">{statusMenu}</div>
-        <div className="flex items-center gap-1.5">
-          {readyToSend && (
-            <Button
-              size="sm"
-              className="gap-1.5 bg-violet-600 text-sm text-white hover:bg-violet-500"
-              onClick={onOpenSend}
-            >
-              {needsResend ? (
-                <RefreshCw className="size-3.5" />
-              ) : (
-                <Send className="size-3.5" />
-              )}
-              {needsResend ? "Send Update" : "Send to Campaign"}
-            </Button>
-          )}
-          <button
-            onClick={() => savePendingChanges("instant")}
-            title="Autosaves on focus loss (blur) or every 30 seconds"
-            className="flex items-center gap-1.5 rounded-full border border-border/60 bg-accent/30 px-3 py-1.5 text-xs transition-colors hover:bg-accent hover:border-border"
-          >
-            {saveStatus === "saving" ? (
-              <>
-                <Loader2 className="size-3 animate-spin text-violet-400" />
-                <span className="text-muted-foreground">Saving…</span>
-              </>
-            ) : (
-              <>
-                <Check className="size-3 text-emerald-400" />
-                <span className="text-muted-foreground">Autosaved</span>
-              </>
-            )}
-          </button>
-          <Button
-            size="sm"
-            variant={isFeedbackOpen ? "secondary" : "ghost"}
-            className="relative gap-1.5 text-sm text-muted-foreground data-[active=true]:text-foreground"
-            data-active={isFeedbackOpen}
-            onClick={onToggleFeedback}
-            aria-label="Feedback"
-          >
-            <MessageSquare className="size-3.5" />
-            {openFeedback(session.feedback).length > 0 && (
-              <span className="flex size-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold tabular-nums text-black/80">
-                {openFeedback(session.feedback).length}
-              </span>
-            )}
-          </Button>
-          <div className="mx-1 h-6 w-px bg-border" />
-          <button
-            onClick={() => {
-              savePendingChanges("blur");
-              onClose();
-            }}
-            aria-label="Save and collapse session"
-            title="Save and collapse"
-            className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-          >
-            <ChevronsRight className="size-4" />
-          </button>
-        </div>
-      </div>
-
-      {isCampaignLocked && (
-        <div className="flex items-center justify-between gap-3 border-b border-violet-500/20 bg-violet-500/10 px-6 py-2.5 text-sm text-violet-300">
-          <span className="flex items-center gap-2">
-            <Lock className="size-4 shrink-0" />
-            This post is live on Wozku, so it&rsquo;s locked from editing.
-          </span>
-          <button
-            onClick={() => setShowUnlockDialog(true)}
-            className="shrink-0 rounded-md px-2.5 py-1 text-xs font-medium text-violet-300 underline-offset-2 hover:underline"
-          >
-            Unlock to Edit
-          </button>
-        </div>
-      )}
-
-      {!isCampaignLocked && session.status === "approved" && sendReadinessIssues.length > 0 && (
-        <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-6 py-2.5 text-sm text-amber-400">
-          <AlertCircle className="size-4 shrink-0" />
-          <span>
-            Add {sendReadinessIssues.join(" and ")} before this post can be sent.
-          </span>
-        </div>
-      )}
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-        <div className="mb-6">
-          <input
-            value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onBlur={() => savePendingChanges("blur")}
-            disabled={isCampaignLocked}
-            className="w-full bg-transparent text-3xl font-bold tracking-tight outline-none disabled:cursor-not-allowed disabled:opacity-70"
-          />
-          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <Avatar className="size-5">
-              <AvatarFallback className="text-[9px]">
-                {session.lastEditedBy?.name?.[0] ?? "?"}
-              </AvatarFallback>
-            </Avatar>
-            <span>{session.lastEditedBy?.name ?? "Unknown"}</span>
-            <span>·</span>
-            <span>
-              Edited{" "}
-              {new Date(session.updatedAt).toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </span>
-          </div>
-        </div>
-
-        {!hidePostType && (
-          <Field
-            label="Post Type"
-            feedback={feedbackFor("Post Type")}
-            onFeedback={() => onOpenFeedback("Post Type")}
-          >
-            {postTypeAsSegmented ? (
-              // Segmented control pill — compact single-line selector
-              <div className="flex items-center rounded-lg border border-border bg-accent/20 p-1 gap-1">
-                {POST_TYPES.map((t) => {
-                  const meta = POST_TYPE_META[t];
-                  const Icon = meta.icon;
-                  const active = session.postType === t;
-                  return (
-                    <button
-                      key={t}
-                      disabled={isCampaignLocked}
-                      onClick={() => onUpdate({ postType: t })}
-                      className={cn(
-                        "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                        active
-                          ? "bg-violet-600 text-white shadow-sm"
-                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                      )}
-                    >
-                      <Icon className="size-3.5" />
-                      {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              // Default 3-card grid
-              <div className="grid grid-cols-3 gap-2.5">
-                {POST_TYPES.map((t) => {
-                  const meta = POST_TYPE_META[t];
-                  const Icon = meta.icon;
-                  const active = session.postType === t;
-                  return (
-                    <button
-                      key={t}
-                      disabled={isCampaignLocked}
-                      onClick={() => onUpdate({ postType: t })}
-                      className={cn(
-                        "flex flex-col items-center gap-2 rounded-xl border px-3 py-3.5 transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                        active
-                          ? "border-violet-500/70 bg-violet-500/[0.08] shadow-[0_0_0_1px_#8b5cf6_inset]"
-                          : "border-border text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                      )}
-                    >
-                      <Icon className={cn("size-5", active && "text-violet-400")} />
-                      <span
-                        className={cn(
-                          "text-xs font-medium",
-                          active && "text-foreground",
-                        )}
-                      >
-                        {meta.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </Field>
-        )}
-
-        {!hidePlatforms && (
-          <Field
-            label="Platforms"
-            feedback={feedbackFor("Platforms")}
-            onFeedback={() => onOpenFeedback("Platforms")}
-          >
-            <div className="overflow-hidden rounded-xl border border-border">
-              {PLATFORMS.map((id, i) => {
-                const meta = PLATFORM_META[id];
-                const active = session.platforms.includes(id);
-                return (
-                  <div
-                    key={id}
-                    className={cn(
-                      "flex items-center justify-between gap-3 px-3.5 py-3",
-                      i > 0 && "border-t border-border",
-                    )}
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white",
-                          meta.color,
-                        )}
-                      >
-                        {meta.mark}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">{meta.label}</div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          Share this post to {meta.label}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (meta.locked || isCampaignLocked) return;
-                        onUpdate({
-                          platforms: active
-                            ? session.platforms.filter((x) => x !== id)
-                            : [...session.platforms, id],
-                        });
-                      }}
-                      disabled={meta.locked || isCampaignLocked}
-                      title={meta.locked ? `${meta.label} is required and can't be turned off` : undefined}
-                      className={cn(
-                        "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition-colors",
-                        active ? "bg-emerald-500/90" : "bg-muted",
-                        meta.locked || isCampaignLocked ? "cursor-not-allowed opacity-40" : "cursor-pointer",
-                      )}
-                      aria-pressed={active}
-                      aria-label={`Toggle ${meta.label}`}
-                    >
-                      <span
-                        className={cn(
-                          "size-5 rounded-full bg-white shadow transition-transform",
-                          active ? "translate-x-4" : "translate-x-0",
-                        )}
-                      />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              More platforms can be connected here as they become available.
-            </p>
-          </Field>
-        )}
-
-        <Field
-            label={isRepositoryModel ? "Assets" : "Visual Assets"}
-            feedback={feedbackFor(isRepositoryModel ? "Assets" : "Visual Assets")}
-            onFeedback={() => onOpenFeedback(isRepositoryModel ? "Assets" : "Visual Assets")}
-          >
-            {session.visualAssetIds.length === 0 ? (
-              <button
-                disabled={isCampaignLocked}
-                onClick={() => setView("media-library")}
-                className="flex w-full items-center gap-3 rounded-xl border border-dashed border-violet-500/50 px-4 py-3.5 text-left transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-              >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-violet-400">
-                  <UploadCloud className="size-4" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">
-                    {isRepositoryModel ? "Add assets" : "Add an image or video"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {isRepositoryModel
-                      ? "add an image, video or an embed code."
-                      : "Pick from Media Library"}
-                  </span>
-                </span>
-              </button>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                {session.visualAssetIds.map((assetId) => (
-                  <div
-                    key={assetId}
-                    className="group relative size-24 shrink-0 rounded-xl ring-1 ring-border/80 shadow-xs"
-                  >
-                    <MediaThumb
-                      assetId={assetId}
-                      type={mediaAssets.find((a) => a.id === assetId)?.type}
-                      url={mediaAssets.find((a) => a.id === assetId)?.url}
-                      name={mediaAssets.find((a) => a.id === assetId)?.name}
-                      className="size-full"
-                    />
-                    {!isCampaignLocked && (
-                      <button
-                        onClick={() =>
-                          onUpdate({
-                            visualAssetIds: session.visualAssetIds.filter(
-                              (id) => id !== assetId,
-                            ),
-                          })
-                        }
-                        aria-label="Remove asset"
-                        className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {!isCampaignLocked && (
-                  <button
-                    onClick={() => setView("media-library")}
-                    title="Pick from Media Library"
-                    className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:border-violet-500/50 hover:bg-accent/20 hover:text-violet-400"
-                  >
-                    <UploadCloud className="size-5" />
-                  </button>
-                )}
-              </div>
-            )}
-          </Field>
-
-        <Field
-            label="Copy"
-            feedback={feedbackFor("Copy")}
-            onFeedback={() => onOpenFeedback("Copy")}
-            action={
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMediaTarget({ kind: "post" });
-                    setView("variations");
-                  }}
-                  className="flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:underline"
-                >
-                  <Layers className="size-3.5 text-blue-400" />
-                  <span>Post Variations</span>
-                  {session.variations.length > 0 && (
-                    <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-blue-300">
-                      {session.variations.length}
-                    </span>
-                  )}
-                </button>
-                <button className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:underline">
-                  <AtSign className="size-3.5" />
-                  Add Mentions
-                </button>
-                <button className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white">
-                  <Sparkles className="size-3.5" />
-                  AI Assist
-                </button>
-              </div>
-            }
-          >
-            <Textarea
-              value={copyDraft}
-              onChange={(e) => setCopyDraft(e.target.value)}
-              onBlur={() => savePendingChanges("blur")}
-              placeholder="Post content..."
-              disabled={isCampaignLocked}
-              className="min-h-32 resize-y"
-            />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-accent/20 px-3 py-2 text-xs">
-              <span className="font-mono text-muted-foreground">
-                {copyDraft.length} characters
-              </span>
-              {/* same four platforms as the repository-model layouts */}
-              <div className="flex flex-wrap items-center gap-2">
-                {COPY_LIMITS.map(({ label, limit }) => (
-                  <span
-                    key={label}
-                    className={cn(
-                      "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums transition-colors duration-300",
-                      // same green / amber / red language as the repository-model meters
-                      LIMIT_ZONE[limitZone(copyDraft.length, limit)].chip,
-                    )}
-                  >
-                    {label}: {copyDraft.length}/{limit}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </Field>
-
-
-
-        <Field label="Hashtags" feedback={feedbackFor("Hashtags")} onFeedback={() => onOpenFeedback("Hashtags")}>
-          <div className="space-y-2">
-            <Input
-              value={hashtagsDraft}
-              onChange={(e) => setHashtagsDraft(e.target.value)}
-              onBlur={() => savePendingChanges("blur")}
-              placeholder="#product #launch"
-              disabled={isCampaignLocked}
-              className="h-10 w-full rounded-lg px-3.5 text-sm"
-            />
-            {!isCampaignLocked && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="text-[11px] font-medium text-muted-foreground/60">Suggested:</span>
-                {["#product", "#launch", "#giveaway", "#contest", "#announcement", "#marketing", "#branding"]
-                  .filter((ht) => !hashtagsDraft.includes(ht))
-                  .slice(0, 5)
-                  .map((ht) => (
-                    <button
-                      key={ht}
-                      type="button"
-                      onClick={() => {
-                        const trimmed = hashtagsDraft.trim();
-                        const next = trimmed ? `${trimmed} ${ht}` : ht;
-                        setHashtagsDraft(next);
-                        handleUpdateWithPendingSave({ hashtags: next });
-                      }}
-                      className="rounded-md border border-border/60 bg-accent/20 px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-violet-300"
-                    >
-                      +{ht}
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        </Field>
-
-        <Field label="Tags">
-          <div className="space-y-2">
-            <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-transparent p-1.5 focus-within:border-violet-500/60 focus-within:ring-2 focus-within:ring-violet-500/20">
-              {session.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex h-6.5 items-center gap-1.5 rounded-md bg-accent/80 px-2.5 py-0 text-xs font-medium"
-                >
-                  {tag}
-                  {!isCampaignLocked && (
-                    <button
-                      onClick={() =>
-                        onUpdate({ tags: session.tags.filter((t) => t !== tag) })
-                      }
-                      aria-label={`Remove tag ${tag}`}
-                      className="text-muted-foreground transition-colors hover:text-destructive"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  )}
-                </span>
-              ))}
-              <input
-                value={tagDraft}
-                onChange={(e) => setTagDraft(e.target.value)}
-                disabled={isCampaignLocked}
-                onKeyDown={(e) => {
-                  if ((e.key === "Enter" || e.key === ",") && tagDraft.trim()) {
-                    e.preventDefault();
-                    const next = tagDraft.trim().toLowerCase();
-                    if (!session.tags.includes(next)) {
-                      onUpdate({ tags: [...session.tags, next] });
-                    }
-                    setTagDraft("");
-                  } else if (e.key === "Backspace" && !tagDraft && session.tags.length > 0) {
-                    onUpdate({ tags: session.tags.slice(0, -1) });
-                  }
-                }}
-                placeholder={session.tags.length === 0 ? "Add tags (location, topic…)" : ""}
-                className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-              />
-            </div>
-            {!isCampaignLocked && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="text-[11px] font-medium text-muted-foreground/60">Suggested:</span>
-                {["social", "product", "launch", "giveaway", "contest", "email", "announcement"]
-                  .filter((t) => !session.tags.includes(t))
-                  .slice(0, 5)
-                  .map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => onUpdate({ tags: [...session.tags, tag] })}
-                      className="rounded-md border border-border/60 bg-accent/20 px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-violet-300"
-                    >
-                      +{tag}
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        </Field>
-      </div>
-
-      {unlockDialog}
-    </div>
-  );
-}
-
-function SaveIndicator({ status }: { status: "idle" | "saving" | "saved" }) {
-  if (status === "idle") {
-    return (
-      <span className="text-xs text-muted-foreground">Autosave on</span>
-    );
-  }
-  if (status === "saving") {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Loader2 className="size-3 animate-spin" />
-        Saving…
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-      <Check className="size-3" />
-      Saved
-    </span>
+    <LayoutComponent
+      // Keyed on the session too, not just the layout: the stagger is what
+      // makes the sheet feel authored, and without a remount it only ever
+      // played on the first open. Clicking row after row swapped the text in
+      // place and the whole choreography went missing. Drafts live in THIS
+      // component, so remounting the layout costs nothing but the animation.
+      key={`${layout}:${session.id}`}
+      session={session}
+      mediaAssets={mediaAssets}
+      isCampaignLocked={isCampaignLocked}
+      titleDraft={titleDraft}
+      onTitleChange={setTitleDraft}
+      copyDraft={copyDraft}
+      onCopyChange={setCopyDraft}
+      hashtagsDraft={hashtagsDraft}
+      onHashtagsChange={setHashtagsDraft}
+      tagDraft={tagDraft}
+      onTagDraftChange={setTagDraft}
+      saveStatus={saveStatus}
+      saveSource={saveSource}
+      isDirty={isDirty}
+      savePendingChanges={savePendingChanges}
+      onUpdate={onUpdate}
+      onUpdateWithPendingSave={handleUpdateWithPendingSave}
+      onClose={onClose}
+      onOpenFeedback={onOpenFeedback}
+      isFeedbackOpen={isFeedbackOpen}
+      onToggleFeedback={onToggleFeedback}
+      onOpenSend={onOpenSend}
+      onOpenMediaLibrary={() => setView("media-library")}
+      onOpenVariations={() => {
+        // Entering from the composer starts at the table, never inside
+        // whichever variation last borrowed the media library.
+        setMediaTarget({ kind: "post" });
+        setView("variations");
+      }}
+      onRequestUnlock={() => setShowUnlockDialog(true)}
+      sendReadinessIssues={sendReadinessIssues}
+      readyToSend={readyToSend}
+      needsResend={needsResend}
+      statusMenu={statusMenu}
+      layoutToggle={layoutToggle}
+      unlockDialog={unlockDialog}
+    />
   );
 }
 
@@ -985,44 +377,5 @@ function StatusMenu({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function Field({
-  label,
-  required,
-  action,
-  feedback,
-  onFeedback,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  action?: React.ReactNode;
-  feedback?: Feedback[];
-  onFeedback?: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    // group/row as well as group/field: FeedbackButton reveals on `group/row`,
-    // and this component is the "row" as far as the feedback control is concerned.
-    <div className="group/field group/row mb-7">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {label}
-          </span>
-          {/* Beside the label, not out in a reserved right-hand gutter */}
-          {onFeedback && (
-            <FeedbackButton items={feedback ?? []} onClick={onFeedback} />
-          )}
-          {required && (
-            <span className="text-xs font-medium text-violet-400">required</span>
-          )}
-        </div>
-        {action && <div className="flex items-center gap-3">{action}</div>}
-      </div>
-      {children}
-    </div>
   );
 }

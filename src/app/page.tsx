@@ -1054,10 +1054,6 @@ export default function Home() {
                       setFeedbackSection(sectionLabel);
                     }}
                     onOpenSend={() => requestSend(selectedSession.id)}
-                    hidePlatforms={true}
-                    hidePostType={mode === "repository"}
-                    postTypeAsSegmented={mode === "classic"}
-                    isRepositoryModel={mode === "repository"}
                     composerLayout={composerLayout}
                   />
                 </div>
