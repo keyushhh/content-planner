@@ -37,7 +37,7 @@ import {
   VERSIONS,
   type AppVersion,
 } from "@/components/content-planner/version-chooser-modal";
-import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
+import { VersionSwitchDialog } from "@/components/content-planner/version-switch-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1166,38 +1166,18 @@ export default function Home() {
         onChoose={(v) => setMode(v)}
       />
 
-      {/* A view switch is the lowest-stakes action in here: nothing is created,
-          moved or destroyed. So it gets no alert icon, no preview panel and one
-          line of copy — the weight of a delete confirmation on a change of view
-          would be lying about the consequences. */}
-      <ConfirmDialog
-        open={pendingVersion !== null}
+      <VersionSwitchDialog
+        target={pendingVersion}
         onOpenChange={(next) => {
           if (!next) setPendingVersion(null);
         }}
-        tone="violet"
-        title={`Switch to ${pendingVersion ? versionMeta(pendingVersion).label : ""}?`}
-        description={
-          pendingVersion === "repository"
-            ? "The same content, shown as one table across every campaign."
-            : "The same content, shown one campaign at a time."
-        }
-        actions={[
-          { label: "Cancel", tone: "outline", onClick: () => setPendingVersion(null) },
-          {
-            // "Switch", not "Open Classic" — the title already named the
-            // destination, and a button that repeats it is a button shouting.
-            label: "Switch",
-            tone: "primary",
-            onClick: () => {
-              // Any post open in the old version would be sitting in the other
-              // version's pane a frame later, so it closes with the switch.
-              setSelectedSessionId(null);
-              setMode(pendingVersion);
-              setPendingVersion(null);
-            },
-          },
-        ]}
+        onConfirm={() => {
+          // Any post open in the old version would be sitting in the other
+          // version's pane a frame later, so it closes with the switch.
+          setSelectedSessionId(null);
+          setMode(pendingVersion);
+          setPendingVersion(null);
+        }}
       />
     </div>
   );

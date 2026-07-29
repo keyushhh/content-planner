@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, ChevronRight, Database } from "lucide-react";
+import { CalendarDays, Database } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { EASE } from "./session-composer";
+import { VersionPreview } from "./version-preview";
 
 export type AppVersion = "classic" | "repository";
 
 /**
  * One description of each version, shared by everything that has to name them:
- * these rows, the title menu, and the switch confirmation. Two products should
- * not drift into two different sets of words.
+ * these tiles, the title menu, and the switch dialog. Two products should not
+ * drift into two different sets of words.
  */
 export const VERSIONS: {
   id: AppVersion;
@@ -27,22 +28,25 @@ export const VERSIONS: {
   /** Each version owns a hue, the way the post types do. */
   well: string;
   glow: string;
+  ring: string;
 }[] = [
   {
     id: "classic",
     label: "Classic",
-    hint: "One campaign at a time. Pick it in the sidebar, write inside it, send to it.",
+    hint: "One campaign at a time",
     icon: CalendarDays,
     well: "bg-sky-500/[0.14] text-sky-300 inset-ring-sky-400/25",
-    glow: "hover:inset-ring-sky-400/45 hover:bg-sky-500/[0.07]",
+    glow: "hover:inset-ring-sky-400/45 hover:bg-sky-500/[0.05]",
+    ring: "group-hover:inset-ring-sky-400/40",
   },
   {
     id: "repository",
     label: "Repository",
-    hint: "Everything in one table. Content joins no campaign until you send it — then as many as you like.",
+    hint: "Everything, across every campaign",
     icon: Database,
     well: "bg-violet-500/[0.14] text-violet-300 inset-ring-violet-400/25",
-    glow: "hover:inset-ring-violet-400/45 hover:bg-violet-500/[0.07]",
+    glow: "hover:inset-ring-violet-400/45 hover:bg-violet-500/[0.05]",
+    ring: "group-hover:inset-ring-violet-400/40",
   },
 ];
 
@@ -54,10 +58,10 @@ export const versionMeta = (v: AppVersion) => VERSIONS.find((x) => x.id === v)!;
  * inferred. The dialog cannot be dismissed: there is no sensible default to
  * fall back to, and a half-chosen app is worse than a question.
  *
- * Built as rows rather than side-by-side tiles, for the same reason the post
- * type picker is: the hints are what you decide on, and they need the width to
- * be read. The two standalone repos ask nothing, because there is nothing to
- * ask — this exists only in the combined build.
+ * Shown as two miniatures rather than two descriptions. The difference between
+ * these products is a difference in SHAPE — a campaign rail and one list, or no
+ * rail and one long table — and you can see that in a moment, where reading it
+ * takes a paragraph. The words underneath only confirm what the picture said.
  */
 export function VersionChooserModal({
   open,
@@ -72,7 +76,7 @@ export function VersionChooserModal({
     <Dialog open={open}>
       <DialogContent
         showCloseButton={false}
-        className="w-[440px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[440px]"
+        className="w-[600px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-[24px] border-0 bg-[oklch(0.26_0_0)] p-0 text-left text-foreground shadow-[0_2px_4px_rgba(0,0,0,0.35),0_32px_72px_-32px_rgba(0,0,0,1)] inset-ring-1 inset-ring-white/[0.09] sm:max-w-[600px]"
       >
         <div
           aria-hidden
@@ -90,43 +94,49 @@ export function VersionChooserModal({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5 border-t border-white/[0.06] p-3">
-          {VERSIONS.map(({ id, label, hint, icon: Icon, well, glow }, i) => (
+        <div className="grid grid-cols-2 gap-3 border-t border-white/[0.06] p-3">
+          {VERSIONS.map(({ id, label, hint, icon: Icon, well, glow, ring }, i) => (
             <button
               key={id}
               onClick={() => onChoose(id)}
               style={{ animation: `post-type-in 400ms ${EASE} ${i * 55}ms both` }}
               className={cn(
-                "group flex items-start gap-3.5 rounded-[16px] bg-white/[0.028] px-3.5 py-3.5 text-left inset-ring-1 inset-ring-white/[0.07] transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.985]",
+                "group flex flex-col gap-3 rounded-[16px] bg-white/[0.028] p-3 text-left inset-ring-1 inset-ring-white/[0.07] transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.985]",
                 glow,
               )}
-              // Without this the row keeps a focus ring after the click, which
+              // Without this the tile keeps a focus ring after the click, which
               // reads as "still deciding" on a dialog that is already closing.
               onMouseDown={(e) => e.preventDefault()}
             >
-              <span
+              {/* The miniature does the explaining. It lifts very slightly on
+                  hover — enough to feel picked up, not enough to bounce. */}
+              <VersionPreview
+                version={id}
                 className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-[12px] inset-ring-1 transition-transform duration-300 group-hover:scale-[1.06]",
-                  well,
+                  "transition-[scale,box-shadow] duration-300 group-hover:scale-[1.012]",
+                  ring,
                 )}
-                style={{ transitionTimingFunction: EASE }}
-              >
-                <Icon className="size-[18px]" />
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-medium tracking-[-0.008em]">
-                  {label}
-                </span>
-                <span className="mt-0.5 block text-[12.5px] leading-snug text-muted-foreground text-pretty">
-                  {hint}
-                </span>
-              </span>
-
-              <ChevronRight
-                className="mt-2.5 size-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-[opacity,translate] duration-200 group-hover:translate-x-0 group-hover:opacity-100"
-                style={{ transitionTimingFunction: EASE }}
               />
+
+              <span className="flex items-center gap-2.5 px-0.5 pb-0.5">
+                <span
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-[10px] inset-ring-1 transition-transform duration-300 group-hover:scale-[1.06]",
+                    well,
+                  )}
+                  style={{ transitionTimingFunction: EASE }}
+                >
+                  <Icon className="size-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[14.5px] font-medium tracking-[-0.008em]">
+                    {label}
+                  </span>
+                  <span className="mt-px block truncate text-[12px] leading-snug text-muted-foreground">
+                    {hint}
+                  </span>
+                </span>
+              </span>
             </button>
           ))}
         </div>
