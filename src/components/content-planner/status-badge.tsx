@@ -4,11 +4,9 @@ import { cn } from "@/lib/utils";
 import type { SessionStatus } from "@/lib/types";
 
 /**
- * One source of truth for what a status looks like.
- *
- * `bar` is the row's left-edge hairline — the same colour as the dot, on purpose:
- * two different greens for one status is how a palette starts lying. Exported so
- * the table cannot drift from the badge.
+ * One source of truth for what a status looks like. `bar` is the row's left-
+ * edge hairline, the same colour as the dot on purpose: two different greens
+ * for one status is how a palette starts lying.
  */
 export const STATUS_TONE: Record<
   SessionStatus,
@@ -38,9 +36,8 @@ const DOT = STATUS_TONE;
 
 /**
  * `variant="dot"` is the Canvas table's reading. The ringed pill is tuned for
- * the classic table, where every cell already carries a border — dropped into a
- * Canvas row it became the densest thing there and out-weighted the title. A dot
- * plus a word carries the same information at a fraction of the ink.
+ * the classic table, where every cell already carries a border; in a Canvas row
+ * it became the densest thing there and out-weighted the title.
  */
 export function StatusBadge({
   status,

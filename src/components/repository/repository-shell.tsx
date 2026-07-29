@@ -66,8 +66,7 @@ const SORT_MENU: SortKey[] = ["edited", "created", "name"];
 
 /**
  * Cycle order for clicking the Status column header: off, then each status in
- * workflow order. `null` is the "All" stop, so one more click always gets you
- * back to everything rather than trapping you in a filter.
+ * workflow order.
  */
 const STATUS_CYCLE: (Session["status"] | null)[] = [null, "approved", "wip", "draft"];
 
@@ -79,10 +78,8 @@ const STATUSES: { id: Session["status"]; label: string }[] = [
 ];
 
 /**
- * Status is a FILTER, not a sort. "Sort by status" only ever answered "which
- * bucket is at the top" — nobody wants that; they want to see the approved ones
- * and nothing else. So the Status column header filters too, rather than
- * offering an ordering nobody asked for.
+ * Status is a filter, not a sort. "Sort by status" only answers which bucket
+ * is on top, where what people want is the approved ones and nothing else.
  */
 const SORTS: Record<SortKey, { label: string; compare: (a: Session, b: Session) => number }> = {
   edited: {
@@ -191,9 +188,7 @@ export function RepositoryShell({
   );
   /**
    * A batch is only as sendable as its members: approved, and not already sent
-   * and untouched since. Ticking a draft is allowed — you cannot know it is not
-   * ready until you have looked — so the bar says how many of the ticks can
-   * actually go, and Send acts on those and only those.
+   * and untouched since.
    */
   const picked = (selectedIds ?? []).length;
   const sendable = useMemo(
@@ -229,11 +224,9 @@ export function RepositoryShell({
     />
   );
 
-  // ---- Canvas layout -------------------------------------------------------
-  // One quiet toolbar; the large title, filters and table all share the content
-  // column's left edge. The PAGE does not scroll — the title and filters are
-  // fixed furniture and the table scrolls inside its own sheet, so the column
-  // headers and the pager are always on screen.
+  // ---- Canvas layout ----
+  // One quiet toolbar; the large title, filters and table all share the
+  // content column's left edge.
   if (isCanvas) {
     return (
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -243,9 +236,8 @@ export function RepositoryShell({
               <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em]">
                 {title}
               </h1>
-              {/* The sync signal used to sit under the table, where the pager now
-                  reports the counts. It belongs with the title: it describes the
-                  whole repository, not the page you happen to be looking at. */}
+              {/* The sync signal used to sit under the table, where the pager
+                  now reports the counts. */}
               <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
                 {subtitle}
                 <span className="text-muted-foreground/30">&middot;</span>
@@ -256,17 +248,13 @@ export function RepositoryShell({
               </p>
             </div>
 
-            {/* Two halves, not one run: everything that NARROWS the table on the
-                left, everything that ACTS on the right. The split is what tells
-                the two apart — style alone could not, because a filter and a
-                button standing shoulder to shoulder read as the same kind of
-                thing however they are painted. */}
+            {/* Two halves, not one run: everything that NARROWS the table on
+                the left, everything that ACTS on the right. */}
             <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2.5">
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2.5">
-                {/* Grows into whatever the filters leave, between a floor that still
-                    fits a phrase and a ceiling past which a search field stops
-                    looking like one. The actions on the right are shrink-0, so
-                    nothing here can squeeze them. */}
+                {/* Grows into whatever the filters leave, between a floor
+                    that still fits a phrase and a ceiling past which a search
+                    field stops looking like one. */}
                 <div className="relative min-w-[240px] max-w-[260px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -291,18 +279,17 @@ export function RepositoryShell({
                   )}
                 </div>
 
-                {/* Status filter — multi-select, so "Approved + WIP" is one step.
-                    Lights violet while narrowing, the same signal the tag chips
-                    use, so you can never forget a filter is on. */}
+                {/* Status filter: multi-select, so "Approved + WIP" is one
+                    step. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
                       <button
                         title="Filter by status"
-                        // Fixed width, sized to "2 statuses" — the trigger must
-                        // not resize as you pick, and the menu is anchored to
-                        // its width, so a narrow trigger and a wider menu are
-                        // the same bug seen from two ends.
+                        // Fixed width, sized to "2 statuses": the trigger must not
+                        // resize as you pick, and the menu is anchored to its width,
+                        // so a narrow trigger and a wider menu are one bug seen from
+                        // two ends.
                         className={cn(
                           "flex h-8 w-[148px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
                           statusFilter.length > 0
@@ -316,12 +303,14 @@ export function RepositoryShell({
                     <span className="flex-1 truncate text-left">{statusLabel}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuTrigger>
-                  {/* These triggers now sit at the left of the row, so the menu
-                      drops from their left edge rather than reaching back. */}
+                  {/* These triggers now sit at the left of the row, so the
+                      menu drops from their left edge rather than reaching
+                      back. */}
                   <DropdownMenuContent align="start" className="min-w-[148px]">
-                    {/* "All" is the no-filter state stated out loud. Without it the
-                        only way back was unticking whatever you had ticked, which
-                        is not something you should have to reason about. */}
+                    {/* "All" is the no-filter state stated out loud. Without
+                        it the only way back was unticking whatever you had
+                        ticked, which is not something you should have to
+                        reason about. */}
                     <DropdownMenuItem onClick={() => setStatusFilter([])}>
                       <span className="flex-1 whitespace-nowrap">All</span>
                       {statusFilter.length === 0 && (
@@ -349,10 +338,10 @@ export function RepositoryShell({
                     render={
                       <button
                         title="Sort content"
-                        // Fixed width, sized to the longest option. The control
-                        // must not resize as you pick — it would shove the tag
-                        // filter sideways — and the menu inherits the trigger's
-                        // width, so a shrunken trigger wraps its own options.
+                        // Fixed width, sized to the longest option. The control must
+                        // not resize as you pick, since it would shove the tag filter
+                        // sideways, and the menu inherits the trigger's width, so a
+                        // shrunken trigger wraps its own options.
                         className="flex h-8 w-[184px] items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-(--press)"
                       />
                     }
@@ -361,10 +350,11 @@ export function RepositoryShell({
                     <span className="flex-1 truncate text-left">{SORTS[sort].label}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuTrigger>
-                  {/* These triggers now sit at the left of the row, so the menu
-                      drops from their left edge rather than reaching back. */}
-                  {/* Belt and braces: the trigger is already wide enough, but a
-                      sort option is a fixed phrase and must never wrap. */}
+                  {/* These triggers now sit at the left of the row, so the
+                      menu drops from their left edge rather than reaching
+                      back. */}
+                  {/* Belt and braces: the trigger is already wide enough, but
+                      a sort option is a fixed phrase and must never wrap. */}
                   <DropdownMenuContent align="start" className="min-w-[184px]">
                     {SORT_MENU.map((key) => (
                       <DropdownMenuItem key={key} onClick={() => requestSort(key)}>
@@ -376,7 +366,8 @@ export function RepositoryShell({
                 </DropdownMenu>
 
                 {/* Tags last, so the three controls read left to right in the
-                    order you reach for them: what state, what order, what topic. */}
+                    order you reach for them: what state, what order, what
+                    topic. */}
                 <TagFilterBar
                   tags={rankedTags}
                   active={activeTags}
@@ -389,9 +380,9 @@ export function RepositoryShell({
                 />
               </div>
 
-              {/* Actions: outlined rather than filled. A white fill here would
-                  carry more luminance weight than the violet primary and the
-                  row would have two CTAs fighting. */}
+              {/* Actions: outlined rather than filled. A white fill here
+                  would carry more luminance weight than the violet primary
+                  and the row would have two CTAs fighting. */}
               <div className="flex shrink-0 items-center gap-1.5">
                 <button onClick={() => setShowInvite(true)} className={SECONDARY_ACTION}>
                   <UserPlus className="size-4" />
@@ -407,15 +398,13 @@ export function RepositoryShell({
               </div>
             </div>
 
-            {/* Says out loud that you are looking at a subset. The controls each
-                know their own state, but nothing told you the TABLE was short
-                because of them — which is the moment people start doubting the
-                data rather than checking the filters. */}
-            {/* One strip, two jobs, never both at once: while rows are ticked it
-                reports the batch, because "3 of 450 items, filtered" is not what
-                you are thinking about with three rows ticked. It sits in the flow
-                above the table rather than floating over it — the table's own top
-                edge is where the batch came from. */}
+            {/* Says out loud that you are looking at a subset. The controls
+                each know their own state, but nothing told you the TABLE was
+                short because of them, which is the moment people start
+                doubting the data rather than checking the filters. */}
+            {/* One strip, two jobs, never both at once: while rows are ticked
+                it reports the batch, because "3 of 450 items, filtered" is
+                not what you are thinking about with three rows ticked. */}
             {picked > 0 ? (
               <div className="mb-2.5 flex min-h-8 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pl-0.5">
                 <span className="text-[12px] text-foreground/85">

@@ -14,18 +14,13 @@ interface MediaLibraryViewProps {
   onSelectAsset: (assetId: string) => void;
   onClose: () => void;
   /**
-   * Locks the library to one asset type. A PDF post cannot take an image, so
-   * the other formats are not shown as options that will be rejected later —
-   * they are simply not offered.
+   * Locks the library to one asset type. A PDF post cannot take an image, so the
+   * other formats are not shown as options that will be rejected later.
    */
   restrictType?: MediaAssetType;
   /** What the restriction is for, so the notice explains itself. */
   restrictReason?: string;
-  /**
-   * Puts picked files into the library and hands back their ids. Without it the
-   * upload tile is decoration — which is what it used to be: its onChange threw
-   * the file away and closed the dialog.
-   */
+  /** Puts picked files into the library and hands back their ids. */
   onUpload?: (files: File[], folderId: string) => string[];
 }
 
@@ -55,7 +50,7 @@ export function MediaLibraryView({
   const [searchQuery, setSearchQuery] = useState("");
 
   // Narrowed before anything else, so the folder counts and the "All Media"
-  // total describe what you can actually pick — a collection listing 12 assets
+  // total describe what you can actually pick. A collection listing 12 assets
   // that opens onto 2 usable ones is a lie the sidebar told you.
   const pool = restrictType ? assets.filter((a) => a.type === restrictType) : assets;
 
@@ -163,8 +158,8 @@ export function MediaLibraryView({
           </button>
         </div>
 
-        {/* When the type is fixed, the filter row would offer three choices that
-            all lead nowhere. It states the constraint instead. */}
+        {/* When the type is fixed, the filter row would offer three choices
+            that all lead nowhere. */}
         {restrictType ? (
           <div className="flex items-center gap-2 border-b border-border/60 px-5 py-2.5 text-xs text-muted-foreground">
             <span className="rounded-(--r-pill) bg-amber-500/15 px-2.5 py-1 font-medium uppercase tracking-wide text-amber-300">
@@ -208,13 +203,12 @@ export function MediaLibraryView({
                     onClose();
                     return;
                   }
-                  // Filed into the folder you are looking at, not a default one:
-                  // the upload lands where you were already working. "All Media"
-                  // is a view, not a folder, so it falls back to the first real one.
+                  // Filed into the folder you are looking at, not a default
+                  // one, so the upload lands where you were already working.
                   const targetFolder =
                     activeFolderId === ALL_MEDIA ? folders[0]?.id ?? "" : activeFolderId;
                   // Attaching the first one closes the picker, which is the
-                  // behaviour of picking any asset — an upload is a pick that
+                  // behaviour of picking any asset: an upload is a pick that
                   // brought its own file.
                   const [firstId] = onUpload(files, targetFolder);
                   if (firstId) onSelectAsset(firstId);

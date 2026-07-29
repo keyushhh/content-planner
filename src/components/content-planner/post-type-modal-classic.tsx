@@ -22,8 +22,8 @@ import type { PostType } from "@/lib/types";
 const EASE = "cubic-bezier(0.2,0,0,1)";
 
 /**
- * Each type states what it needs from you, not what it is: "Image" tells you
- * nothing, where "one image" tells you what the next screen will ask for.
+ * Each type states what it needs from you, not what it is: "Image" says
+ * nothing, where "one image" says what the next screen will ask for.
  */
 const TYPES: {
   id: PostType;
@@ -31,7 +31,7 @@ const TYPES: {
   hint: string;
   icon: LucideIcon;
   /** Each type owns a hue, so four rows read as four kinds of thing. Bordered
-      wells rather than ringed ones — Classic draws edges, not elevation. */
+      wells rather than ringed ones: Classic draws edges, not elevation. */
   well: string;
   hover: string;
 }[] = [
@@ -70,21 +70,8 @@ const TYPES: {
 ];
 
 /**
- * The post type, asked before the composer opens — Classic's dialect.
- *
- * Same question the repository asks, deliberately not the same object. The
- * repository's picker is a floating canvas sheet: ringed rows, tinted wells,
- * elevation doing the separating. Classic states structure with edges instead —
- * a bordered card on the surface, hairline-divided sections, flat rows that
- * answer with a fill on hover, and the shared Button for Cancel. Sharing the
- * component and theming it would have meant one file carrying two design
- * systems and neither being written for.
- *
- * A modal rather than a step in the pane: it is one decision, made once, and it
- * should not cost the pane vertical space forever after. Classic keeps Post Type
- * as a field in the composer, so the answer stays changeable afterwards — this
- * only means the composer opens already shaped for what you are making, instead
- * of defaulting to Image and making you notice.
+ * Post type, asked before the composer opens, in Classic's visual language:
+ * bordered card, hairline dividers, flat rows, shared Button for Cancel.
  */
 export function ClassicPostTypeModal({
   open,
@@ -112,8 +99,8 @@ export function ClassicPostTypeModal({
           </div>
         </DialogHeader>
 
-        {/* Rows, not a grid of tiles: the hints are the point and they need the
-            width to be read. Each row is one click straight into the composer. */}
+        {/* Rows, not a grid of tiles: the hints are the point and they need
+            the width to be read. */}
         <div className="flex flex-col gap-1.5 border-t border-border p-3">
           {TYPES.map(({ id, label, hint, icon: Icon, well, hover }, i) => (
             <button

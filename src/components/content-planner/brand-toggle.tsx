@@ -14,10 +14,8 @@ const BRAND_LIGHT_CLASS = "wozku-light";
 const BRAND_EVENT = "cp:brand";
 
 /**
- * One value rather than an `on` boolean beside a `light` boolean, because those
- * two can represent "off, but light" — a state with no meaning. Light is a
- * variant OF the brand layer, not an independent axis: our own visual language
- * is dark-only and is not gaining a light mode.
+ * One value rather than an `on` boolean beside a `light` boolean, since those
+ * two can represent "off, but light".
  */
 export type BrandMode = "off" | "dark" | "light";
 
@@ -51,45 +49,27 @@ function subscribe(onChange: () => void) {
 }
 
 /**
- * Which brand layer is active. Stored in localStorage and mirrored onto <html>
+ * Which brand layer is active, stored in localStorage and mirrored onto <html>
  * as classes.
- *
- * They have to live on <html> because the layer overrides Tailwind's palette
- * variables and the radius scale, and those are read by every utility on the
- * page — scoping them to a subtree would leave portalled content (dialogs,
- * menus, toasts, all of which render at the body) on the old theme.
- *
- * Read through useSyncExternalStore rather than an effect that calls setState.
- * localStorage IS external state, and this is the hook built for it: the server
- * snapshot is a flat "off", so SSR and the first client render agree, and the
- * stored value arrives on the commit after hydration without a cascading render.
- * One frame of the base theme is the honest cost of not guessing wrong and
- * repainting the whole page.
  */
 export function useBrandLayer(active = true) {
   const stored = useSyncExternalStore(subscribe, read, (): BrandMode => "off");
 
-  /**
-   * `active` is how the combined build keeps this away from Classic. The brand
-   * layer belongs to the Repository model only, so while Classic is on screen
-   * the classes come off — but the STORED choice is left alone, so going
-   * Repository -> Classic -> Repository returns you to the theme you had rather
-   * than silently resetting it.
-   */
+  /** `active` is how the combined build keeps this away from Classic. */
   const mode: BrandMode = active ? stored : "off";
 
   const setMode = useCallback((next: BrandMode) => {
     try {
       window.localStorage.setItem(BRAND_STORAGE_KEY, next);
     } catch {
-      // as above — the classes still apply, they just won't survive a reload
+      // as above: the classes still apply, they just won't survive a reload
     }
     apply(next);
     window.dispatchEvent(new Event(BRAND_EVENT));
   }, []);
 
-  // Keeps <html> honest when the value did not come from this tab's click —
-  // a second tab switching it, or the stored value on first paint.
+  // Keeps <html> honest when the value did not come from this tab's click: a
+  // second tab switching it, or the stored value on first paint.
   if (typeof document !== "undefined") apply(mode);
 
   return { mode, setMode };
@@ -101,19 +81,8 @@ const MODES: { id: Exclude<BrandMode, "off">; label: string; Icon: typeof Sun }[
 ];
 
 /**
- * Switches the app between its own visual language and the Wozku brand system,
- * and once inside it, between the brand's two themes.
- *
- * The main control is a switch rather than a button because it is a mode you are
- * in, not an action you take — and because the brand's own guidance calls the
- * Switch "the one intentionally rounded-sm control", which is why its track keeps
- * --r-round while every other pill in the app squares off under the layer. The
- * control stating the rule it toggles is a small thing, but it is the right one.
- *
- * Dark/Light appears only when the layer is on, because "light" means nothing
- * without it. It is a segmented control rather than a second switch: both
- * options are named, which is what you want when the whole point is comparing
- * them, and it matches the Live/Empty/Loading control already in this bar.
+ * Switches between the app's own visual language and the Wozku brand system,
+ * and inside the brand, between its two themes.
  */
 export function BrandToggle({
   mode,
@@ -135,12 +104,12 @@ export function BrandToggle({
         // which way the switch points.
         title={
           on
-            ? "Wozku brand guideline: on — click for the original look"
-            : "Wozku brand guideline: off — click to apply the Wozku design system"
+            ? "Wozku brand guideline is on. Click for the original look"
+            : "Wozku brand guideline is off. Click to apply the Wozku design system"
         }
-        // Turning it on lands on dark, which is the theme this app already is:
-        // one variable changes at a time, so you can see what the BRAND did
-        // before you also change what the LIGHTING did.
+        // Turning it on lands on dark, which is the theme this app already
+        // is, so one variable changes at a time: you can see what the brand
+        // did before you also change what the lighting did.
         onClick={() => onChange(on ? "off" : "dark")}
         className={cn(
           // h-7 matches the dev controls beside it; the pseudo-element takes the
@@ -154,7 +123,7 @@ export function BrandToggle({
       >
         <Palette className="size-3.5 shrink-0" />
         Brand guideline
-        {/* The knob travels most of the track's width — one that barely moves
+        {/* The knob travels most of the track's width: one that barely moves
             reads as a dot changing colour rather than a switch throwing. */}
         <span
           aria-hidden
@@ -173,8 +142,9 @@ export function BrandToggle({
         </span>
       </button>
 
-      {/* Collapsed by grid template rather than unmounted, so the reveal slides
-          the control out from nothing instead of making the toolbar jump. */}
+      {/* Collapsed by grid template rather than unmounted, so the reveal
+          slides the control out from nothing instead of making the toolbar
+          jump. */}
       <div
         aria-hidden={!on}
         className={cn(

@@ -2,7 +2,7 @@ export type SessionStatus = "draft" | "wip" | "approved";
 
 export type Platform = "linkedin" | "instagram" | "facebook" | "x";
 
-/** "PDF" is a document post — one PDF file the platform renders as swipeable
+/** "PDF" is a document post: one PDF file the platform renders as swipeable
     pages. It takes exactly one asset, and that asset must be a PDF. */
 export type PostType = "Image" | "Frames" | "Reshare" | "PDF";
 
@@ -30,13 +30,9 @@ export interface PostVariation {
 }
 
 /**
- * Feedback replaced comments outright, threads included.
- *
- * A comment thread asks to be read; a piece of feedback asks to be acted on.
- * Once every item carries a status, a reply is the wrong instrument — "fixed" is
- * a state change, not a message, and two people typing "done?" / "yes" under a
- * note is how a punch list turns back into a chat nobody reads. So: flat list,
- * one status each, and a second point is a second piece of feedback.
+ * Feedback replaced comments outright, threads included. A comment thread asks
+ * to be read; a piece of feedback asks to be acted on, and once every item
+ * carries a status a reply is the wrong instrument:
  */
 export type FeedbackStatus = "open" | "in_progress" | "done" | "wont_do";
 
@@ -53,7 +49,7 @@ export interface Feedback {
   resolvedAt?: string | null;
 }
 
-/** A person the admin can grant access to — seats that already exist on the
+/** A person the admin can grant access to: seats that already exist on the
     Wozku account, so inviting is picking a name rather than typing an address. */
 export interface SubAccount extends User {
   /** What they do on the account, shown under the name in the picker. */
@@ -93,7 +89,7 @@ export interface Session {
 
 /**
  * A user-added column on the content table. Owned above the table so it
- * survives filtering, sorting, paging and reloads — a column you can only fill
+ * survives filtering, sorting, paging and reloads: a column you can only fill
  * in at the moment you create it is not a column.
  */
 export interface CustomColumn {

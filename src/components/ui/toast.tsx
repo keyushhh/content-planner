@@ -42,14 +42,7 @@ interface ToastRecord extends ToastOptions {
 
 const ToastContext = createContext<((options: ToastOptions) => void) | null>(null);
 
-/**
- * Toasts: the app confirming something happened somewhere you are not looking.
- *
- * Deliberately not a status inside the control that triggered it — a button
- * that turns green reports success only to the person still staring at the
- * button, and it holds the dialog open to do it. A toast leaves the trigger
- * free to close and puts the confirmation somewhere consistent.
- */
+/** Toasts: the app confirming something happened somewhere you are not looking. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
   const [paused, setPaused] = useState(false);
@@ -65,7 +58,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(clock.timeout);
       clocks.current.delete(id);
     }
-    // Out-transition first, unmount after — removing the node immediately would
+    // Out-transition first, unmount after: removing the node immediately would
     // make every toast vanish rather than leave.
     setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, closing: true } : t)));
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 240);
@@ -100,9 +93,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 
   /**
-   * Reading a toast must not cost you the toast. Hovering stops the clock as
-   * well as the bar — pausing only the bar would be theatre, since the thing
-   * would still vanish mid-sentence.
+   * Reading a toast must not cost you the toast, so hovering stops the clock
+   * as well as the bar.
    */
   const pause = useCallback(() => {
     clocks.current.forEach((clock) => {
@@ -162,9 +154,7 @@ function ToastViewport({
   onResume: () => void;
 }) {
   // Portalled to the body: the trigger's stacking context is often a dialog
-  // that is about to close, and the confirmation must outlive it. Portals do
-  // not exist during SSR, so the viewport waits for the client — via the store
-  // hook rather than a mount effect, which is a render-triggering round trip.
+  // that is about to close, and the confirmation must outlive it.
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -209,13 +199,8 @@ function ToastViewport({
 }
 
 /**
- * Tone is carried by the medallion and the drain bar. That is the whole system.
- *
- * The first pass stacked a radial wash, a tinted hairline and a coloured outer
- * glow on one 360px card, and three light sources on an object that small reads
- * as decoration rather than as meaning. The card is now the same flat, quiet
- * surface every other panel in the app uses — identical geometry for all three
- * tones — and the colour sits in one place, where the eye lands first.
+ * Tone is carried by the medallion and the drain bar, and that is the whole
+ * system.
  */
 const TONES = {
   default: {
@@ -266,8 +251,8 @@ function ToastCard({
       )}
       style={{
         transitionTimingFunction: EASE,
-        // Only while stacked and settled — an entering or leaving card owns its
-        // own transform and must not fight the deck for it.
+        // Only while stacked and settled: an entering or leaving card owns its own
+        // transform and must not fight the deck for it.
         ...(toast.open && !toast.closing
           ? {
               scale: `${1 - recede * 0.02}`,
@@ -276,8 +261,9 @@ function ToastCard({
           : null),
       }}
     >
-      {/* Specular top edge, the same one every raised surface in the app wears —
-          neutral, because it describes the light in the room, not the message. */}
+      {/* Specular top edge, the same one every raised surface in the app
+          wears. Neutral, because it describes the light in the room, not the
+          message. */}
       <span
         aria-hidden
         className="absolute inset-x-0 top-0 h-px [background-image:var(--specular)]"

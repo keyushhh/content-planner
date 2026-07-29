@@ -1,6 +1,6 @@
 # Content Planner & Repository
 
-Both product models in one build. On first load it asks which version to open — **Classic** (one campaign at a time) or **Repository** (everything across every campaign) — and then shows only that one. The choice is remembered; the title menu in the top-left switches, with a confirmation.
+Both product models in one build. On first load it asks which version to open, **Classic** (one campaign at a time) or **Repository** (everything across every campaign), and then shows only that one. The choice is not persisted, so every load starts at the question; the title menu in the top-left switches version, with a confirmation.
 
 This is the demo/decision build. The two models also exist on their own:
 

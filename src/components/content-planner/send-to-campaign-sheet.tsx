@@ -16,7 +16,7 @@ interface SendToCampaignSheetProps {
   /** A batch, when more than one post is going at once. Named as a count with
    *  the first title, because fifteen titles is a list nobody reads. */
   sessions?: Session[];
-  /** Campaigns this post already lives in — offered as state, not as targets. */
+  /** Campaigns this post already lives in, offered as state, not as targets. */
   alreadySentTo?: string[];
   onShare: (campaignIds: string[]) => void;
   allowCreateCampaign?: boolean;
@@ -24,11 +24,9 @@ interface SendToCampaignSheetProps {
 }
 
 /**
- * "Ends 4 Aug", plus a countdown only while it is close.
- *
- * "in 50 days" is not urgency, it is arithmetic nobody asked for, and printing
- * it on every row makes the one campaign that closes this week look no different
- * from the one that closes next quarter. Under a fortnight it earns the tail.
+ * "Ends 4 Aug", plus a countdown only while it is close. "in 50 days" is
+ * arithmetic nobody asked for, and printing it on every row makes the campaign
+ * that closes this week look no different from the one closing next quarter.
  */
 function endsLabel(endDate: string, now: number) {
   const parsed = new Date(endDate);
@@ -43,19 +41,8 @@ function endsLabel(endDate: string, now: number) {
 }
 
 /**
- * Send to campaigns.
- *
- * Built in the Canvas idiom, which is one elevated sheet of hairline-divided
- * rows on a washed ground — the same material as the content table, so the two
- * read as the same product. The version before this was a stack of individually
- * outlined pills floating on flat black: every row its own card, every card the
- * same weight, and a grey icon well repeated down the list. Three identical
- * decorations is not a system, it is noise, so the wells are gone and the rows
- * carry type alone.
- *
- * Multi-select, because one post feeding several campaigns is the entire point
- * of a repository. Campaigns it already lives in sit under their own heading
- * INSIDE the same sheet: they are context, not destinations.
+ * Send to campaigns: one elevated sheet of hairline-divided rows, the same
+ * material as the content table.
  */
 export function SendToCampaignSheet({
   open,
@@ -73,18 +60,17 @@ export function SendToCampaignSheet({
   const [newName, setNewName] = useState("");
   const [search, setSearch] = useState("");
   // Focus lands here on open. Left to itself the sheet focused the close button,
-  // which then wore a focus ring — the first thing you saw was Dismiss, ringed.
+  // so the first thing you saw was a ringed Dismiss.
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   // Read once, at mount, not on every render: the countdowns are day-resolution,
   // so re-reading the clock per keystroke would only make a stable number look
-  // unstable. Lazy initialiser keeps it out of the render path.
+  // unstable. The lazy initialiser keeps it out of the render path.
   const [now] = useState(() => Date.now());
 
-  // Reset on the way IN, not out: closing runs while the sheet is still
+  // Reset on the way in, not out: closing runs while the sheet is still
   // animating away, so clearing there makes the footer count tick to zero on
-  // screen. Adjusted during render rather than in an effect — an effect would
-  // paint the last selection for one frame first.
+  // screen.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -148,9 +134,9 @@ export function SendToCampaignSheet({
         side="right"
         initialFocus={bodyRef}
         aria-label="Send to campaigns"
-        // `!` throughout: the base sheet hard-codes a 3/4-viewport width and a
-        // 384px cap for the right side, both variant-prefixed, so nothing but an
-        // important wins against them.
+        // `!` throughout: the base sheet hard-codes a 3/4-viewport width and a 384px
+        // cap for the right side, both variant-prefixed, so nothing but an important
+        // wins against them.
         className="flex !w-[464px] !max-w-[calc(100vw-2rem)] flex-col gap-0 border-0 bg-(--surface-canvas) p-0 text-foreground shadow-(--lift-edge)"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -159,8 +145,8 @@ export function SendToCampaignSheet({
           }
         }}
       >
-        {/* Lit rim. On a right-hand sheet the light catches the left edge, the
-            same way the canvas sheets catch it along the top. */}
+        {/* Lit rim. On a right-hand sheet the light catches the left edge,
+            the same way the canvas sheets catch it along the top. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 left-0 w-px [background-image:var(--specular-v)]"
@@ -169,7 +155,7 @@ export function SendToCampaignSheet({
         <div className="flex shrink-0 items-start justify-between gap-3 px-7 pb-4 pt-6">
           <div className="min-w-0">
             {/* Provenance line, not a card. As an outlined pill it looked
-                selectable — a fourth row you could not tick. */}
+                selectable, a fourth row you could not tick. */}
             {batch ? (
               <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="shrink-0 uppercase tracking-[0.09em] text-muted-foreground/60">
@@ -181,9 +167,10 @@ export function SendToCampaignSheet({
                 <span aria-hidden className="shrink-0 text-muted-foreground/30">
                   ·
                 </span>
-                {/* One title carries the batch: it is the row you were looking at
-                    when you ticked, so it tells you the selection is the one you
-                    meant without printing a list you would have to read. */}
+                {/* One title carries the batch: it is the row you were
+                    looking at when you ticked, so it tells you the selection
+                    is the one you meant without printing a list you would
+                    have to read. */}
                 <span className="truncate">
                   {batch[0].title} and {batch.length - 1} more
                 </span>
@@ -244,16 +231,15 @@ export function SendToCampaignSheet({
           </div>
         )}
 
-        {/* Washed ground. The sheet below floats on it, which is what makes the
-            surrounding space read as margin rather than as a gap. */}
+        {/* Washed ground. The sheet below floats on it, which is what makes
+            the surrounding space read as margin rather than as a gap. */}
         <div
           ref={bodyRef}
           tabIndex={-1}
           className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] px-6 pb-6 pt-1 outline-none"
         >
-          {/* ONE elevated sheet, rows divided by hairlines — the sessions-table
-              material. `items-start` equivalent: no flex-1, so it sizes to its
-              content instead of stretching into a lake of empty surface. */}
+          {/* ONE elevated sheet, rows divided by hairlines: the sessions-
+              table material. */}
           <Stagger
             index={0}
             className="overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]"
@@ -292,9 +278,9 @@ export function SendToCampaignSheet({
               </>
             )}
 
-            {/* Creating a campaign belongs to the list, so it lives in the sheet
-                — but as its own quiet last row, not as a fourth thing that looks
-                pickable. */}
+            {/* Creating a campaign belongs to the list, so it lives in the
+                sheet, but as its own quiet last row, not as a fourth thing
+                that looks pickable. */}
             {canCreate &&
               (creating ? (
                 <div className="border-t border-(--ink)/[0.06] bg-violet-500/[0.05] px-4 py-3">
@@ -349,8 +335,8 @@ export function SendToCampaignSheet({
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.07] bg-(--sink)/[0.22] px-7 py-4">
-          {/* Names, not a bare number: "2 selected" makes you scroll back up to
-              check which two. */}
+          {/* Names, not a bare number: "2 selected" makes you scroll back up
+              to check which two. */}
           <span
             aria-live="polite"
             className={cn(
@@ -438,7 +424,7 @@ function CampaignRow({
           </span>
         </span>
         {/* Tags-as-quiet-text, the same reading the table row uses for its
-            second line — no second chip treatment competing with the first. */}
+            second line, with no second chip treatment competing with the first. */}
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground/70">
           <span className="shrink-0 tabular-nums">
             {campaign.sessionIds.length}{" "}
@@ -479,7 +465,7 @@ function CampaignRow({
   );
 }
 
-/** A campaign the post is already in — present for orientation, not for picking. */
+/** A campaign the post is already in, present for orientation, not picking. */
 function SentRow({ campaign, now }: { campaign: Campaign; now: number }) {
   const ends = endsLabel(campaign.endDate, now);
   return (

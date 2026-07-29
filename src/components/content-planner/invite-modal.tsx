@@ -52,9 +52,7 @@ interface InviteModalProps {
 
 /**
  * Inviting is picking a seat that already exists on the account, not typing an
- * address. The email field it replaces could only produce two outcomes: the
- * address of somebody already on the account (which we know) or a typo. The
- * account is the source of truth for who exists, so the account is the list.
+ * address.
  */
 export function InviteModal({
   open,
@@ -68,7 +66,7 @@ export function InviteModal({
   const [query, setQuery] = useState("");
 
   // Cleared on the way in, so a half-finished invite never greets the next one.
-  // Adjusted during render rather than in an effect — see the send sheet.
+  // Adjusted during render rather than in an effect; see the send sheet.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -94,10 +92,9 @@ export function InviteModal({
     [q],
   );
 
-  // The confirmation used to live in the button — it turned green, said
-  // "Invitation sent", and held the dialog open for 1.4s so you could read it.
-  // That makes the report cost you the thing you were trying to finish. The
-  // dialog now closes on send and the toast carries the news.
+  // The confirmation used to live in the button: it turned green, said
+  // "Invitation sent", and held the dialog open for 1.4s so you could read it,
+  // which makes the report cost you the thing you were trying to finish.
   function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!person || person.alreadyHasAccess) return;
@@ -122,7 +119,8 @@ export function InviteModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Built as a small Canvas sheet: specular top edge, hairline-divided
-          sections, and a footer that holds the action rather than a full-width slab. */}
+          sections, and a footer that holds the action rather than a full-
+          width slab. */}
       <DialogContent
         showCloseButton={false}
         className="w-[520px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-(--r-surface) border-0 bg-(--surface-dialog) p-0 text-foreground shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] sm:max-w-[520px]"
@@ -278,7 +276,8 @@ export function InviteModal({
               <span className="mb-1.5 block text-[13px] font-medium text-muted-foreground">
                 Role
               </span>
-              {/* Each option states what it grants — that is the actual decision */}
+              {/* Each option states what it grants: that is the actual
+                  decision */}
               <div role="radiogroup" aria-label="Role" className="grid grid-cols-2 gap-2">
                 {ROLES.map(({ id, label, hint, icon: Icon }) => {
                   const active = role === id;

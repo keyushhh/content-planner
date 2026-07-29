@@ -20,9 +20,9 @@ export const users: User[] = [
 ];
 
 /**
- * Seats that already exist under the admin's Wozku account. Inviting somebody is
- * picking one of these, not typing an address — the account decides who exists,
- * so an email field could only ever be a way to get it wrong.
+ * Seats that already exist under the admin's Wozku account. Inviting somebody
+ * is picking one of these rather than typing an address: the account decides
+ * who exists, so an email field could only be a way to get it wrong.
  */
 export const subAccounts: SubAccount[] = [
   {

@@ -28,8 +28,7 @@ interface ConfirmDialogProps {
   description: React.ReactNode;
   /**
    * The thing being acted on, shown as its own inset row between the copy and
-   * the footer. A destructive confirmation that names nothing asks you to trust
-   * that the right row was clicked; this shows it.
+   * the footer.
    */
   preview?: React.ReactNode;
   actions: ConfirmDialogAction[];
@@ -43,14 +42,9 @@ const TONE_WELL: Record<Tone, string> = {
 };
 
 /**
- * Built as a small Canvas sheet, so a confirmation looks like it belongs to this
- * product rather than to the browser: specular top edge, hairline-divided
- * footer, and the actions side by side on one row.
- *
- * Two things the stacked full-width version got wrong. The buttons were equal
- * slabs, which made "Delete session" and "Cancel" read as equally likely — a
- * destructive default by layout. And the icon sat alone on the surface at
- * red-600, a light-mode red that goes muddy on a dark sheet.
+ * Built as a small Canvas sheet, so a confirmation looks like it belongs to
+ * this product rather than to the browser: specular top edge, hairline-divided
+ * footer, actions side by side on one row.
  */
 export function ConfirmDialog({
   open,
@@ -65,7 +59,7 @@ export function ConfirmDialog({
   const Icon = CustomIcon ?? (tone === "destructive" ? AlertTriangle : null);
 
   // Cancel-style actions read first, the committing action lands last on the
-  // right — the position the eye finishes on and the thumb expects.
+  // right, where the eye finishes and the thumb expects it.
   const outlineActions = actions.filter((a) => a.tone === "outline");
   const mainActions = actions.filter((a) => a.tone !== "outline");
   const orderedActions = [...outlineActions, ...mainActions];

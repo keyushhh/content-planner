@@ -67,10 +67,8 @@ export function SessionDetailPane({
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
   /**
-   * Who asked for the media library, and therefore where the chosen asset goes.
-   * It used to always land on the post, so picking an image for a variation
-   * silently attached it to the primary and dropped you back on the form — the
-   * one flow in the pane that did something other than what it said.
+   * Who asked for the media library, and therefore where the chosen asset
+   * goes.
    */
   const [mediaTarget, setMediaTarget] = useState<
     { kind: "post" } | { kind: "variation"; id: string }
@@ -218,7 +216,7 @@ export function SessionDetailPane({
   if (!copyDraft.trim()) sendReadinessIssues.push("copy");
   const canApprove = sendReadinessIssues.length === 0;
 
-  // Drafts that have not reached onUpdate yet — the save chip must not claim
+  // Drafts that have not reached onUpdate yet. The save chip must not claim
   // "Autosaved" while these differ.
   const isDirty =
     titleDraft !== session.title ||
@@ -269,16 +267,15 @@ export function SessionDetailPane({
   // layout switcher of its own.
   const layoutToggle = null;
 
-  // Both models get a composer layout now — the model decides WHICH, because
-  // each was designed around one: Classic the split pane, Repository the canvas.
+  // Both models get a composer layout; the model decides which, because each was
+  // designed around one: Classic the split pane, Repository the canvas.
   const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
   return (
     <LayoutComponent
-      // Keyed on the session too, not just the layout: the stagger is what
-      // makes the sheet feel authored, and without a remount it only ever
-      // played on the first open. Clicking row after row swapped the text in
-      // place and the whole choreography went missing. Drafts live in THIS
-      // component, so remounting the layout costs nothing but the animation.
+      // Keyed on the session too, not just the layout: the stagger is what makes the
+      // sheet feel authored, and without a remount it only ever played on the first
+      // open, so clicking row after row swapped the text in place. Drafts live in
+      // this component, so remounting the layout costs nothing but the animation.
       key={`${layout}:${session.id}`}
       session={session}
       mediaAssets={mediaAssets}

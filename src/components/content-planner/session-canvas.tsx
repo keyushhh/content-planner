@@ -39,14 +39,7 @@ import {
 } from "./session-composer";
 import type { Feedback } from "@/lib/types";
 
-/**
- * Canvas layout — the single-column alternative to SessionComposer.
- *
- * One elevated "document" centred on a washed canvas. No side rail: sections are
- * divided by hairlines inside a single sheet, and the secondary fields use
- * label-left / control-right rows (the macOS System Settings pattern) so they
- * read as settings rather than as more form to fill.
- */
+/** Canvas layout: the single-column alternative to SessionComposer. */
 export function SessionCanvas({
   session,
   mediaAssets,
@@ -136,7 +129,7 @@ export function SessionCanvas({
           {readyToSend && (
             <Button
               size="sm"
-              // Appears the instant the last checklist item lands — the sheet's
+              // Appears the instant the last checklist item lands, the sheet's
               // most triumphant moment, so it arrives rather than blinking in.
               className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
               onClick={onOpenSend}
@@ -207,7 +200,8 @@ export function SessionCanvas({
         </Banner>
       )}
 
-      {/* Canvas — the wash makes the surrounding space read as deliberate margin */}
+      {/* Canvas: the wash makes the surrounding space read as deliberate
+          margin */}
       <div
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         className={cn(
@@ -218,8 +212,8 @@ export function SessionCanvas({
             : "[background-image:var(--wash-page)]",
         )}
       >
-        {/* items-start: the sheet sizes to its content instead of stretching, so no
-            dead space opens up inside it. The surrounding canvas margin is deliberate. */}
+        {/* items-start: the sheet sizes to its content instead of stretching,
+            so no dead space opens up inside it. */}
         <div className="flex min-h-full items-start justify-center px-7 pb-12 pt-6 @container">
           <Stagger
             index={0}
@@ -232,8 +226,8 @@ export function SessionCanvas({
                 : "bg-(--ink)/[0.028] shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08]",
             )}
           >
-            {/* Readiness reads as a hairline at the sheet's edge, not another card.
-                It is meaningless once the post is live, so it goes away entirely. */}
+            {/* Readiness reads as a hairline at the sheet's edge, not another
+                card. */}
             {!isCampaignLocked && (
               <div className="flex h-0.5 w-full shrink-0 overflow-hidden">
                 {checklist.map((item, i) => (
@@ -248,7 +242,7 @@ export function SessionCanvas({
                 ))}
               </div>
             )}
-            {/* Specular edge — light catching the rim of a physical surface */}
+            {/* Specular edge: light catching the rim of a physical surface */}
             <div
               className={cn(
                 "h-px w-full shrink-0 bg-gradient-to-r from-transparent to-transparent transition-colors duration-500",
@@ -266,7 +260,7 @@ export function SessionCanvas({
                   disabled={isCampaignLocked}
                   aria-label="Session title"
                   placeholder="Untitled session"
-                  // The landing pad for the row title's flight — see title-flight.ts
+                  // The landing pad for the row title's flight; see title-flight.ts
                   data-pane-title
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
@@ -297,13 +291,10 @@ export function SessionCanvas({
               </div>
             </Stagger>
 
-            {/* Copy — the writing surface, flush to the sheet, no nested box.
-                Focus is expressed as the section lighting up rather than a ring,
-                which would contradict the flush treatment. */}
+            {/* Copy: the writing surface, flush to the sheet, no nested box. */}
             <Stagger index={2}>
-              {/* Focus is a barely-there warming of the whole section, nothing
-                  more. Tinting the section's own border violet drew a full-width
-                  line across the sheet — a hard rule where a hint belongs. */}
+              {/* Focus is a barely-there warming of the whole section,
+                  nothing more. */}
               <div className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
               <div className="group/row flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
                 <span className="flex min-w-0 items-center gap-1.5">
@@ -342,10 +333,8 @@ export function SessionCanvas({
                   disabled={isCampaignLocked}
                   className="peer block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-70"
                 />
-                {/* Empty and unfocused, the field looked inert — no caret, and a
-                    placeholder alone does not say "type here". This blinks in the
-                    gutter just ahead of the text origin, so nothing shifts when
-                    the real caret takes over on focus. */}
+                {/* Empty and unfocused, the field looked inert, with no caret,
+                    and a placeholder alone does not say "type here". */}
                 {!copyDraft && !isCampaignLocked && (
                   <span
                     aria-hidden
@@ -361,14 +350,12 @@ export function SessionCanvas({
             </Stagger>
 
             {/* Settings-style rows: label left, control right */}
-            {/* No "Post type" row: the type is chosen in the creation modal and
-                cannot change afterwards, so restating it here spent a row of the
-                sheet on a fact you already acted on. It still decides which rows
-                exist below — that is where you see it. */}
+            {/* No "Post type" row: the type is chosen in the creation modal
+                and cannot change afterwards, so restating it here spent a row
+                of the sheet on a fact you already acted on. */}
 
-            {/* Reshare carries no media of its own — Wozku keeps the original
-                post's. So the row states that instead of offering a picker that
-                would not do anything. */}
+            {/* Reshare carries no media of its own: Wozku keeps the original
+                post's. */}
             {session.postType === "Reshare" ? (
               // anchored to "Assets", not "Media", so a comment about the post's
               // imagery survives a switch between Image and Reshare
@@ -443,7 +430,7 @@ export function SessionCanvas({
                       onClick={onOpenMediaLibrary}
                       title="Pick from Media Library"
                       aria-label="Add another asset"
-                      // solid hairline, not dashed — a dashed edge reads as a
+                      // solid hairline, not dashed: a dashed edge reads as a
                       // wireframe placeholder rather than a real control
                       className="flex size-20 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-(--press)"
                     >
@@ -535,7 +522,7 @@ export function SessionCanvas({
               </div>
             </SettingRow>
 
-            {/* Colophon — metadata as a quiet footer, not a card */}
+            {/* Colophon: metadata as a quiet footer, not a card */}
             <Stagger
               index={6}
               className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-(--ink)/[0.06] bg-(--ink)/[0.012] px-9 py-3 text-[11px] text-muted-foreground"
@@ -573,13 +560,9 @@ export function SessionCanvas({
 }
 
 /**
- * Label left, value right. Two columns, not three.
- *
- * The third column was a permanent 32px slot for a feedback button that only
- * appeared on hover — a dead stripe running the height of the sheet, and the
- * empty space a tooltip kept firing into. The control now rides beside the
- * label, in room the label was never using, so the row loses the gutter without
- * losing the affordance and the value column gains the width back.
+ * Label left, value right. Two columns, not three: the third was a permanent
+ * 32px slot for a feedback button that only appeared on hover, so it ran as a
+ * dead stripe down the sheet.
  */
 function SettingRow({
   label,

@@ -17,8 +17,7 @@ export type AppVersion = "classic" | "repository";
 
 /**
  * One description of each version, shared by everything that has to name them:
- * these tiles, the title menu, and the switch dialog. Two products should not
- * drift into two different sets of words.
+ * these tiles, the title menu, and the switch dialog.
  */
 export const VERSIONS: {
   id: AppVersion;
@@ -54,14 +53,7 @@ export const versionMeta = (v: AppVersion) => VERSIONS.find((x) => x.id === v)!;
 
 /**
  * Two products share this build, and which one you are looking at changes what
- * almost every screen means — so it is asked once, up front, rather than
- * inferred. The dialog cannot be dismissed: there is no sensible default to
- * fall back to, and a half-chosen app is worse than a question.
- *
- * Shown as two miniatures rather than two descriptions. The difference between
- * these products is a difference in SHAPE — a campaign rail and one list, or no
- * rail and one long table — and you can see that in a moment, where reading it
- * takes a paragraph. The words underneath only confirm what the picture said.
+ * almost every screen means, so it is asked once up front.
  */
 export function VersionChooserModal({
   open,
@@ -109,7 +101,7 @@ export function VersionChooserModal({
               onMouseDown={(e) => e.preventDefault()}
             >
               {/* The miniature does the explaining. It lifts very slightly on
-                  hover — enough to feel picked up, not enough to bounce. */}
+                  hover: enough to feel picked up, not enough to bounce. */}
               <VersionPreview
                 version={id}
                 className={cn(
@@ -142,7 +134,7 @@ export function VersionChooserModal({
         </div>
 
         {/* Hairline, not a filled band: there is nothing to cancel to, so the
-            footer only orients — it holds no action. */}
+            footer only orients; it holds no action. */}
         <div className="border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
             Switch any time from the title menu

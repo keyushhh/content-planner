@@ -16,14 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 /**
- * The Wozku brand families. All three are loaded unconditionally even though
- * they only apply under `.wozku`, because the toggle is a client-side class
- * swap — a font fetched at the moment of the switch would land a frame late and
- * reflow the whole page in front of the user.
- *
- * Satoshi is served from local files rather than a CDN. It ships from Fontshare,
- * not Google, and the design system bundles the woff2 precisely so consuming
- * projects don't depend on a third-party host being up.
+ * The Wozku brand families. All three load unconditionally even though they
+ * only apply under `.wozku`, because the toggle is a client-side class swap
+ * and a font fetched at that moment would land a frame late and reflow the
+ * page.
  */
 const satoshi = localFont({
   variable: "--font-satoshi",
@@ -51,12 +47,11 @@ const jetbrainsMono = JetBrains_Mono({
 
 /**
  * The three builds of this product are usually open side by side, and three
- * tabs all reading "Content Planner" are indistinguishable. Tab titles truncate
- * from the end, so the word that tells them apart comes first.
+ * tabs all reading "Content Planner" are indistinguishable.
  */
 export const metadata: Metadata = {
   title: "Demo · Content Planner",
-  description: "Both models in one build — choose a version at launch.",
+  description: "Both models in one build. Choose a version at launch.",
 };
 
 export default function RootLayout({
@@ -65,9 +60,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // `dark` is unconditional — this product has one mode. The brand layer adds
-    // `wozku` alongside it at runtime; it is never applied on the server,
-    // because the choice lives in localStorage and guessing it would flash.
+    // `dark` is unconditional; this product has one mode. The brand layer adds
+    // `wozku` alongside it at runtime, never on the server, because the choice
+    // lives in localStorage and guessing it would flash.
     <html
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} ${satoshi.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}

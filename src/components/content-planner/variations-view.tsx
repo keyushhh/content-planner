@@ -41,18 +41,9 @@ interface VariationsViewProps {
 }
 
 /**
- * Post variations, as a table.
- *
- * The old screen was a sidebar of cards next to one editor — which meant the
- * only way to compare two alternates was to click between them and remember.
- * Variations exist to be compared, so the list is now a real table: one row per
- * alternate, with the copy and the images side by side, and the post's own copy
- * pinned at the top as the thing they are alternates OF.
- *
- * Long-form copy still cannot be written in a cell — a 3000-character LinkedIn
- * post inside a 200px column is a joke — so the table hands off to a full editor
- * for the writing, and keeps for itself what a table is good at: names and
- * comparison. Names are editable in place, because that is a cell-sized job.
+ * Post variations, as a table: one row per alternate with the copy and the
+ * images side by side, and the post's own copy pinned at the top as the thing
+ * they are alternates of.
  */
 export function VariationsView({
   variations,
@@ -71,7 +62,7 @@ export function VariationsView({
 
   const current = variations.find((v) => v.id === editingId) ?? null;
 
-  // Escape steps back one level — editor to table, table to the post — rather
+  // Escape steps back one level, editor to table and table to the post, rather
   // than closing the whole pane and losing the post being edited.
   const leave = useCallback(() => {
     if (editingId) setEditingId(null);
@@ -122,8 +113,8 @@ export function VariationsView({
 
   /**
    * The generated batch lands in one write, and the view goes back to the table
-   * rather than into an editor: ten new alternates are something you read as a
-   * set first, and opening the last one would hide the other nine.
+   * rather than into an editor: ten new alternates are read as a set first, and
+   * opening the last one would hide the other nine.
    */
   function addVariations(copies: string[]) {
     const stamp = Date.now();
@@ -234,8 +225,9 @@ export function VariationsView({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [background-image:var(--wash-page)] px-6 py-6 @container">
-        {/* The card takes the whole height rather than floating in the top third:
-            a table that stops halfway down a dark pane reads as a loading state. */}
+        {/* The card takes the whole height rather than floating in the top
+            third: a table that stops halfway down a dark pane reads as a
+            loading state. */}
         <Stagger
           index={0}
           className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08] @container"
@@ -252,18 +244,15 @@ export function VariationsView({
               gridClass,
             )}
           >
-            {/* "Name", not "Variation" — the column also heads the post row. */}
+            {/* "Name", not "Variation": the column also heads the post row. */}
             <span className="min-w-0">Name</span>
             <span className="min-w-0">Copy</span>
             <span className={cn("min-w-0", wideOnly)}>Images</span>
             <span aria-hidden />
           </div>
 
-          {/* The primary post, pinned — kept in the same columns because the
-              whole point is comparing against it. But it is NOT one of the
-              alternates, so it gets its own section band rather than being the
-              first row of the list: a row that behaves differently to every row
-              under it has to LOOK like it belongs to something else first. */}
+          {/* The primary post, pinned, kept in the same columns because the
+              whole point is comparing against it. */}
           <GroupBand>
             The post
             <span className="ml-auto font-normal normal-case tracking-normal text-muted-foreground/55">
@@ -293,7 +282,7 @@ export function VariationsView({
               <ThumbStack assetIds={primaryAssetIds} mediaAssets={mediaAssets} />
             </span>
             {/* The missing affordance: the reason this row does not open an
-                editor is that its editor is the post, one step back. Say so. */}
+                editor is that its editor is the post, one step back. */}
             <span className="flex justify-end">
               <button
                 onClick={onClose}
@@ -339,7 +328,7 @@ export function VariationsView({
                     Add a variation
                   </button>
                   {primaryCopy.trim() && (
-                    // The commonest first move is "the primary, but shorter" —
+                    // The commonest first move is "the primary, but shorter", and
                     // starting from a blank sheet makes you paste it in by hand.
                     <button
                       onClick={() => addVariation(primaryCopy)}
@@ -427,8 +416,8 @@ export function VariationsView({
             ))
           )}
 
-          {/* A quiet last row instead of a hard edge — the table ends where you
-              would add the next thing to it. */}
+          {/* A quiet last row instead of a hard edge: the table ends where
+              you would add the next thing to it. */}
           {filtered.length > 0 && !disabled && !q && (
             <button
               onClick={() => addVariation()}
@@ -442,7 +431,8 @@ export function VariationsView({
           )}
           </div>
 
-          {/* Anchors the bottom edge so the card reads as finished at any height. */}
+          {/* Anchors the bottom edge so the card reads as finished at any
+              height. */}
           <div className="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.06] bg-(--surface-panel) px-5 py-2.5 text-[11px] text-muted-foreground">
             <span className="tabular-nums">
               {variations.length === 0
@@ -468,9 +458,9 @@ export function VariationsView({
 }
 
 /**
- * A section band inside the table. Two kinds of thing live in these columns —
- * the post, and alternates of it — and the band is what stops the reader
- * treating them as one list where the first item happens to be styled oddly.
+ * A section band inside the table. Two kinds of thing live in these columns,
+ * the post and alternates of it, and the band is what stops them reading as one
+ * list where the first item happens to be styled oddly.
  */
 function GroupBand({
   children,
@@ -594,7 +584,7 @@ function VariationNameEdit({
 }
 
 /**
- * The writing surface for one variation — the same document sheet as the post
+ * The writing surface for one variation: the same document sheet as the post
  * itself, so switching between them does not feel like changing application.
  */
 function VariationEditor({
@@ -615,7 +605,7 @@ function VariationEditor({
   total: number;
   mediaAssets: MediaAsset[];
   disabled?: boolean;
-  /** The post's own copy — what a generated alternate is an alternate OF. */
+  /** The post's own copy, what a generated alternate is an alternate OF. */
   primaryCopy: string;
   onBack: () => void;
   onPatch: (next: Partial<PostVariation>) => void;
@@ -658,9 +648,7 @@ function VariationEditor({
   }, [flush]);
 
   // Escape unmounts this editor from the parent without going through back(),
-  // so without a flush on the way out the last thing typed is simply lost. The
-  // ref is what lets the cleanup run the LATEST flush and still fire only on
-  // unmount, rather than on every keystroke.
+  // so without a flush on the way out the last thing typed is simply lost.
   const flushRef = useRef(flush);
   useEffect(() => {
     flushRef.current = flush;
@@ -724,9 +712,7 @@ function VariationEditor({
             </button>
           )}
           {/* Not a Save button: the work is already safe, and a button that
-              implies otherwise teaches people to fear closing the pane. The
-              same chip as the composer, saying the same thing in the same
-              place — one save model across the app, not two. */}
+              implies otherwise teaches people to fear closing the pane. */}
           {!disabled && (
             <SaveChip
               saveStatus={saveStatus}
@@ -780,9 +766,8 @@ function VariationEditor({
                 >
                   Alternate copy
                 </label>
-                {/* The one place generation belongs: beside the field it fills,
-                    on the surface where the writing happens. Quiet until asked
-                    for — it is an offer, not the way the app works. */}
+                {/* The one place generation belongs: beside the field it
+                    fills, on the surface where the writing happens. */}
                 {!disabled && !generating && (
                   <button
                     onClick={() => setGenerating(true)}

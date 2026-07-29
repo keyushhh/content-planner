@@ -12,9 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-/* -------------------------------------------------------------------------- */
-/*  The knobs                                                                  */
-/* -------------------------------------------------------------------------- */
 
 export const OPTIMIZATIONS = [
   "Engagement",
@@ -80,18 +77,11 @@ const DEFAULT_SETTINGS: GeneratorSettings = {
   useEmojis: false,
 };
 
-/* -------------------------------------------------------------------------- */
-/*  The generator                                                              */
-/* -------------------------------------------------------------------------- */
 
 /**
- * A local stand-in for the model.
- *
- * There is no API behind this build, so the copy is composed from the post, the
- * brief and the settings rather than sampled. That is deliberate: what needs
- * demonstrating is that the knobs REACH the output — change the hook and the
- * first line changes, ask for three and you get three — and a stub that ignored
- * its inputs would demo the button while hiding the feature.
+ * A local stand-in for the model. There is no API behind this build, so the
+ * copy is composed from the post, the brief and the settings rather than
+ * sampled.
  */
 function subjectOf(source: string) {
   const cleaned = source
@@ -154,7 +144,7 @@ function bodyLines(structure: string, subject: string, detail: string) {
     case "Problem → Solution":
     default:
       return [
-        "The problem was never effort — it was everything living somewhere else.",
+        "The problem was never effort. It was everything living somewhere else.",
         detail,
       ];
   }
@@ -167,9 +157,9 @@ function useCaseLine(useCase: string, subject: string) {
     case "Announcement":
       return `Making it official: ${subject}.`;
     case "Educational":
-      return "Keep this one — it is the part that took us longest to learn.";
+      return "Keep this one. It is the part that took us longest to learn.";
     case "Testimonial":
-      return "“We stopped losing work between tools.” — a customer, last week.";
+      return "“We stopped losing work between tools.” A customer, last week.";
     case "Promotion":
       return "This week only, for anyone who wants to try it.";
     case "Recruiting":
@@ -223,7 +213,7 @@ const HOOK_EMOJI: Record<string, string> = {
 };
 
 export function generateVariations(
-  /** The post's own copy — what the alternates are alternates OF. */
+  /** The post's own copy, what the alternates are alternates OF. */
   source: string,
   /** The one-line steer, if the writer gave one. */
   brief: string,
@@ -273,19 +263,11 @@ export function generateVariations(
   });
 }
 
-/* -------------------------------------------------------------------------- */
-/*  The panel                                                                  */
-/* -------------------------------------------------------------------------- */
 
 /**
- * Generation, attached to the field it fills.
- *
- * It is not a mode, a tab or a second screen: it opens under the copy label of
- * the alternate you are already writing, and everything it produces is offered
- * TO that field. So the controls are sized like controls and not like a landing
- * page — a one-line brief, the knobs as chips on one wrapping row, and a normal
- * button. The post's copy is the source and does not need re-pasting, so it is
- * stated once, quietly, rather than dropped into an editable box.
+ * Generation, attached to the field it fills. Not a mode, tab or second
+ * screen: it opens under the copy label of the alternate you are already
+ * writing, and everything it produces is offered to that field.
  */
 export function GeneratePanel({
   source,
@@ -312,8 +294,8 @@ export function GeneratePanel({
   const canGenerate = !disabled && status === "idle" && source.trim().length > 0;
 
   // Shut, the header has to say what the settings are currently doing. Names
-  // where there are one or two, counts beyond that — the point is to answer
-  // "will this generate what I asked for" without opening anything.
+  // where there are one or two, counts beyond that: the point is to answer "will
+  // this generate what I asked for" without opening anything.
   const settingsSummary = useMemo(() => {
     const parts = [`${settings.count} ${settings.count === 1 ? "draft" : "drafts"}`];
     if (settings.optimization) parts.push(settings.optimization);
@@ -367,11 +349,9 @@ export function GeneratePanel({
       />
 
       {/* Additional settings: a named group, disclosed, exactly as the live
-          product has it — six labelled controls are six decisions, and stripping
-          the labels off to save space made you learn what a chip meant. It is
-          shut by default because "additional" is a promise that the panel works
-          without it, and its header carries the summary so shut never means
-          hidden. Emojis sit on the header row: a switch, not a field. */}
+          product has it: six labelled controls are six decisions, and
+          stripping the labels off to save space made you learn what a chip
+          meant. */}
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between gap-3">
           <button
@@ -504,8 +484,8 @@ export function GeneratePanel({
                     {copy.length} characters
                   </span>
                 </span>
-                {/* "Use" replaces what is in the field, so it says so plainly and
-                    stays the quieter of the two — adding is the safe one. */}
+                {/* "Use" replaces what is in the field, so it says so plainly
+                    and stays the quieter of the two, since adding is the safe one. */}
                 <span className="flex shrink-0 items-center gap-1">
                   <DraftAction
                     label="Add as alternate"
@@ -537,9 +517,6 @@ export function GeneratePanel({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Fields                                                                     */
-/* -------------------------------------------------------------------------- */
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -613,7 +590,7 @@ function SelectMulti({
   onChange: (values: string[]) => void;
 }) {
   // Names first, count second: with three picked, "Question, Story +1" tells you
-  // what the generator will do — "3 selected" makes you open the menu to find out.
+  // what the generator will do, where "3 selected" makes you open the menu.
   const label = values.length
     ? values.length <= 2
       ? values.join(", ")
@@ -673,10 +650,10 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className="flex shrink-0 items-center gap-2 text-[11.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {/* 28×16 track, 12px knob, 2px inset on every side — the knob is placed by
-          `left`/`top` and moved by exactly the slack (28 − 12 − 2 − 2 = 12px), so
-          there is no arithmetic to get wrong and nothing can ride outside the
-          pill. `block` because an inline span ignores width and height. */}
+      {/* 28×16 track, 12px knob, 2px inset on every side: the knob is placed
+          by `left`/`top` and moved by exactly the slack (28 − 12 − 2 − 2 =
+          12px), so there is no arithmetic to get wrong and nothing can ride
+          outside the pill. */}
       <span
         aria-hidden
         className={cn(

@@ -44,18 +44,8 @@ export interface CommandPaletteActions {
 }
 
 /**
- * ⌘K.
- *
- * The one control that makes an app feel like a tool rather than a website: it
- * says the whole product is addressable by name, and it means nobody has to
- * learn where anything lives before they can use it.
- *
- * Deliberately not a fuzzy matcher. Subsequence matching ("ncnt" → "New
- * content") is a party trick that also matches everything else, and a palette
- * whose first result is wrong is worse than a menu. This is substring matching
- * on a field built per item, ranked so that a prefix beats a word-start beats a
- * hit anywhere — which is what makes the top result predictable enough to hit
- * Enter without reading.
+ * The command palette. Deliberately not a fuzzy matcher: subsequence matching
+ * ("ncnt" for "New content") also matches everything else.
  */
 export function CommandPalette({
   open,

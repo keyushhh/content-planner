@@ -12,13 +12,8 @@ import { versionMeta, type AppVersion } from "./version-chooser-modal";
 import { VersionPreview } from "./version-preview";
 
 /**
- * A three-lobe gradient mesh per version — offset radials at different sizes
+ * A three-lobe gradient mesh per version: offset radials at different sizes
  * and opacities, which read as one soft field rather than three circles.
- * Written as a style object rather than an arbitrary Tailwind value because a
- * three-layer background in a class string is unreadable and unmaintainable.
- *
- * Kept very low (0.16 at the strongest) on purpose: it should give the panel
- * depth behind the miniature, not become a thing you look at.
  */
 const MESH: Record<AppVersion, string> = {
   repository: [
@@ -35,14 +30,7 @@ const MESH: Record<AppVersion, string> = {
 
 /**
  * Switching version is confirmed rather than instant: the two models show the
- * same content so differently that arriving in the other one unannounced reads
- * as a bug.
- *
- * It gets its own dialog rather than the shared ConfirmDialog because what it
- * needs to say is a picture. "Repository" and "Classic" are names for layouts,
- * and a miniature of the destination answers "where am I going" in the time it
- * takes to look — which is the whole job of this dialog. No alert icon: nothing
- * here is created, moved or destroyed.
+ * same content so differently that arriving unannounced reads as a bug.
  */
 export function VersionSwitchDialog({
   target,
@@ -56,10 +44,7 @@ export function VersionSwitchDialog({
 }) {
   /**
    * The last version asked about, kept after `target` clears so the dialog can
-   * animate OUT with its content intact. Reading `target` directly would empty
-   * the sheet a frame before it left, which looks like a glitch rather than a
-   * dismissal. Updated during render, the way the other dialogs here do it — an
-   * effect would let one blank frame through.
+   * animate out with its content intact.
    */
   const [shown, setShown] = useState(target);
   if (target && target !== shown) setShown(target);
@@ -84,8 +69,8 @@ export function VersionSwitchDialog({
               className="relative flex w-[54%] shrink-0 items-center border-r border-(--ink)/[0.06] px-6 py-8"
               style={{ backgroundImage: MESH[shown] }}
             >
-              {/* The miniature is lifted off the mesh rather than pasted on it:
-                  a cast shadow is what tells you the field is behind it. */}
+              {/* The miniature is lifted off the mesh rather than pasted on
+                  it: a cast shadow is what tells you the field is behind it. */}
               <VersionPreview
                 version={shown}
                 className="shadow-[0_2px_6px_rgba(0,0,0,0.35),0_18px_44px_-20px_rgba(0,0,0,0.9)]"

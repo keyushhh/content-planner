@@ -22,9 +22,9 @@ import type { PostType } from "@/lib/types";
 const EASE = "cubic-bezier(0.2,0,0,1)";
 
 /**
- * Each type states what it needs from you, not what it is. "Image" tells you
- * nothing; "one image" tells you what the next screen will ask for,
- * which is the actual decision being made here.
+ * Each type states what it needs from you, not what it is. "Image" says
+ * nothing; "one image" says what the next screen will ask for, which is the
+ * actual decision being made here.
  */
 const TYPES: {
   id: PostType;
@@ -71,13 +71,8 @@ const TYPES: {
 ];
 
 /**
- * Asked once, before the composer opens — the type decides which fields the
- * composer even shows, so it cannot be a field inside it.
- *
- * A modal rather than a step in the pane: it is one decision, made once, and it
- * should not cost the pane permanent vertical space forever after. The composer
- * then states the choice read-only — offering it again in there would mean the
- * sheet rearranging itself under the cursor.
+ * Asked once, before the composer opens: the type decides which fields the
+ * composer shows, so it cannot be a field inside it.
  */
 export function PostTypeModal({
   open,
@@ -118,8 +113,8 @@ export function PostTypeModal({
           </div>
         </DialogHeader>
 
-        {/* Rows, not a grid of tiles: the hints are the point, and they need the
-            width to be read. Each row is one click straight into the composer. */}
+        {/* Rows, not a grid of tiles: the hints are the point, and they need
+            the width to be read. */}
         <div className="flex flex-col gap-1.5 border-t border-(--ink)/[0.06] p-3">
           {TYPES.map(({ id, label, hint, icon: Icon, well, glow }, i) => {
             const isCurrent = isChange && current === id;

@@ -1,16 +1,8 @@
 import type { Feedback, FeedbackStatus } from "./types";
 
 /**
- * The status vocabulary, in workflow order, defined once.
- *
- * Four states, not two: "Open → Done" cannot express the middle of the day,
- * where somebody has picked a note up and is rewriting the copy, nor the honest
- * answer that a request is not going to happen. Both of those otherwise get
- * expressed by marking something Done that isn't.
- *
- * Colour carries the meaning without a legend: amber needs you, violet is in
- * hand, emerald is finished, grey is closed unactioned. Only Open is loud —
- * three loud states would be no signal at all.
+ * The status vocabulary, in workflow order, defined once. Four states rather
+ * than two:
  */
 export const FEEDBACK_STATUSES: {
   id: FeedbackStatus;
@@ -55,7 +47,7 @@ export function feedbackStatusMeta(status: FeedbackStatus) {
   return FEEDBACK_STATUSES.find((s) => s.id === status) ?? FEEDBACK_STATUSES[0];
 }
 
-/** Items still asking for something — the only count worth putting on a badge. */
+/** Items still asking for something, the only count worth a badge. */
 export function openFeedback(items: Feedback[]): Feedback[] {
   return items.filter((f) => feedbackStatusMeta(f.status).active);
 }

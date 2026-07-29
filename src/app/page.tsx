@@ -77,11 +77,7 @@ const DEMO_STATES: { id: DemoState; label: string }[] = [
   { id: "loading", label: "Loading" },
 ];
 
-/**
- * Sessions saved by earlier builds carry a single `sentToCampaignId`. Reading
- * them back without this leaves `sentToCampaignIds` undefined, and every call
- * that asks "is this sent?" throws on the missing array.
- */
+/** Sessions saved by earlier builds carry a single `sentToCampaignId`. */
 type LegacyComment = {
   id: string;
   author: Session["lastEditedBy"];
@@ -102,8 +98,8 @@ function migrateSession(
   }
 
   // Comments became feedback, and threads went away with them: a reply carries
-  // the same weight as the note it answered, so it is flattened into its own
-  // item rather than silently dropped.
+  // the same weight as the note it answered, so it is flattened into its own item
+  // rather than silently dropped.
   if (!Array.isArray(next.feedback)) {
     const flat: Feedback[] = [];
     const visit = (c: LegacyComment, section?: string) => {
@@ -151,10 +147,8 @@ export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
   /**
-   * `null` is a real state, not a missing value: it means nobody has chosen a
-   * version yet, and it is what opens the chooser. Defaulting to one of the two
-   * would answer the question on the user's behalf and show them a product they
-   * did not ask for.
+   * `null` is a real state, not a missing value: nobody has chosen a version
+   * yet, and it is what opens the chooser.
    */
   const [mode, setMode] = useState<AppVersion | null>(null);
   /** A pending switch, held until it is confirmed. */
@@ -184,19 +178,13 @@ export default function Home() {
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
   /**
-   * The layout is not a separate choice any more — each model owns one. The
-   * repository model was designed around Canvas, the classic model around
-   * Classic (internally "split"), so deriving it from `mode` makes the
-   * unsupported pairings unreachable instead of merely unlikely.
+   * Each model owns one layout. The repository model was designed around Canvas
+   * and the classic model around Classic (internally "split"), so deriving it
+   * from `mode` makes the unsupported pairings unreachable.
    */
   const composerLayout: ComposerLayout = mode === "repository" ? "canvas" : "split";
 
-  /**
-   * The Wozku brand layer, live only while the Repository model is on screen.
-   * Passing that condition in rather than gating the render alone matters: the
-   * classes sit on <html>, so switching to Classic has to actively take them
-   * off, not merely stop drawing the switch.
-   */
+  /** The Wozku brand layer, live only while the Repository model is on screen. */
   const { mode: brandMode, setMode: setBrandMode } = useBrandLayer(
     mode === "repository",
   );
@@ -221,7 +209,7 @@ export default function Home() {
     );
   }
 
-  /** Deleting a column takes its cell values with it — leaving them behind
+  /** Deleting a column takes its cell values with it. Leaving them behind
       would silently resurrect old text under a new column of the same id. */
   function deleteColumn(colId: string) {
     setCustomColumns((prev) => prev.filter((c) => c.id !== colId));
@@ -254,8 +242,8 @@ export default function Home() {
   const nextId = useRef(1000);
 
   /**
-   * This build is usually open alongside the two standalone ones, so the tab
-   * says which version is on screen rather than just which app it is.
+   * This build is usually open alongside the two standalone ones, so the tab says
+   * which version is on screen rather than just which app it is.
    */
   useEffect(() => {
     document.title = mode
@@ -267,10 +255,8 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     // The version is deliberately NOT restored. This build exists to show both
-    // models, so every load starts at the question — a demo should never open
-    // on whatever the last person happened to pick. Remembering it would also
-    // hide the chooser, which is the thing being demonstrated. The two
-    // standalone repos need no such choice.
+    // models, so every load starts at the question. Remembering it would also hide
+    // the chooser, which is the thing being demonstrated.
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -280,10 +266,9 @@ export default function Home() {
     const savedSessions = localStorage.getItem("cp_sessions");
     if (savedSessions) {
       try {
-        // Dedupe on the way in: earlier builds restarted the id counter at 1000
-        // on every reload, so saved state can already hold two `session-1000`
-        // entries. The generator no longer creates them, but it cannot undo the
-        // ones already written to localStorage.
+        // Dedupe on the way in: earlier builds restarted the id counter at 1000 on
+        // every reload, so saved state can already hold two `session-1000` entries. The
+        // generator no longer creates them, but it cannot undo the ones already saved.
         const parsed: Session[] = JSON.parse(savedSessions);
         const seen = new Set<string>();
         setSessions(
@@ -462,7 +447,7 @@ export default function Home() {
 
   /**
    * Moving a piece of feedback is a real event in the life of the post, so it is
-   * logged — otherwise "who closed this, and when" is unanswerable, which is
+   * logged; otherwise "who closed this, and when" is unanswerable, which is
    * exactly the question a status invites.
    */
   function setFeedbackStatus(
@@ -523,14 +508,8 @@ export default function Home() {
   }
 
   /**
-   * Send means different things in the two models, so it forks here rather than
-   * inside the sheet.
-   *
-   * The classic model has exactly one destination — the campaign selected in the
-   * sidebar — so a picker would be asking a question with a single possible
-   * answer. Send commits straight away and the confirmation reports where it
-   * went. Choosing destinations is the repository model's job, and only it opens
-   * the sheet.
+   * Send means different things in the two models, so it forks here rather
+   * than inside the sheet.
    */
   function requestSend(sessionId: string) {
     if (mode === "repository") {
@@ -544,9 +523,8 @@ export default function Home() {
   }
 
   /**
-   * Sending a batch is N single sends, not a new kind of write: same merge, same
-   * additive rule, same history entries. Doing it any other way would give the
-   * repository two send paths that could drift apart.
+   * Sending a batch is N single sends, not a new kind of write: same merge,
+   * same additive rule, same history entries.
    */
   function shareManyToCampaigns(sessionIds: string[], campaignIds: string[]) {
     if (campaignIds.length === 0 || sessionIds.length === 0) return;
@@ -562,12 +540,7 @@ export default function Home() {
     );
   }
 
-  /**
-   * Changing version, which is the only way to leave the repository table. The
-   * ticks go with it: Classic has no table to tick, so a selection left standing
-   * would come back live — and pointed at rows you can no longer see — the next
-   * time you switched over.
-   */
+  /** Changing version, which is the only way to leave the repository table. */
   function changeVersion(next: AppVersion) {
     setMode(next);
     setSelectedIds([]);
@@ -588,14 +561,8 @@ export default function Home() {
   }
 
   /**
-   * Takes files off a file input and into the library, returning the new ids so
-   * the picker can attach them straight to whatever asked for them.
-   *
-   * Object URLs, so a picked image actually renders — there is no upload
-   * endpoint here. They live as long as the tab does, which is the same lifetime
-   * as the rest of this prototype's state, and are revoked when an asset is
-   * dropped from the library rather than on unmount, or a thumbnail still on
-   * screen would go blank.
+   * Takes files off a file input into the library and returns the new ids, so
+   * the picker can attach them straight to whatever asked.
    */
   function uploadAssets(files: File[], folderId: string): string[] {
     const created: MediaAsset[] = files.map((file, i) => ({
@@ -616,14 +583,8 @@ export default function Home() {
   }
 
   /**
-   * Opens a post in the detail pane, and hands its title across.
-   *
-   * The row and the pane show the same words at two sizes, so the title flies
-   * from one to the other and the pane reads as that row opening rather than as
-   * a second screen sliding over the first. Every entry point goes through here
-   * — clicks, Enter from the keyboard cursor, ⌘K — and when there is no row on
-   * screen to fly from (a palette jump from another campaign) the flight simply
-   * does not happen. The pane opens either way.
+   * Opens a post in the detail pane and hands its title across, so the pane
+   * reads as that row opening rather than a second screen sliding over it.
    */
   function openSession(id: string) {
     const rowTitle = document.querySelector<HTMLElement>(
@@ -638,7 +599,7 @@ export default function Home() {
     if (!removed) return;
 
     setSessions((prev) => prev.filter((s) => s.id !== id));
-    // A deleted post cannot stay in the batch — the count would report a row
+    // A deleted post cannot stay in the batch, or the count would report a row
     // that is no longer on screen.
     setSelectedIds((prev) => prev.filter((sid) => sid !== id));
     setCustomCellValues((prev) => {
@@ -666,9 +627,8 @@ export default function Home() {
 
   /**
    * Sessions persist to localStorage but this counter does not, so after a reload
-   * it restarted at 1000 while `session-1000` was still in the saved list — two
-   * children with the same key. Skipping ids that are already taken makes the
-   * generator safe no matter what state was restored.
+   * it restarted at 1000 while `session-1000` was still in the saved list, giving
+   * two children the same key. Skipping taken ids makes it safe either way.
    */
   function makeSessionId() {
     const taken = new Set(sessions.map((s) => s.id));
@@ -697,15 +657,8 @@ export default function Home() {
     setSelectedSessionId(newId);
   }
 
-  // Repository model: content is created standalone, campaign-agnostic — no
-  // campaign.sessionIds membership at all, unlike the legacy handleNewSession.
-  /**
-   * Both models ask for the post type first. The type decides which fields the
-   * composer shows, so choosing it inside the composer would mean the composer
-   * rearranging itself under you — and defaulting to Image, as Classic used to,
-   * only moved that rearrangement to the moment you noticed and changed it.
-   * Each model asks in its own dialect; see the two dialogs below.
-   */
+  // Repository model: content is created standalone and belongs to no campaign
+  // until it is sent to one.
   function handleNewContent() {
     setShowPostType(true);
   }
@@ -781,9 +734,9 @@ export default function Home() {
       return seeding ? [...withoutSeeds, ...seeded] : withoutSeeds;
     });
 
-    // Classic reads one campaign at a time, so sessions that belong to no
-    // campaign are invisible there — the seed appeared to do nothing. Join them
-    // to the campaign that is open, which is the one the demo is looking at.
+    // Classic reads one campaign at a time, so sessions that belong to no campaign
+    // are invisible there and the seed appeared to do nothing. Join them to the
+    // campaign that is open, which is the one the demo is looking at.
     setCampaigns((prev) =>
       prev.map((c) => {
         const withoutSeeds = c.sessionIds.filter((id) => !id.startsWith("seed-"));
@@ -813,10 +766,8 @@ export default function Home() {
         )}
       >
         <div className="flex items-center gap-3">
-          {/* The title says which of the two products you are in, because that
-              is the single most important fact about this screen. It is also
-              the way out — version is navigation, not a preference, so it
-              belongs here rather than behind a gear. */}
+          {/* The title says which of the two products you are in, because
+              that is the single most important fact about this screen. */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -844,8 +795,8 @@ export default function Home() {
                   key={id}
                   onClick={() => {
                     // Switching is a confirmed act: the two versions read the
-                    // same content but present it so differently that landing
-                    // in the other one unannounced feels like a bug.
+                    // same content but present it so differently that landing in
+                    // the other one unannounced feels like a bug.
                     if (id !== mode) setPendingVersion(id);
                   }}
                   className="gap-2"
@@ -861,17 +812,14 @@ export default function Home() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* The palette needs a door. A shortcut nobody can see is a shortcut
-              only the person who built it uses. */}
+          {/* The palette needs a door. A shortcut nobody can see is a
+              shortcut only the person who built it uses. */}
           <button
             onClick={() => setPaletteOpen(true)}
             title="Search everything (⌘K)"
             className={cn(
               // Given a real width rather than sized to its label: at content
-              // width it read as a small button that happened to say "Search",
-              // and the shortcut sitting flush against the word gave it nothing
-              // to be. Wide, with the hint pushed to the far edge, it reads as
-              // the field it opens.
+              // width it read as a small button that happened to say "Search".
               "group flex h-7 w-[240px] items-center gap-2 rounded-(--r-pill) pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground",
               isCanvas
                 ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.06]"
@@ -886,11 +834,12 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center gap-1.5">
-        {/* The dev controls act on a table that is not on screen until a version
-            is picked, so they wait for the choice too. */}
+        {/* The dev controls act on a table that is not on screen until a
+            version is picked, so they wait for the choice too. */}
         {mode !== null && (
           <>
-        {/* Dev only: stress the table so the demo shows a realistic repository */}
+        {/* Dev only: stress the table so the demo shows a realistic
+            repository */}
         <button
           onClick={seedDemoContent}
           title="Dev: add 450 sample items"
@@ -905,9 +854,9 @@ export default function Home() {
           Seed 450
         </button>
 
-        {/* Dev only: force the table's empty and loading states, so a demo can
-            show them without deleting anyone's content or faking a slow network.
-            Nothing is destroyed — the data is still there behind the override. */}
+        {/* Dev only: force the table's empty and loading states, so a demo
+            can show them without deleting anyone's content or faking a slow
+            network. */}
         <div
           title="Dev: preview the table's empty and loading states"
           className={cn(
@@ -935,9 +884,9 @@ export default function Home() {
           </>
         )}
 
-        {/* Repository only. The brand system is being evaluated for that model,
-            and Classic exists to mirror what is live in Wozku today — restyling
-            it would defeat the only reason it is a separate build. */}
+        {/* Repository only. The brand system is being evaluated for that
+            model, and Classic exists to mirror what is live in Wozku today, so
+            restyling it would defeat the only reason it is a separate build. */}
         {mode === "repository" && (
           <BrandToggle mode={brandMode} onChange={setBrandMode} />
         )}
@@ -1109,7 +1058,7 @@ export default function Home() {
             }
             className={cn(
               "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[transform,width] duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full",
-              // Canvas is a document, not a dashboard — a narrower pane keeps the
+              // Canvas is a document rather than a dashboard: a narrower pane keeps the
               // sessions table visible behind it and suits the reading measure.
               mode === "repository" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
             )}
@@ -1160,7 +1109,7 @@ export default function Home() {
         </SheetPortal>
       </Sheet>
 
-      {/* The destination picker belongs to the repository model alone — only
+      {/* The destination picker belongs to the repository model alone: only
           `requestSend` opens it, and only in that mode. */}
       <SendToCampaignSheet
         open={sendSheetSessionId !== null || bulkBatch !== null}
@@ -1172,10 +1121,9 @@ export default function Home() {
         campaigns={campaigns}
         session={sessions.find((s) => s.id === sendSheetSessionId) ?? null}
         sessions={bulkBatch ?? undefined}
-        // Which campaigns it is already in, so the sheet can mark them as sent
-        // rather than offering them again as a fresh destination. For a batch
-        // that is the INTERSECTION: a campaign only counts as somewhere the
-        // selection already lives if every post in it is already there.
+        // Which campaigns it is already in, so the sheet can mark them as sent rather
+        // than offering them again as a fresh destination. For a batch that is the
+        // intersection: a campaign only counts if every post in it is already there.
         alreadySentTo={
           bulkBatch
             ? campaigns
@@ -1205,9 +1153,9 @@ export default function Home() {
           if (!sendSheetSessionId) return;
           const shared = sessions.find((s) => s.id === sendSheetSessionId);
           shareSessionToCampaigns(sendSheetSessionId, campaignIds);
-          // Held in local state rather than read back off the session: the
-          // summary must describe THIS send, not everywhere the post has ever
-          // been sent.
+          // Held in local state rather than read back off the session:
+          // the summary must describe this send, not everywhere the post
+          // has ever been sent.
           setSendResult({
             title: shared?.title ?? "",
             campaignIds,
@@ -1257,9 +1205,8 @@ export default function Home() {
         contextName={selectedCampaign.name}
       />
 
-      {/* One question, two dialects: the repository's floating canvas sheet, or
-          Classic's bordered card. Rendering both from one component and theming
-          it would put two design systems in one file. */}
+      {/* One question, two dialects: the repository's floating canvas sheet,
+          or Classic's bordered card. */}
       {mode === "classic" ? (
         <ClassicPostTypeModal
           open={showPostType}

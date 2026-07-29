@@ -61,9 +61,9 @@ export function SectionChip({ label }: { label: string }) {
 }
 
 /**
- * The status control. A chip that reads as its own state and opens the four
- * choices when clicked — the status is both the label and the affordance, so
- * there is no separate "change status" control to find.
+ * The status control: a chip that reads as its own state and opens the four
+ * choices when clicked, so there is no separate "change status" control to
+ * find.
  */
 export function StatusChip({
   status,
@@ -163,12 +163,9 @@ function Composer({
 }
 
 /**
- * One row of the feedback list.
- *
- * Laid out as a table row rather than a chat bubble: who / what / where / status,
- * with status in a fixed right-hand column so a column of chips can be scanned
- * in one pass. Resolved rows drain of colour and sit at the bottom — present for
- * the record, out of the way of the work.
+ * One row of the feedback list, laid out as a table row rather than a chat
+ * bubble: who, what, where, status, with status in a fixed right-hand column
+ * so a column of chips can be scanned in one pass.
  */
 function FeedbackRow({
   item,
@@ -233,11 +230,8 @@ function FeedbackRow({
 }
 
 /**
- * Feedback, and the change log, in one rail.
- *
- * No threads: see the note on `Feedback` in types.ts. What replaces a reply is
- * the status column — the answer to "is this handled?" is a state, and a state
- * can be scanned, counted, and filtered, which a conversation cannot.
+ * Feedback, and the change log, in one rail. No threads; see the note on
+ * `Feedback` in types.ts.
  */
 export function FeedbackPanel({
   session,
@@ -336,8 +330,9 @@ export function FeedbackPanel({
 
       {tab === "feedback" ? (
         <>
-          {/* Column headers — the list is a table, and saying so out loud is what
-              makes the right-hand chips read as a column rather than as decoration. */}
+          {/* Column headers: the list is a table, and saying so out loud is
+              what makes the right-hand chips read as a column rather than as
+              decoration. */}
           {session.feedback.length > 0 && (
             <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">
               <button
@@ -382,8 +377,8 @@ export function FeedbackPanel({
           </div>
 
           <div className="shrink-0 border-t border-(--ink)/[0.07] px-5 py-4">
-            {/* Carries the section you clicked through to the note, so it lands
-                attached rather than floating against the whole post. */}
+            {/* Carries the section you clicked through to the note, so it
+                lands attached rather than floating against the whole post. */}
             {pendingSectionLabel && (
               <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span>On</span>

@@ -34,12 +34,9 @@ const THEMES: Record<string, { bg: string; border: string; iconBg: string; textC
 };
 
 /**
- * `compact` is the composer's reading. The full tile packs a 44px icon well and
- * an uppercase "PNG IMAGE" caption into whatever box it is given — at the 80px
- * the composer uses, that is a cramped label crushed under an oversized icon,
- * and the per-type gradient makes a thumbnail shout louder than the post. Small
- * tiles get the glyph alone on a neutral surface; the media library keeps the
- * labelled version, where there is room for it and naming the format helps.
+ * `compact` is the composer's reading. The full tile packs a 44px icon well
+ * and an uppercase "PNG IMAGE" caption into whatever box it is given, and at
+ * the 80px the composer uses that is a cramped label under an oversized icon.
  */
 export function MediaThumb({
   assetId,
@@ -64,8 +61,8 @@ export function MediaThumb({
   // seeded assets carry no file, not because a thumbnail should be an icon.
   if (url && type === "image") {
     return (
-      // blob: URLs from a local file pick — next/image cannot optimise those,
-      // and must not be handed them.
+      // blob: URLs from a local file pick, which next/image cannot optimise and
+      // must not be handed.
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={url}
@@ -77,14 +74,10 @@ export function MediaThumb({
   }
 
   /**
-   * A PDF gets its first page, not a document glyph.
-   *
-   * `<object>` is doing something specific here that an `<img>` cannot: the
-   * browser's own PDF renderer draws the page, and if it has none, the fallback
-   * CHILDREN render instead — so the glyph tile is the automatic backstop rather
-   * than something we have to detect and switch to. Scaled up and pinned to the
-   * top-left so the page's own margins do not eat the 80px tile, and
-   * pointer-events-none so the viewer never swallows a click meant for the tile.
+   * A PDF gets its first page, not a document glyph. `<object>` does something
+   * an `<img>` cannot: the browser's own PDF renderer draws the page, and if
+   * it has none, the fallback children render instead, so the glyph tile is
+   * the automatic backstop.
    */
   if (url && isPdf) {
     return (

@@ -4,15 +4,9 @@ import { cn } from "@/lib/utils";
 import type { AppVersion } from "./version-chooser-modal";
 
 /**
- * A miniature of each version's actual screen, drawn in divs rather than shipped
- * as an image: it stays crisp at any size, costs no request, and — the reason
- * that matters — it cannot fall out of date silently the way a screenshot does.
- *
- * Deliberately abstract. No legible text, because a mini that tries to be a
- * screenshot invites you to read it; this one is meant to be recognised at a
- * glance by its SHAPE. The shapes are the actual difference between the two
- * products: Classic has a campaign rail and one campaign's list, Repository has
- * no rail and one long filtered table.
+ * A miniature of each version's actual screen, drawn in divs rather than
+ * shipped as an image: crisp at any size, no request, and it cannot fall out
+ * of date silently the way a screenshot does.
  */
 
 /** A row of text-ish bars. `w` is a tailwind width per line. */
@@ -72,8 +66,8 @@ export function VersionPreview({
       </div>
 
       <div className="flex h-[89%]">
-        {/* Classic's campaign rail — the single clearest difference between the
-            two screens, so it is the first thing the eye can use. */}
+        {/* Classic's campaign rail, the single clearest difference between
+            the two screens, so it is the first thing the eye can use. */}
         {!isRepo && (
           <div className="flex w-[26%] shrink-0 flex-col gap-[5px] border-r border-(--ink)/[0.06] bg-(--ink)/[0.022] p-[6px]">
             <span className="h-[3px] w-2/3 rounded-(--r-pill) bg-sky-300/45" />
@@ -84,8 +78,8 @@ export function VersionPreview({
         <div className="flex min-w-0 flex-1 flex-col gap-[5px] p-[7px]">
           {isRepo ? (
             <>
-              {/* A big page title, then the filter row: search, three controls,
-                  and a primary action pinned right. */}
+              {/* A big page title, then the filter row: search, three
+                  controls, and a primary action pinned right. */}
               <span className="h-[5px] w-[38%] rounded-(--r-pill) bg-(--ink)/30" />
               <div className="flex items-center gap-[3px]">
                 <span className="h-[5px] w-[26%] rounded-(--r-pill) bg-(--ink)/[0.09]" />
@@ -114,7 +108,7 @@ export function VersionPreview({
             {Array.from({ length: isRepo ? 6 : 4 }).map((_, i) => (
               <Row key={i} accent={i === 0} />
             ))}
-            {/* Pagination — only Repository pages, because only it has to. */}
+            {/* Pagination: only Repository pages, because only it has to. */}
             {isRepo && (
               <div className="mt-auto flex items-center gap-[3px] pt-[2px]">
                 <span className="h-[3px] w-[16%] rounded-(--r-pill) bg-(--ink)/[0.08]" />

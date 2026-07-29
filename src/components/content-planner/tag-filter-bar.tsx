@@ -15,18 +15,9 @@ export interface TagCount {
 const LABEL_BUDGET = 22;
 
 /**
- * Tags, as one dropdown rather than a row of chips.
- *
- * The chip row had two problems the dropdown fixes: it was a third interaction
- * model sitting next to Status and Sort (a field, two menus, and a row of
- * toggles is three grammars in one toolbar), and it changed width as tags came
- * and went, which shifted the table underneath it.
- *
- * What the chip row was good at — telling you WHICH tags you had filtered by
- * without opening anything — is preserved in the trigger: it spends its width
- * on names first and only degrades to "4 tags" when the names genuinely will
- * not fit. A bare count would say that you filtered but not what by, which is
- * the question you actually ask when a table looks short.
+ * Tags as one dropdown rather than a row of chips. The chip row was a third
+ * interaction model beside Status and Sort, and it changed width as tags came
+ * and went, shifting the table under it.
  */
 export function TagFilterBar({
   tags,
@@ -53,8 +44,8 @@ export function TagFilterBar({
     : panelTags;
 
   // Names while they fit, a count when they do not. One name is always worth
-  // showing — "Design" and "1 tag" cost the same room and one of them answers
-  // the question.
+  // showing: "Design" and "1 tag" cost the same room and one of them answers the
+  // question.
   const joined = active.join(", ");
   const label =
     active.length === 0
@@ -167,7 +158,7 @@ export function TagFilterBar({
   );
 }
 
-/** One tag in the panel. Stays open on click — picking tags is usually plural. */
+/** One tag in the panel. Stays open on click, since picking tags is plural. */
 function TagOption({
   label,
   count,
@@ -203,8 +194,8 @@ function TagOption({
           style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
         />
       </span>
-      {/* The tag's own hue, so the colour you tick here is the colour you then
-          scan for in the table. */}
+      {/* The tag's own hue, so the colour you tick here is the colour you
+          then scan for in the table. */}
       <span
         aria-hidden
         className={cn("size-1.5 shrink-0 rounded-(--r-round)", tagDot(label), !active && "opacity-70")}

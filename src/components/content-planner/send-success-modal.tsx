@@ -16,9 +16,8 @@ const EASE = "cubic-bezier(0.2,0,0,1)";
 
 /**
  * Sending to a campaign is the moment the work leaves your hands, so it gets a
- * modal rather than a toast: a toast is for things you may safely miss, and
- * "who can now see this" is not one of them. It also answers the question the
- * toast could not — WHICH campaigns, and what happens to the post now.
+ * modal rather than a toast, and it answers what the toast could not: which
+ * campaigns, and what happens to the post now.
  */
 export function SendSuccessModal({
   open,
@@ -79,7 +78,8 @@ export function SendSuccessModal({
               )}
               style={{ transitionTimingFunction: EASE }}
             >
-              {/* A ring that expands and fades once — the visual "sent" sound. */}
+              {/* A ring that expands and fades once: the visual "sent"
+                  sound. */}
               <span
                 aria-hidden
                 className={cn(

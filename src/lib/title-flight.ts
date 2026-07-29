@@ -1,22 +1,4 @@
-/**
- * Row → pane title continuity.
- *
- * Clicking a row used to swap two screens: the table stayed put and a pane slid
- * over it, and nothing said the pane was about THAT row. The row's title and the
- * pane's title are the same words at two sizes and two places, so the cheapest
- * true fix is to move one into the other — the pane then reads as the row
- * opening up rather than as a second screen arriving.
- *
- * Deliberately outside React. This is a throwaway element that exists for 380ms
- * and is never interactive, so putting it in the tree would mean state, effects
- * and a re-render of the page for something that is pure choreography. It reads
- * the two rects, animates a clone between them with the Web Animations API, and
- * removes itself.
- *
- * Everything is defensive: if either end is missing, or the user asked for less
- * motion, the flight is simply skipped. Nothing about the app's behaviour
- * depends on it running.
- */
+/** Animates the row title into the detail pane's title on open. */
 
 const DURATION = 380;
 const EASE = "cubic-bezier(0.2,0,0,1)";
@@ -44,7 +26,7 @@ export function flyTitle(from: HTMLElement | null, to: HTMLElement | null) {
   ghost.setAttribute("aria-hidden", "true");
   Object.assign(ghost.style, {
     position: "fixed",
-    // Left/top of the ROW title, then transformed to the pane's — animating
+    // Left/top of the ROW title, then transformed to the pane's. Animating
     // transform rather than position keeps it on the compositor.
     left: `${start.left}px`,
     top: `${start.top}px`,
@@ -97,11 +79,9 @@ export function flyTitle(from: HTMLElement | null, to: HTMLElement | null) {
 }
 
 /**
- * Waits for the pane's title to exist, then flies to it.
- *
- * The pane mounts a frame or two after selection and its layout settles after
- * that, so the target cannot be measured synchronously. Polls a handful of
- * frames and gives up quietly.
+ * Waits for the pane's title to exist, then flies to it. The pane mounts a
+ * frame or two after selection and its layout settles after that, so the target
+ * cannot be measured synchronously. Polls a few frames and gives up quietly.
  */
 export function flyTitleWhenReady(from: HTMLElement | null, toSelector: string, tries = 8) {
   if (!from) return;
