@@ -133,7 +133,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
-  const [mode, setMode] = useState<"current" | "repository">("current");
+  const [mode, setMode] = useState<"classic" | "repository">("classic");
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [mounted, setMounted] = useState(false);
@@ -157,7 +157,7 @@ export default function Home() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   /**
    * The layout is not a separate choice any more — each model owns one. The
-   * repository model was designed around Canvas, the current model around
+   * repository model was designed around Canvas, the classic model around
    * Classic (internally "split"), so deriving it from `mode` makes the
    * unsupported pairings unreachable instead of merely unlikely.
    */
@@ -219,12 +219,13 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     const savedMode = localStorage.getItem("cp_mode");
-    // "new" is the old name for the repository model — keep reading it so an
-    // existing session doesn't get bounced back to the current model.
+    // Both models have been renamed since this key was first written: "new"
+    // became "repository" and "current" became "classic". Old values are still
+    // honoured, or an existing session gets silently moved to the other model.
     if (savedMode === "new" || savedMode === "repository") {
       setMode("repository");
-    } else if (savedMode === "current") {
-      setMode("current");
+    } else if (savedMode === "current" || savedMode === "classic") {
+      setMode("classic");
     }
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
@@ -481,7 +482,7 @@ export default function Home() {
    * Send means different things in the two models, so it forks here rather than
    * inside the sheet.
    *
-   * The current model has exactly one destination — the campaign selected in the
+   * The classic model has exactly one destination — the campaign selected in the
    * sidebar — so a picker would be asking a question with a single possible
    * answer. Send commits straight away and the confirmation reports where it
    * went. Choosing destinations is the repository model's job, and only it opens
@@ -637,7 +638,7 @@ export default function Home() {
   /**
    * The repository model asks for the post type first: the type decides which fields the
    * composer shows, so choosing it inside the composer would mean the composer
-   * rearranging itself under you. The current model keeps its old behaviour —
+   * rearranging itself under you. The classic model keeps its old behaviour —
    * it has always carried Post Type as a field in the pane.
    */
   function handleNewContent() {
@@ -757,17 +758,17 @@ export default function Home() {
           )}
         >
           <button
-            onClick={() => setMode("current")}
+            onClick={() => setMode("classic")}
             className={cn(
               "rounded-full px-3 py-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
-              mode === "current"
+              mode === "classic"
                 ? isCanvas
                   ? "bg-white/[0.11] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
                   : "bg-foreground text-background"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Current
+            Classic
           </button>
           <button
             onClick={() => setMode("repository")}
@@ -832,7 +833,7 @@ export default function Home() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {mode === "current" ? (
+        {mode === "classic" ? (
           <>
             <CampaignSidebar
               campaigns={campaigns}
@@ -1013,7 +1014,7 @@ export default function Home() {
                     onOpenSend={() => requestSend(selectedSession.id)}
                     hidePlatforms={true}
                     hidePostType={mode === "repository"}
-                    postTypeAsSegmented={mode === "current"}
+                    postTypeAsSegmented={mode === "classic"}
                     isRepositoryModel={mode === "repository"}
                     composerLayout={composerLayout}
                   />

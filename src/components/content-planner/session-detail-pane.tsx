@@ -349,7 +349,7 @@ export function SessionDetailPane({
   const layoutToggle = null;
 
   // The repository model gets the polished composer layouts (Split / Canvas). The
-  // "current" model keeps the original single-column form below, unchanged.
+  // classic model keeps the original single-column form below, unchanged.
   if (isRepositoryModel) {
     const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
     return (
