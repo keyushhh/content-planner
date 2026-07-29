@@ -117,7 +117,7 @@ interface SessionDetailPaneProps {
   hidePlatforms?: boolean;
   hidePostType?: boolean;
   postTypeAsSegmented?: boolean;
-  isNewModel?: boolean;
+  isRepositoryModel?: boolean;
   composerLayout?: ComposerLayout;
   onComposerLayoutChange?: (layout: ComposerLayout) => void;
 }
@@ -136,7 +136,7 @@ export function SessionDetailPane({
   hidePlatforms = false,
   hidePostType = false,
   postTypeAsSegmented = false,
-  isNewModel = false,
+  isRepositoryModel = false,
   composerLayout,
   onComposerLayoutChange,
 }: SessionDetailPaneProps) {
@@ -348,9 +348,9 @@ export function SessionDetailPane({
   // layout switcher of its own.
   const layoutToggle = null;
 
-  // The "new" model gets the polished composer layouts (Split / Canvas). The
+  // The repository model gets the polished composer layouts (Split / Canvas). The
   // "current" model keeps the original single-column form below, unchanged.
-  if (isNewModel) {
+  if (isRepositoryModel) {
     const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
     return (
       <LayoutComponent
@@ -669,9 +669,9 @@ export function SessionDetailPane({
         )}
 
         <Field
-            label={isNewModel ? "Assets" : "Visual Assets"}
-            feedback={feedbackFor(isNewModel ? "Assets" : "Visual Assets")}
-            onFeedback={() => onOpenFeedback(isNewModel ? "Assets" : "Visual Assets")}
+            label={isRepositoryModel ? "Assets" : "Visual Assets"}
+            feedback={feedbackFor(isRepositoryModel ? "Assets" : "Visual Assets")}
+            onFeedback={() => onOpenFeedback(isRepositoryModel ? "Assets" : "Visual Assets")}
           >
             {session.visualAssetIds.length === 0 ? (
               <button
@@ -684,10 +684,10 @@ export function SessionDetailPane({
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">
-                    {isNewModel ? "Add assets" : "Add an image or video"}
+                    {isRepositoryModel ? "Add assets" : "Add an image or video"}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {isNewModel
+                    {isRepositoryModel
                       ? "add an image, video or an embed code."
                       : "Pick from Media Library"}
                   </span>
@@ -782,14 +782,14 @@ export function SessionDetailPane({
               <span className="font-mono text-muted-foreground">
                 {copyDraft.length} characters
               </span>
-              {/* same four platforms as the new-model layouts */}
+              {/* same four platforms as the repository-model layouts */}
               <div className="flex flex-wrap items-center gap-2">
                 {COPY_LIMITS.map(({ label, limit }) => (
                   <span
                     key={label}
                     className={cn(
                       "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums transition-colors duration-300",
-                      // same green / amber / red language as the new-model meters
+                      // same green / amber / red language as the repository-model meters
                       LIMIT_ZONE[limitZone(copyDraft.length, limit)].chip,
                     )}
                   >

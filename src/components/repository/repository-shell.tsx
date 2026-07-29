@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
-import { ImportFromRepositorySheet } from "./import-from-repository-sheet";
 import { InviteModal } from "@/components/content-planner/invite-modal";
 import { TagFilterBar } from "@/components/content-planner/tag-filter-bar";
 import type { ComposerLayout } from "@/components/content-planner/session-detail-pane";
@@ -15,18 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { SECONDARY_ACTION } from "@/lib/button-styles";
-import { currentUser } from "@/lib/mock-data";
 import {
   Database,
-  Megaphone,
   PlusCircle,
-  FolderInput,
-  ChevronRight,
   Tag,
-  PanelLeftClose,
-  PanelLeftOpen,
   UserPlus,
-  Plus,
   Search,
   X,
   ArrowUpDown,
@@ -34,7 +26,7 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
+import type { CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 /** Custom-column state is owned by the page, so it travels as one bundle. */
 export interface CustomColumnProps {
@@ -48,7 +40,6 @@ export interface CustomColumnProps {
 
 interface RepositoryShellProps extends CustomColumnProps {
   sessions: Session[];
-  campaigns: Campaign[];
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   onOpenSend: (id: string) => void;
@@ -58,12 +49,8 @@ interface RepositoryShellProps extends CustomColumnProps {
   onNewContent: () => void;
   /** Dev-controls override: show the table's skeleton instead of its rows. */
   tableLoading?: boolean;
-  onImportToCampaign: (sessionIds: string[], campaignId: string) => void;
-  onCreateCampaign?: (name: string) => string;
   tableStyle: ComposerLayout;
 }
-
-type View = "repository" | { campaignId: string };
 
 type SortKey = "edited" | "created" | "name";
 
@@ -106,7 +93,6 @@ const SORTS: Record<SortKey, { label: string; compare: (a: Session, b: Session) 
 
 export function RepositoryShell({
   sessions,
-  campaigns,
   selectedSessionId,
   onSelectSession,
   onOpenSend,
@@ -115,14 +101,10 @@ export function RepositoryShell({
   onDuplicateSession,
   onNewContent,
   tableLoading = false,
-  onImportToCampaign,
-  onCreateCampaign,
   tableStyle,
   ...columnProps
 }: RepositoryShellProps) {
-  const [view, setView] = useState<View>("repository");
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [showImport, setShowImport] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("edited");
@@ -160,16 +142,6 @@ export function RepositoryShell({
     }
   }
 
-  const activeCampaign =
-    typeof view === "object" ? campaigns.find((c) => c.id === view.campaignId) ?? null : null;
-
-  const scopedSessions =
-    view === "repository"
-      ? sessions
-      : sessions.filter((s) =>
-          activeCampaign ? s.sentToCampaignIds.includes(activeCampaign.id) : false,
-        );
-
   const allTags = Array.from(new Set(sessions.flatMap((s) => s.tags))).sort();
 
   // Canvas shows only the first few tags inline, so which few matters: rank by
@@ -178,14 +150,14 @@ export function RepositoryShell({
   const rankedTags = allTags
     .map((name) => ({
       name,
-      count: scopedSessions.filter((s) => s.tags.includes(name)).length,
+      count: sessions.filter((s) => s.tags.includes(name)).length,
     }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
   const taggedSessions =
     activeTags.length === 0
-      ? scopedSessions
-      : scopedSessions.filter((s) => s.tags.some((t) => activeTags.includes(t)));
+      ? sessions
+      : sessions.filter((s) => s.tags.some((t) => activeTags.includes(t)));
 
   const visibleSessions =
     statusFilter.length === 0
@@ -214,34 +186,17 @@ export function RepositoryShell({
     setStatusFilter([]);
   }
 
-  const importCandidates = sessions.filter(
-    (s) => !activeCampaign || !s.sentToCampaignIds.includes(activeCampaign.id),
-  );
   const isCanvas = tableStyle === "canvas";
 
-  const title = view === "repository" ? "Repository" : activeCampaign?.name ?? "";
-  const subtitle =
-    view === "repository"
-      ? "Every piece of content, across every campaign."
-      : "Only content sent to this campaign shows here.";
+  const title = "Repository";
+  const subtitle = "Every piece of content, across every campaign.";
 
   const modals = (
-    <>
-      {activeCampaign && (
-        <ImportFromRepositorySheet
-          open={showImport}
-          onOpenChange={setShowImport}
-          campaignName={activeCampaign.name}
-          availableSessions={importCandidates}
-          onImport={(sessionIds) => onImportToCampaign(sessionIds, activeCampaign.id)}
-        />
-      )}
-      <InviteModal
-        open={showInvite}
-        onOpenChange={setShowInvite}
-        contextName={activeCampaign ? activeCampaign.name : "Repository"}
-      />
-    </>
+    <InviteModal
+      open={showInvite}
+      onOpenChange={setShowInvite}
+      contextName="Repository"
+    />
   );
 
   // ---- Canvas layout -------------------------------------------------------
@@ -404,29 +359,17 @@ export function RepositoryShell({
                   carry more luminance weight than the violet primary and the
                   row would have two CTAs fighting. */}
               <div className="flex shrink-0 items-center gap-1.5">
-                {view !== "repository" && (
-                  <button
-                    title="Bring content that already exists in the Repository into this campaign"
-                    onClick={() => setShowImport(true)}
-                    className={SECONDARY_ACTION}
-                  >
-                    <FolderInput className="size-4" />
-                    Import
-                  </button>
-                )}
                 <button onClick={() => setShowInvite(true)} className={SECONDARY_ACTION}>
                   <UserPlus className="size-4" />
                   Invite
                 </button>
-                {view === "repository" && (
-                  <button
-                    onClick={onNewContent}
-                    className="ml-0.5 flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97]"
-                  >
-                    <PlusCircle className="size-4" />
-                    New content
-                  </button>
-                )}
+                <button
+                  onClick={onNewContent}
+                  className="ml-0.5 flex h-8 items-center gap-1.5 rounded-full bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(139,92,246,0.7)] inset-ring-1 inset-ring-white/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.97]"
+                >
+                  <PlusCircle className="size-4" />
+                  New content
+                </button>
               </div>
             </div>
 
@@ -482,20 +425,13 @@ export function RepositoryShell({
                       filtered: true,
                       action: { label: "Clear all filters", onClick: clearFilters },
                     }
-                  : view === "repository"
-                  ? {
+                  : {
                       title: "Repository is empty",
                       description:
                         "Every piece of content you make lands here. Create the first one to get started.",
                       action: onNewContent
                         ? { label: "New content", onClick: onNewContent }
                         : undefined,
-                    }
-                  : {
-                      title: "Nothing sent to this campaign yet",
-                      description:
-                        "Import something that already exists, or send it here from the Repository.",
-                      action: { label: "Import content", onClick: () => setShowImport(true) },
                     }
               }
             />
@@ -513,39 +449,12 @@ export function RepositoryShell({
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
           <div>
             <div className="flex items-center gap-2 text-sm font-medium">
-              {view === "repository" ? (
-                <>
-                  <Database className="size-4 text-violet-400" />
-                  Repository
-                </>
-              ) : (
-                <>
-                  <Megaphone className="size-4 text-violet-400" />
-                  {activeCampaign?.name}
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground">Sent content</span>
-                </>
-              )}
+              <Database className="size-4 text-violet-400" />
+              {title}
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {view === "repository"
-                ? "Every piece of content, across every campaign."
-                : "Only content sent to this campaign shows here."}
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
-            {view !== "repository" && (
-              <Button
-                variant="outline"
-                size="sm"
-                title="Bring content that already exists in the Repository into this campaign"
-                className="gap-1.5 border-violet-500/50 text-sm text-violet-400 hover:bg-violet-500/10"
-                onClick={() => setShowImport(true)}
-              >
-                <FolderInput className="size-4" />
-                Import Content from Repository
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="sm"
@@ -555,17 +464,15 @@ export function RepositoryShell({
               <UserPlus className="size-4" />
               Invite
             </Button>
-            {view === "repository" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-sm"
-                onClick={onNewContent}
-              >
-                <PlusCircle className="size-4" />
-                New Content
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-sm"
+              onClick={onNewContent}
+            >
+              <PlusCircle className="size-4" />
+              New Content
+            </Button>
           </div>
         </header>
 
@@ -628,8 +535,7 @@ export function RepositoryShell({
                     filtered: true,
                     action: { label: "Clear all filters", onClick: clearFilters },
                   }
-                : view === "repository"
-                ? {
+                : {
                     title: "Repository is empty",
                     description:
                       "Every piece of content you make lands here. Create the first one to get started.",
@@ -637,19 +543,13 @@ export function RepositoryShell({
                       ? { label: "New content", onClick: onNewContent }
                       : undefined,
                   }
-                : {
-                    title: "Nothing sent to this campaign yet",
-                    description:
-                      "Import something that already exists, or send it here from the Repository.",
-                    action: { label: "Import content", onClick: () => setShowImport(true) },
-                  }
             }
           />
         </div>
 
         <footer className="flex h-8 shrink-0 items-center justify-between border-t border-border px-4 text-xs text-muted-foreground">
           <span className="tabular-nums">
-            {sorted.length} {view === "repository" ? "items in repository" : "sent to this campaign"}
+            {sorted.length} items in repository
           </span>
           <span className="flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-emerald-500" />

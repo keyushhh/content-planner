@@ -15,12 +15,9 @@ import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import {
   SessionDetailPane,
-  readStoredLayout,
-  LAYOUT_STORAGE_KEY,
   type ComposerLayout,
 } from "@/components/content-planner/session-detail-pane";
 import { FeedbackPanel } from "@/components/content-planner/feedback-panel";
-import { TableStyleToggle } from "@/components/content-planner/table-style-toggle";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { SendSuccessModal } from "@/components/content-planner/send-success-modal";
 import { InviteModal } from "@/components/content-planner/invite-modal";
@@ -136,7 +133,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
-  const [mode, setMode] = useState<"current" | "new">("current");
+  const [mode, setMode] = useState<"current" | "repository">("current");
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [mounted, setMounted] = useState(false);
@@ -158,7 +155,13 @@ export default function Home() {
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(initialMediaAssets);
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [composerLayout, setComposerLayout] = useState<ComposerLayout>("split");
+  /**
+   * The layout is not a separate choice any more — each model owns one. The
+   * repository model was designed around Canvas, the current model around
+   * Classic (internally "split"), so deriving it from `mode` makes the
+   * unsupported pairings unreachable instead of merely unlikely.
+   */
+  const composerLayout: ComposerLayout = mode === "repository" ? "canvas" : "split";
 
   // Custom table columns live here, above the table, so adding a column, naming
   // it and filling cells all survive filtering, sorting, paging and reloads.
@@ -210,21 +213,19 @@ export default function Home() {
     onSetCellValue: setCellValue,
   };
 
-  // One switch drives the table style and the detail-pane layout together.
-  function changeTableStyle(next: ComposerLayout) {
-    setComposerLayout(next);
-    localStorage.setItem(LAYOUT_STORAGE_KEY, next);
-  }
   const nextId = useRef(1000);
 
   // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
   useEffect(() => {
     setMounted(true);
     const savedMode = localStorage.getItem("cp_mode");
-    if (savedMode === "current" || savedMode === "new") {
-      setMode(savedMode);
+    // "new" is the old name for the repository model — keep reading it so an
+    // existing session doesn't get bounced back to the current model.
+    if (savedMode === "new" || savedMode === "repository") {
+      setMode("repository");
+    } else if (savedMode === "current") {
+      setMode("current");
     }
-    setComposerLayout(readStoredLayout());
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -476,11 +477,32 @@ export default function Home() {
     });
   }
 
+  /**
+   * Send means different things in the two models, so it forks here rather than
+   * inside the sheet.
+   *
+   * The current model has exactly one destination — the campaign selected in the
+   * sidebar — so a picker would be asking a question with a single possible
+   * answer. Send commits straight away and the confirmation reports where it
+   * went. Choosing destinations is the repository model's job, and only it opens
+   * the sheet.
+   */
+  function requestSend(sessionId: string) {
+    if (mode === "repository") {
+      setSendSheetSessionId(sessionId);
+      return;
+    }
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    shareSessionToCampaigns(sessionId, [selectedCampaignId]);
+    setSendResult({ title: session.title, campaignIds: [selectedCampaignId] });
+  }
+
   function unlockSession(id: string) {
     updateSession(id, { status: "wip" });
   }
 
-  // New Model only: create a campaign inline, without leaving the send flow.
+  // Repository model only: create a campaign inline, without leaving the send flow.
   function createCampaign(name: string): string {
     const id = `camp-${Date.now()}`;
     setCampaigns((prev) => [
@@ -488,22 +510,6 @@ export default function Home() {
       { id, name, tag: "NEW", inWozku: false, endDate: "TBD", sessionIds: [] },
     ]);
     return id;
-  }
-
-  // New Model only: pull existing repository content into a campaign. Per
-  // the meeting notes, imported content lands as WIP pending this
-  // campaign's own platform/scheduling settings, not straight to Approved.
-  function importSessionsToCampaign(sessionIds: string[], campaignId: string) {
-    sessionIds.forEach((id) => {
-      const session = sessions.find((s) => s.id === id);
-      updateSession(id, {
-        sentToCampaignIds: Array.from(
-          new Set([...(session?.sentToCampaignIds ?? []), campaignId]),
-        ),
-        sentAt: null,
-        status: "wip",
-      });
-    });
   }
 
   /**
@@ -626,16 +632,16 @@ export default function Home() {
     setSelectedSessionId(id);
   }
 
-  // New Model: content is created standalone, campaign-agnostic — no
+  // Repository model: content is created standalone, campaign-agnostic — no
   // campaign.sessionIds membership at all, unlike the legacy handleNewSession.
   /**
-   * New model asks for the post type first: the type decides which fields the
+   * The repository model asks for the post type first: the type decides which fields the
    * composer shows, so choosing it inside the composer would mean the composer
    * rearranging itself under you. The current model keeps its old behaviour —
    * it has always carried Post Type as a field in the pane.
    */
   function handleNewContent() {
-    if (mode === "new") {
+    if (mode === "repository") {
       setShowPostType(true);
       return;
     }
@@ -764,22 +770,21 @@ export default function Home() {
             Current
           </button>
           <button
-            onClick={() => setMode("new")}
+            onClick={() => setMode("repository")}
             className={cn(
               "rounded-full px-3 py-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-[0.96]",
-              mode === "new"
+              mode === "repository"
                 ? isCanvas
                   ? "bg-violet-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_5px_14px_-8px_rgba(139,92,246,0.8)] inset-ring-1 inset-ring-white/15"
                   : "bg-violet-600 text-white"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            New Model
+            Repository
           </button>
         </div>
 
         <div className="mx-1 h-5 w-px bg-white/10" />
-        <TableStyleToggle value={composerLayout} onChange={changeTableStyle} />
 
         {/* Dev only: stress the table so the demo shows a realistic repository */}
         <button
@@ -910,7 +915,7 @@ export default function Home() {
                       loading={demoState === "loading"}
                       selectedSessionId={selectedSessionId}
                       onSelectSession={openSession}
-                      onOpenSend={setSendSheetSessionId}
+                      onOpenSend={requestSend}
                       onDeleteSession={deleteSession}
                       onUnlockSession={unlockSession}
                       {...customColumnProps}
@@ -922,7 +927,7 @@ export default function Home() {
                   loading={demoState === "loading"}
                   selectedSessionId={selectedSessionId}
                   onSelectSession={openSession}
-                  onOpenSend={setSendSheetSessionId}
+                  onOpenSend={requestSend}
                   onDeleteSession={deleteSession}
                   onUnlockSession={unlockSession}
                   {...customColumnProps}
@@ -952,16 +957,13 @@ export default function Home() {
             // repository without anyone having to delete their content first.
             sessions={demoState === "empty" ? [] : sessions}
             tableLoading={demoState === "loading"}
-            campaigns={campaigns}
             selectedSessionId={selectedSessionId}
             onSelectSession={openSession}
-            onOpenSend={setSendSheetSessionId}
+            onOpenSend={requestSend}
             onDeleteSession={deleteSession}
             onUnlockSession={unlockSession}
             onDuplicateSession={duplicateSession}
             onNewContent={handleNewContent}
-            onImportToCampaign={importSessionsToCampaign}
-            onCreateCampaign={createCampaign}
             tableStyle={composerLayout}
             {...customColumnProps}
           />
@@ -986,7 +988,7 @@ export default function Home() {
               "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[transform,width] duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full",
               // Canvas is a document, not a dashboard — a narrower pane keeps the
               // sessions table visible behind it and suits the reading measure.
-              mode === "new" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
+              mode === "repository" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
             )}
           >
             {selectedSession && (
@@ -1008,11 +1010,11 @@ export default function Home() {
                       setFeedbackOpen(true);
                       setFeedbackSection(sectionLabel);
                     }}
-                    onOpenSend={() => setSendSheetSessionId(selectedSession.id)}
+                    onOpenSend={() => requestSend(selectedSession.id)}
                     hidePlatforms={true}
-                    hidePostType={mode === "new"}
+                    hidePostType={mode === "repository"}
                     postTypeAsSegmented={mode === "current"}
-                    isNewModel={mode === "new"}
+                    isRepositoryModel={mode === "repository"}
                     composerLayout={composerLayout}
                   />
                 </div>
@@ -1039,6 +1041,8 @@ export default function Home() {
         </SheetPortal>
       </Sheet>
 
+      {/* The destination picker belongs to the repository model alone — only
+          `requestSend` opens it, and only in that mode. */}
       <SendToCampaignSheet
         open={sendSheetSessionId !== null}
         onOpenChange={(open) => {
@@ -1063,8 +1067,8 @@ export default function Home() {
             campaignIds,
           });
         }}
-        allowCreateCampaign={mode === "new"}
-        onCreateCampaign={mode === "new" ? createCampaign : undefined}
+        allowCreateCampaign
+        onCreateCampaign={createCampaign}
       />
 
       {/* ⌘K. Lives at the page, because it needs everything the page owns:
