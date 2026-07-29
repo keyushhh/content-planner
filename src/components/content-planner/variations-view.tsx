@@ -12,24 +12,17 @@ import {
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MediaAsset, MediaFolder, PostVariation } from "@/lib/types";
 import { MediaThumb } from "./media-thumb";
-import {
-  COPY_LIMITS,
-  LIMIT_ZONE,
-  limitZone,
-  SaveChip,
-  Stagger,
-} from "./session-composer";
+import { SaveChip, Stagger } from "./session-composer";
+import { GeneratePanel } from "./variation-generator";
 
 const MAX_ASSETS = 3;
-
-/** The budget the length column is measured against — the tightest one that matters. */
-const PRIMARY_LIMIT = COPY_LIMITS[0];
 
 interface VariationsViewProps {
   variations: PostVariation[];
@@ -53,13 +46,13 @@ interface VariationsViewProps {
  * The old screen was a sidebar of cards next to one editor — which meant the
  * only way to compare two alternates was to click between them and remember.
  * Variations exist to be compared, so the list is now a real table: one row per
- * alternate, with the copy, the images and the length side by side, and the
- * post's own copy pinned at the top as the thing they are alternates OF.
+ * alternate, with the copy and the images side by side, and the post's own copy
+ * pinned at the top as the thing they are alternates OF.
  *
  * Long-form copy still cannot be written in a cell — a 3000-character LinkedIn
  * post inside a 200px column is a joke — so the table hands off to a full editor
- * for the writing, and keeps for itself what a table is good at: names, numbers
- * and comparison. Names are editable in place, because that is a cell-sized job.
+ * for the writing, and keeps for itself what a table is good at: names and
+ * comparison. Names are editable in place, because that is a cell-sized job.
  */
 export function VariationsView({
   variations,
@@ -127,6 +120,25 @@ export function VariationsView({
     return id;
   }
 
+  /**
+   * The generated batch lands in one write, and the view goes back to the table
+   * rather than into an editor: ten new alternates are something you read as a
+   * set first, and opening the last one would hide the other nine.
+   */
+  function addVariations(copies: string[]) {
+    const stamp = Date.now();
+    onChange([
+      ...variations,
+      ...copies.map((copy, i) => ({
+        id: `var-${stamp}-${i}`,
+        label: `Variation ${variations.length + i + 1}`,
+        copy,
+        assetIds: [],
+      })),
+    ]);
+    setSearchQuery("");
+  }
+
   function duplicate(v: PostVariation) {
     const id = `var-${Date.now()}`;
     onChange([
@@ -152,6 +164,8 @@ export function VariationsView({
         onBack={() => setEditingId(null)}
         onPatch={(next) => patch(current.id, next)}
         onRemove={() => remove(current.id)}
+        primaryCopy={primaryCopy}
+        onAddAlternates={addVariations}
         onOpenMediaLibrary={
           onOpenMediaLibrary ? () => onOpenMediaLibrary(current.id) : undefined
         }
@@ -160,12 +174,9 @@ export function VariationsView({
   }
 
   // ---- Table ----------------------------------------------------------------
-  // Length gets 132px, not 104: the bar was 32px wide, which is too short to
-  // compare two fills at a glance, and the number needs a column of its own so
-  // the digits line up down the table instead of drifting with the bar.
   const grid = {
     "--cols-sm": "minmax(0,1.1fr) minmax(0,2fr) 76px",
-    "--cols-lg": "minmax(0,1.1fr) minmax(0,2fr) 96px 132px 76px",
+    "--cols-lg": "minmax(0,1.1fr) minmax(0,2fr) 96px 76px",
   } as React.CSSProperties;
   const gridClass = "grid-cols-[var(--cols-sm)] @[720px]:grid-cols-[var(--cols-lg)]";
   const wideOnly = "hidden @[720px]:block";
@@ -245,7 +256,6 @@ export function VariationsView({
             <span className="min-w-0">Name</span>
             <span className="min-w-0">Copy</span>
             <span className={cn("min-w-0", wideOnly)}>Images</span>
-            <span className={cn("min-w-0", wideOnly)}>Length</span>
             <span aria-hidden />
           </div>
 
@@ -281,9 +291,6 @@ export function VariationsView({
             </span>
             <span className={cn("min-w-0", wideOnly)}>
               <ThumbStack assetIds={primaryAssetIds} mediaAssets={mediaAssets} />
-            </span>
-            <span className={cn("min-w-0", wideOnly)}>
-              <LengthCell count={primaryCopy.length} />
             </span>
             {/* The missing affordance: the reason this row does not open an
                 editor is that its editor is the post, one step back. Say so. */}
@@ -394,10 +401,6 @@ export function VariationsView({
 
                 <div className={cn("min-w-0", wideOnly)}>
                   <ThumbStack assetIds={v.assetIds} mediaAssets={mediaAssets} />
-                </div>
-
-                <div className={cn("min-w-0", wideOnly)}>
-                  <LengthCell count={v.copy.length} />
                 </div>
 
                 <div
@@ -555,39 +558,6 @@ function ThumbStack({
   );
 }
 
-/**
- * Characters against the tightest platform budget, in the app's traffic light.
- *
- * The bar leads and the number sits in a fixed 34px well at the right, so the
- * digits form a straight column: comparing 346 against 1,204 is the entire
- * reason this column exists, and ragged numbers make you read instead of scan.
- */
-function LengthCell({ count }: { count: number }) {
-  const zone = limitZone(count, PRIMARY_LIMIT.limit);
-  const pct = Math.min(100, (count / PRIMARY_LIMIT.limit) * 100);
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className="relative h-1 min-w-0 flex-1 overflow-hidden rounded-(--r-pill) bg-(--ink)/[0.09]">
-        <span
-          className={cn(
-            "absolute inset-y-0 left-0 rounded-(--r-pill) transition-[width] duration-300",
-            LIMIT_ZONE[zone].bar,
-          )}
-          style={{ width: `${pct}%`, transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-        />
-      </span>
-      <span
-        className={cn(
-          "w-[34px] shrink-0 text-right text-[11.5px] tabular-nums",
-          LIMIT_ZONE[zone].text,
-        )}
-      >
-        {count}
-      </span>
-    </span>
-  );
-}
-
 function VariationNameEdit({
   initial,
   onCommit,
@@ -633,9 +603,11 @@ function VariationEditor({
   total,
   mediaAssets,
   disabled,
+  primaryCopy,
   onBack,
   onPatch,
   onRemove,
+  onAddAlternates,
   onOpenMediaLibrary,
 }: {
   variation: PostVariation;
@@ -643,14 +615,19 @@ function VariationEditor({
   total: number;
   mediaAssets: MediaAsset[];
   disabled?: boolean;
+  /** The post's own copy — what a generated alternate is an alternate OF. */
+  primaryCopy: string;
   onBack: () => void;
   onPatch: (next: Partial<PostVariation>) => void;
   onRemove: () => void;
+  /** Keeps generated drafts as further alternates, alongside this one. */
+  onAddAlternates: (copies: string[]) => void;
   onOpenMediaLibrary?: () => void;
 }) {
   const [copyDraft, setCopyDraft] = useState(variation.copy);
   const [labelDraft, setLabelDraft] = useState(variation.label);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [generating, setGenerating] = useState(false);
 
   const isDirty =
     copyDraft !== variation.copy ||
@@ -703,6 +680,8 @@ function VariationEditor({
   }, []);
 
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
+  // With no copy on the post yet, this alternate is the only thing to work from.
+  const primarySource = primaryCopy.trim() || copyDraft;
   const hasAssets = variation.assetIds.length > 0;
   const canAddAsset = variation.assetIds.length < MAX_ASSETS;
 
@@ -794,13 +773,25 @@ function VariationEditor({
             </div>
 
             <div className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
-              <div className="flex min-h-11 items-center px-9 py-2">
+              <div className="flex min-h-11 items-center justify-between gap-3 px-9 py-2">
                 <label
                   htmlFor="variation-copy"
                   className="w-fit cursor-pointer text-[13px] font-medium text-muted-foreground"
                 >
                   Alternate copy
                 </label>
+                {/* The one place generation belongs: beside the field it fills,
+                    on the surface where the writing happens. Quiet until asked
+                    for — it is an offer, not the way the app works. */}
+                {!disabled && !generating && (
+                  <button
+                    onClick={() => setGenerating(true)}
+                    className="flex h-7 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-2.5 text-[11.5px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-100 hover:inset-ring-violet-400/35 active:scale-(--press)"
+                  >
+                    <Sparkles className="size-3.5" />
+                    Generate with AI
+                  </button>
+                )}
               </div>
               <textarea
                 id="variation-copy"
@@ -816,6 +807,20 @@ function VariationEditor({
                 <span className="mx-1.5 text-muted-foreground/40">·</span>
                 {copyDraft.length} characters
               </div>
+
+              {generating && (
+                <GeneratePanel
+                  source={primarySource}
+                  disabled={disabled}
+                  onUse={(copy) => {
+                    setCopyDraft(copy);
+                    onPatch({ copy });
+                    setSaveStatus("saving");
+                  }}
+                  onAddAlternates={onAddAlternates}
+                  onClose={() => setGenerating(false)}
+                />
+              )}
             </div>
 
             <div
