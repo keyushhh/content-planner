@@ -26,6 +26,7 @@ import { InviteModal } from "@/components/content-planner/invite-modal";
 import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { PostTypeModal } from "@/components/content-planner/post-type-modal";
+import { ClassicPostTypeModal } from "@/components/content-planner/post-type-modal-classic";
 import {
   CommandPalette,
   useCommandPalette,
@@ -696,38 +697,33 @@ export default function Home() {
     setSelectedSessionId(newId);
   }
 
-  function handleNewSession() {
-    const id = makeSessionId();
-    setSessions((prev) => [...prev, createBlankSession(id)]);
-    setCampaigns((prev) =>
-      prev.map((c) =>
-        c.id === selectedCampaignId
-          ? { ...c, sessionIds: [...c.sessionIds, id] }
-          : c,
-      ),
-    );
-    setSelectedSessionId(id);
-  }
-
   // Repository model: content is created standalone, campaign-agnostic — no
   // campaign.sessionIds membership at all, unlike the legacy handleNewSession.
   /**
-   * The repository model asks for the post type first: the type decides which fields the
+   * Both models ask for the post type first. The type decides which fields the
    * composer shows, so choosing it inside the composer would mean the composer
-   * rearranging itself under you. The classic model keeps its old behaviour —
-   * it has always carried Post Type as a field in the pane.
+   * rearranging itself under you — and defaulting to Image, as Classic used to,
+   * only moved that rearrangement to the moment you noticed and changed it.
+   * Each model asks in its own dialect; see the two dialogs below.
    */
   function handleNewContent() {
-    if (mode === "repository") {
-      setShowPostType(true);
-      return;
-    }
-    createContent("Image");
+    setShowPostType(true);
   }
 
   function createContent(postType: PostType) {
     const id = makeSessionId();
     setSessions((prev) => [...prev, createBlankSession(id, postType)]);
+    // Classic shows one campaign at a time, so a post belonging to none would be
+    // created and then invisible. The repository is campaign-agnostic by design.
+    if (mode === "classic") {
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === selectedCampaignId
+            ? { ...c, sessionIds: [...c.sessionIds, id] }
+            : c,
+        ),
+      );
+    }
     setSelectedSessionId(id);
     setShowPostType(false);
   }
@@ -1002,7 +998,7 @@ export default function Home() {
                     variant="ghost"
                     size="sm"
                     className="gap-1.5 text-sm"
-                    onClick={handleNewSession}
+                    onClick={handleNewContent}
                   >
                     <PlusCircle className="size-4" />
                     New Session
@@ -1261,11 +1257,22 @@ export default function Home() {
         contextName={selectedCampaign.name}
       />
 
-      <PostTypeModal
-        open={showPostType}
-        onOpenChange={setShowPostType}
-        onSelect={createContent}
-      />
+      {/* One question, two dialects: the repository's floating canvas sheet, or
+          Classic's bordered card. Rendering both from one component and theming
+          it would put two design systems in one file. */}
+      {mode === "classic" ? (
+        <ClassicPostTypeModal
+          open={showPostType}
+          onOpenChange={setShowPostType}
+          onSelect={createContent}
+        />
+      ) : (
+        <PostTypeModal
+          open={showPostType}
+          onOpenChange={setShowPostType}
+          onSelect={createContent}
+        />
+      )}
 
       {/* Asked once, on first load. `mounted` gates it so the dialog cannot
           flash before the saved choice has been read back off localStorage. */}
