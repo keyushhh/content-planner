@@ -8,6 +8,7 @@ import {
   FileText,
   Megaphone,
   PlusCircle,
+  ScrollText,
   Search,
   Tag,
   UserPlus,
@@ -41,6 +42,10 @@ export interface CommandPaletteActions {
   onOpenCampaign?: (id: string) => void;
   onInvite?: () => void;
   onFilterTag?: (tag: string) => void;
+  /** The changelog's only entry point, which is the whole point of it. */
+  onOpenChangelog?: () => void;
+  /** Something in the log postdates the last time it was opened. */
+  changelogUnread?: boolean;
 }
 
 /**
@@ -95,6 +100,24 @@ export function CommandPalette({
         icon: UserPlus,
         haystack: "invite share access teammate people",
         run: actions.onInvite,
+      });
+    }
+    if (actions.onOpenChangelog) {
+      list.push({
+        id: "changelog",
+        label: "What's new",
+        hint: actions.changelogUnread
+          ? "Updates since you last looked"
+          : "Every change, by the day it shipped",
+        group: "Actions",
+        icon: ScrollText,
+        // The accent dot already means "this row carries something": here it
+        // means there is something in the log you have not read.
+        accent: actions.changelogUnread ? "bg-violet-400" : undefined,
+        // "changelog" and "release notes" are what people type; neither word
+        // appears in the label, so both have to be in the haystack.
+        haystack: "what's new whats new changelog updates release notes history changes",
+        run: actions.onOpenChangelog,
       });
     }
 
