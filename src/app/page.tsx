@@ -45,6 +45,7 @@ import type { ChangeKind } from "@/lib/changelog";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { CampaignPage } from "@/components/repository/campaign-page";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
+import { CampaignEditor } from "@/components/campaigns/campaign-editor";
 import { BrandToggle, useBrandLayer } from "@/components/content-planner/brand-toggle";
 import {
   VERSIONS,
@@ -78,7 +79,12 @@ import type {
   Session,
 } from "@/lib/types";
 import { feedbackStatusMeta } from "@/lib/feedback";
-import { campaignDrafts, campaignMembers, migrateCampaign } from "@/lib/campaigns";
+import {
+  blankCampaign,
+  campaignDrafts,
+  campaignMembers,
+  migrateCampaign,
+} from "@/lib/campaigns";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
@@ -145,6 +151,11 @@ function migrateSession(
   return next;
 }
 
+function toDraft(c: Campaign): NewCampaign {
+  const { id: _id, inWozku: _inWozku, sessionIds: _sessionIds, ...draft } = c;
+  return draft;
+}
+
 function createBlankSession(id: string, postType: PostType = "Image"): Session {
   const now = new Date().toISOString();
   return {
@@ -190,6 +201,8 @@ export default function Home() {
   const [sendPreset, setSendPreset] = useState<string[] | null>(null);
   const [repoCampaignId, setRepoCampaignId] = useState<string | null>(null);
   const [section, setSection] = useState<AppSection>("repository");
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [sendResult, setSendResult] = useState<
     { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
@@ -353,6 +366,8 @@ export default function Home() {
     mode === "repository"
       ? campaigns.find((c) => c.id === repoCampaignId) ?? null
       : null;
+  const editingCampaign =
+    campaigns.find((c) => c.id === editingCampaignId) ?? null;
   const campaignSessions = campaignMembers(sessions, selectedCampaign).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
@@ -591,17 +606,17 @@ export default function Home() {
     const id = `camp-${Date.now()}`;
     setCampaigns((prev) => [
       ...prev,
-      {
-        id,
-        name: draft.name,
-        tag: draft.tag || "NEW",
-        inWozku: false,
-        endDate: draft.endDate || "TBD",
-        platforms: draft.platforms.length ? draft.platforms : ["linkedin"],
-        sessionIds: [],
-      },
+      { ...draft, id, tag: draft.tag || "NEW", inWozku: false, sessionIds: [] },
     ]);
     return id;
+  }
+
+  function saveCampaign(campaignId: string, draft: NewCampaign) {
+    setCampaigns((prev) =>
+      prev.map((c) =>
+        c.id === campaignId ? { ...c, ...draft, tag: draft.tag || "NEW" } : c,
+      ),
+    );
   }
 
   function takeCampaignLive(campaignId: string) {
@@ -814,6 +829,8 @@ export default function Home() {
                       aria-selected={active}
                       onClick={() => {
                         setSection(id);
+                        setCreatingCampaign(false);
+                        setEditingCampaignId(null);
                         if (id === "campaigns") setRepoCampaignId(null);
                       }}
                       className={cn(
@@ -1080,7 +1097,28 @@ export default function Home() {
             </div>
           </>
         ) : section === "campaigns" ? (
-          repoCampaign ? (
+          creatingCampaign || editingCampaign ? (
+            <CampaignEditor
+              key={editingCampaign?.id ?? "new"}
+              mode={editingCampaign ? "edit" : "create"}
+              initial={editingCampaign ? toDraft(editingCampaign) : blankCampaign()}
+              onCancel={() => {
+                setCreatingCampaign(false);
+                setEditingCampaignId(null);
+              }}
+              onSave={(draft) => {
+                if (editingCampaign) {
+                  saveCampaign(editingCampaign.id, draft);
+                  setEditingCampaignId(null);
+                  setRepoCampaignId(editingCampaign.id);
+                } else {
+                  const id = createCampaign(draft);
+                  setCreatingCampaign(false);
+                  setRepoCampaignId(id);
+                }
+              }}
+            />
+          ) : repoCampaign ? (
           <CampaignPage
             campaign={repoCampaign}
             campaigns={campaigns}
@@ -1097,6 +1135,7 @@ export default function Home() {
             onSubmit={(ids) => submitDrafts(repoCampaign.id, ids)}
             onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
             onGoLive={() => takeCampaignLive(repoCampaign.id)}
+            onEdit={() => setEditingCampaignId(repoCampaign.id)}
             {...customColumnProps}
           />
           ) : (
@@ -1104,7 +1143,7 @@ export default function Home() {
               campaigns={campaigns}
               sessions={sessions}
               onOpenCampaign={(id) => setRepoCampaignId(id)}
-              onCreateCampaign={createCampaign}
+              onNewCampaign={() => setCreatingCampaign(true)}
             />
           )
         ) : (
@@ -1239,10 +1278,11 @@ export default function Home() {
             campaignIds,
           });
         }}
-        allowCreateCampaign
-        onCreateCampaign={(name) =>
-          createCampaign({ name, tag: "NEW", endDate: "", platforms: ["linkedin"] })
-        }
+        onNewCampaign={() => {
+          setSection("campaigns");
+          setRepoCampaignId(null);
+          setCreatingCampaign(true);
+        }}
       />
 
       <CommandPalette

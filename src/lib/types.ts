@@ -11,6 +11,14 @@ export interface User {
   avatarUrl?: string;
 }
 
+export interface CampaignSettings {
+  multiPostIntervals: boolean;
+  holdAndFire: boolean;
+  sendToAdvocates: boolean;
+  communityInvitation: boolean;
+  jobRoles: string[];
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -19,16 +27,17 @@ export interface Campaign {
   endDate: string;
   platforms: Platform[];
   sessionIds: string[];
+  logoUrl: string;
+  headerUrl: string;
+  description: string;
+  thankYou: string;
+  redirectUrl: string;
+  settings: CampaignSettings;
 }
 
 export type CampaignState = "draft" | "live" | "ended";
 
-export interface NewCampaign {
-  name: string;
-  tag: string;
-  endDate: string;
-  platforms: Platform[];
-}
+export type NewCampaign = Omit<Campaign, "id" | "inWozku" | "sessionIds">;
 
 export interface PostVariation {
   id: string;

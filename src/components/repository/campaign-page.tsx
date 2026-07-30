@@ -7,6 +7,7 @@ import {
   ChevronDown,
   FileEdit,
   Minus,
+  Pencil,
   Rocket,
   Send,
   Trash2,
@@ -43,6 +44,7 @@ interface CampaignPageProps extends CustomColumnProps {
   onSubmit: (sessionIds: string[]) => void;
   onWithdraw: (sessionId: string) => void;
   onGoLive: () => void;
+  onEdit: () => void;
 }
 
 export function CampaignPage({
@@ -61,6 +63,7 @@ export function CampaignPage({
   onSubmit,
   onWithdraw,
   onGoLive,
+  onEdit,
   ...columnProps
 }: CampaignPageProps) {
   const drafts = useMemo(
@@ -166,6 +169,14 @@ export function CampaignPage({
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={onEdit}
+                title="Edit this campaign's public page"
+                className="flex h-9 items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+              >
+                <Pencil className="size-3.5" />
+                Edit page
+              </button>
               {drafts.length > 0 && (
                 <button
                   onClick={submit}

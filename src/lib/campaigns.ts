@@ -1,4 +1,11 @@
-import type { Campaign, CampaignState, Session } from "./types";
+import { isRichTextEmpty } from "./rich-text";
+import type {
+  Campaign,
+  CampaignSettings,
+  CampaignState,
+  NewCampaign,
+  Session,
+} from "./types";
 
 export const CAMPAIGN_STATE: Record<
   CampaignState,
@@ -21,6 +28,29 @@ export const CAMPAIGN_STATE: Record<
   },
 };
 
+export const BLANK_SETTINGS: CampaignSettings = {
+  multiPostIntervals: false,
+  holdAndFire: false,
+  sendToAdvocates: false,
+  communityInvitation: false,
+  jobRoles: [],
+};
+
+export function blankCampaign(): NewCampaign {
+  return {
+    name: "",
+    tag: "",
+    endDate: "",
+    platforms: ["linkedin"],
+    logoUrl: "",
+    headerUrl: "",
+    description: "",
+    thankYou: "",
+    redirectUrl: "",
+    settings: { ...BLANK_SETTINGS },
+  };
+}
+
 export function migrateCampaign(c: Campaign): Campaign {
   return {
     ...c,
@@ -28,7 +58,37 @@ export function migrateCampaign(c: Campaign): Campaign {
     sessionIds: Array.isArray(c.sessionIds) ? c.sessionIds : [],
     tag: c.tag || "NEW",
     endDate: c.endDate ?? "",
+    logoUrl: c.logoUrl ?? "",
+    headerUrl: c.headerUrl ?? "",
+    description: c.description ?? "",
+    thankYou: c.thankYou ?? "",
+    redirectUrl: c.redirectUrl ?? "",
+    settings: { ...BLANK_SETTINGS, ...(c.settings ?? {}) },
   };
+}
+
+export const CAMPAIGN_REQUIRED: {
+  key: keyof NewCampaign;
+  label: string;
+  filled: (c: NewCampaign) => boolean;
+}[] = [
+  { key: "logoUrl", label: "Logo", filled: (c) => c.logoUrl.trim().length > 0 },
+  { key: "name", label: "Campaign name", filled: (c) => c.name.trim().length > 0 },
+  {
+    key: "description",
+    label: "Page description",
+    filled: (c) => !isRichTextEmpty(c.description),
+  },
+  {
+    key: "thankYou",
+    label: "Thank you message",
+    filled: (c) => c.thankYou.trim().length > 0,
+  },
+  { key: "endDate", label: "End date", filled: (c) => c.endDate.trim().length > 0 },
+];
+
+export function missingFields(c: NewCampaign) {
+  return CAMPAIGN_REQUIRED.filter((field) => !field.filled(c));
 }
 
 export function platformsOf(campaign: Campaign) {

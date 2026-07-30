@@ -130,6 +130,19 @@ export const campaigns: Campaign[] = [
     inWozku: true,
     endDate: "2026-08-04",
     platforms: ["linkedin"],
+    logoUrl: "",
+    headerUrl: "",
+    description:
+      "<p>Scan the QR code to share this post on LinkedIn and win exciting gifts.</p>",
+    thankYou: "Thank you for participating",
+    redirectUrl: "",
+    settings: {
+      multiPostIntervals: false,
+      holdAndFire: false,
+      sendToAdvocates: false,
+      communityInvitation: false,
+      jobRoles: [],
+    },
     sessionIds: ["session-1", "session-2", "session-3", "session-4"],
   },
   {
@@ -139,6 +152,18 @@ export const campaigns: Campaign[] = [
     inWozku: false,
     endDate: "2026-09-15",
     platforms: ["linkedin"],
+    logoUrl: "",
+    headerUrl: "",
+    description: "",
+    thankYou: "",
+    redirectUrl: "",
+    settings: {
+      multiPostIntervals: false,
+      holdAndFire: false,
+      sendToAdvocates: false,
+      communityInvitation: false,
+      jobRoles: [],
+    },
     sessionIds: [],
   },
 ];

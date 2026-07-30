@@ -515,6 +515,61 @@
   }
 }
 
+.rich-text > * + * {
+  margin-top: 0.65em;
+}
+
+.rich-text strong,
+.rich-text b {
+  font-weight: 650;
+  color: color-mix(in oklab, var(--foreground) 96%, transparent);
+}
+
+.rich-text em,
+.rich-text i {
+  font-style: italic;
+}
+
+.rich-text a {
+  color: var(--color-sky-300);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-sky-300) 45%, transparent);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 150ms ease;
+}
+
+.rich-text a:hover {
+  text-decoration-color: var(--color-sky-300);
+}
+
+.rich-text blockquote {
+  padding-left: 0.85em;
+  border-inline-start: 2px solid color-mix(in oklab, var(--ink) 16%, transparent);
+  color: color-mix(in oklab, var(--foreground) 78%, transparent);
+  font-style: italic;
+}
+
+.rich-text ol,
+.rich-text ul {
+  padding-inline-start: 1.35em;
+}
+
+.rich-text ol {
+  list-style: decimal;
+}
+
+.rich-text ul {
+  list-style: disc;
+}
+
+.rich-text li::marker {
+  color: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+.rich-text li + li {
+  margin-top: 0.3em;
+}
+
 @media (prefers-reduced-transparency: reduce) {
   * {
     backdrop-filter: none !important;

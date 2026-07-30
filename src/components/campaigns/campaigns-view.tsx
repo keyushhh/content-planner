@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Stagger } from "@/components/content-planner/session-composer";
-import { CampaignCreateModal } from "./campaign-create-modal";
 import {
   CAMPAIGN_STATE,
   campaignDrafts,
@@ -30,7 +29,7 @@ import {
 } from "@/lib/campaigns";
 import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
-import type { Campaign, CampaignState, NewCampaign, Session } from "@/lib/types";
+import type { Campaign, CampaignState, Session } from "@/lib/types";
 
 const FILTERS: { id: CampaignState | "all"; label: string }[] = [
   { id: "all", label: "All campaigns" },
@@ -43,16 +42,15 @@ export function CampaignsView({
   campaigns,
   sessions,
   onOpenCampaign,
-  onCreateCampaign,
+  onNewCampaign,
 }: {
   campaigns: Campaign[];
   sessions: Session[];
   onOpenCampaign: (id: string) => void;
-  onCreateCampaign: (draft: NewCampaign) => string;
+  onNewCampaign: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<CampaignState | "all">("all");
-  const [creating, setCreating] = useState(false);
   const [now] = useState(() => Date.now());
 
   const rows = useMemo(() => {
@@ -159,7 +157,7 @@ export function CampaignsView({
           </div>
 
           <button
-            onClick={() => setCreating(true)}
+            onClick={onNewCampaign}
             className="flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
           >
             <PlusCircle className="size-4" />
@@ -195,7 +193,7 @@ export function CampaignsView({
               </button>
             ) : (
               <button
-                onClick={() => setCreating(true)}
+                onClick={onNewCampaign}
                 className="mt-4 flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
               >
                 <PlusCircle className="size-4" />
@@ -218,15 +216,6 @@ export function CampaignsView({
         )}
       </div>
 
-      <CampaignCreateModal
-        open={creating}
-        onOpenChange={setCreating}
-        onCreate={(draft) => {
-          const id = onCreateCampaign(draft);
-          setCreating(false);
-          onOpenCampaign(id);
-        }}
-      />
     </div>
   );
 }

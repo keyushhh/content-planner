@@ -19,8 +19,7 @@ interface SendToCampaignSheetProps {
   authorName: string;
   initialCampaignIds?: string[];
   onShare: (campaignIds: string[]) => void;
-  allowCreateCampaign?: boolean;
-  onCreateCampaign?: (name: string) => string;
+  onNewCampaign?: () => void;
 }
 
 function endsLabel(endDate: string, now: number) {
@@ -46,12 +45,9 @@ export function SendToCampaignSheet({
   authorName,
   initialCampaignIds,
   onShare,
-  allowCreateCampaign,
-  onCreateCampaign,
+  onNewCampaign,
 }: SendToCampaignSheetProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
   const [search, setSearch] = useState("");
   const [step, setStep] = useState<"pick" | "preview">("pick");
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -64,8 +60,6 @@ export function SendToCampaignSheet({
     if (open) {
       const preset = initialCampaignIds ?? [];
       setSelectedIds(preset);
-      setCreating(false);
-      setNewName("");
       setSearch("");
       setStep(preset.length > 0 ? "preview" : "pick");
     }
@@ -96,16 +90,6 @@ export function SendToCampaignSheet({
     );
   }
 
-  function commitNewCampaign() {
-    const name = newName.trim();
-    if (!name || !onCreateCampaign) return;
-    const id = onCreateCampaign(name);
-    setSelectedIds((prev) => [...prev, id]);
-    setCreating(false);
-    setNewName("");
-    setSearch("");
-  }
-
   function advance() {
     if (count === 0) return;
     if (step === "pick") {
@@ -116,7 +100,6 @@ export function SendToCampaignSheet({
     onOpenChange(false);
   }
 
-  const canCreate = Boolean(allowCreateCampaign && onCreateCampaign);
   const isEmpty = available.length === 0 && already.length === 0;
   const previewing = step === "preview";
   const previewSessions = batch ?? (session ? [session] : []);
@@ -302,56 +285,23 @@ export function SendToCampaignSheet({
               </>
             )}
 
-            {canCreate &&
-              (creating ? (
-                <div className="border-t border-(--ink)/[0.06] bg-violet-500/[0.05] px-4 py-3">
-                  <input
-                    autoFocus
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="New campaign name…"
-                    aria-label="New campaign name"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        commitNewCampaign();
-                      } else if (e.key === "Escape") {
-                        e.stopPropagation();
-                        setCreating(false);
-                        setNewName("");
-                      }
-                    }}
-                    className="h-9 w-full rounded-(--r-inner) bg-(--ink)/[0.05] px-3 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.10] outline-none placeholder:text-muted-foreground/75 focus:inset-ring-violet-400/50"
-                  />
-                  <div className="mt-2 flex justify-end gap-1.5">
-                    <button
-                      onClick={() => {
-                        setCreating(false);
-                        setNewName("");
-                      }}
-                      className="flex h-8 items-center rounded-(--r-pill) px-3 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      disabled={!newName.trim()}
-                      onClick={commitNewCampaign}
-                      className="flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-xs font-medium text-white inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40"
-                    >
-                      <Plus className="size-3.5" />
-                      Create &amp; select
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setCreating(true)}
-                  className="flex h-12 w-full items-center gap-2 border-t border-(--ink)/[0.06] px-4 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-(--ink)/[0.035] hover:text-foreground"
-                >
-                  <Plus className="size-4 shrink-0 text-muted-foreground/70" />
-                  New campaign
-                </button>
-              ))}
+            {onNewCampaign && (
+              <button
+                onClick={() => {
+                  onOpenChange(false);
+                  onNewCampaign();
+                }}
+                className="group flex h-12 w-full items-center gap-2 border-t border-(--ink)/[0.06] px-4 text-left text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-(--ink)/[0.035] hover:text-foreground"
+              >
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-(--r-pill) bg-(--ink)/[0.05] transition-[background-color,color] duration-150 group-hover:bg-violet-500/20 group-hover:text-violet-200">
+                  <Plus className="size-3" />
+                </span>
+                <span className="min-w-0 flex-1 truncate">New campaign</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground/60">
+                  Opens the editor
+                </span>
+              </button>
+            )}
           </Stagger>
           )}
         </div>
