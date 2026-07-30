@@ -35,8 +35,42 @@ export type ChangelogDay = {
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-07-30",
-    summary: "This list, and the job of keeping it honest",
+    summary: "Motion, accessibility, and this list",
     entries: [
+      {
+        kind: "new",
+        title: "The session panel can be dragged closed",
+        detail: "It tracks the pointer one to one, carries the momentum of a flick so a short fast throw dismisses it, and rubber-bands instead of stopping dead at its edge. Opening and closing became springs, so the motion can be interrupted and reversed mid-flight rather than having to finish.",
+        commit: "3858ab8",
+      },
+      {
+        kind: "new",
+        title: "The system's accessibility settings are honoured",
+        detail:
+          "Reduce motion turns travel and press-shrink into plain fades and stops the caret blinking. Reduce transparency drops the frosted blur. Increase contrast strengthens the hairlines and muted text, which at 6 to 10 percent alpha were the first things to disappear.",
+        commit: "3858ab8",
+      },
+      {
+        kind: "fixed",
+        title: "Brand mode reaches the small uppercase labels",
+        detail:
+          "Fifteen of them were still rendering in Geist with the brand layer on, because the mono treatment had never made it into this build. Every other font role was already correct: Geist with the brand off, Satoshi and Space Grotesk with it on.",
+        commit: "3858ab8",
+      },
+      {
+        kind: "improved",
+        title: "The top bar lines up with the table",
+        detail:
+          "Its contents now sit in the same column as the content below, so the breadcrumb, the search field and the table's left edge share one line. On a wide screen the breadcrumb had been sitting about 328px to the left of the thing it labels.",
+        commit: "3858ab8",
+      },
+      {
+        kind: "improved",
+        title: "Edges, hit areas, and a lighter touch on transitions",
+        detail:
+          "Uploaded images and PDF previews carry a faint outline so a pale photo cannot bleed into the surface. Small toolbar controls answer to a 40px hit area without growing. Table rows arrive staggered on a page change, headings wrap more evenly, and scroll edges fade only where content is genuinely hidden. Seven transitions that animated every property now animate only what changes.",
+        commit: "3858ab8",
+      },
       {
         kind: "new",
         title: "The changelog keeps itself current",
@@ -361,6 +395,7 @@ export const CHANGELOG: ChangelogDay[] = [
  * so the check can reach green, and "missed or skipped?" has an answer later.
  */
 export const CHANGELOG_OMITTED: Record<string, string> = {
+  "53558f4": "chore commit, nothing visible changed.",
   // Committed as `feat:`, so the scanner would have listed it. Use
   // `Changelog-Skip:` for the next one.
   "e25e348": "Changelog copy only. Nothing in the product changed.",
