@@ -158,6 +158,27 @@ function SelectBox({
 /** Names are clipped to this many characters, then an ellipsis. */
 const CAMPAIGN_NAME_MAX = 18;
 
+/**
+ * TEMPORARY, FOR LOOKING AT ONLY. Stand-in names so the Campaign column can be
+ * judged with long names and several campaigns at once. Revert this commit to
+ * drop it.
+ */
+const DUMMY_CAMPAIGNS: string[][] = [
+  [],
+  ["Q3 Push"],
+  ["Brand Push"],
+  ["Summer Launch Always-On"],
+  ["Summer Launch Always-On", "Q3 Push"],
+  ["Q3 Push", "Brand Push", "Holiday Gifting 2026"],
+];
+
+/** Stable per row, so the names do not reshuffle when you sort or page. */
+function dummyFor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return DUMMY_CAMPAIGNS[Math.abs(hash) % DUMMY_CAMPAIGNS.length];
+}
+
 /** The Campaign column: which campaigns the post lives in, and nothing else. */
 function CampaignNames({
   session,
@@ -166,9 +187,12 @@ function CampaignNames({
   session: Session;
   campaigns: Campaign[];
 }) {
-  const names = session.sentToCampaignIds
+  const sent = session.sentToCampaignIds
     .map((id) => campaigns.find((c) => c.id === id)?.name)
     .filter((name): name is string => Boolean(name));
+
+  // TEMPORARY: see DUMMY_CAMPAIGNS. Real names always win.
+  const names = sent.length ? sent : dummyFor(session.id);
 
   // A dot rather than the word "None": on twelve rows that word reads as data.
   if (names.length === 0) {
