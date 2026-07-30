@@ -35,8 +35,8 @@ export const FEEDBACK_STATUSES: {
     active: false,
   },
   {
-    id: "wont_do",
-    label: "Won’t do",
+    id: "discarded",
+    label: "Discard",
     chip: "bg-(--ink)/[0.06] text-muted-foreground inset-ring-(--ink)/[0.10]",
     dot: "bg-muted-foreground/60",
     active: false,

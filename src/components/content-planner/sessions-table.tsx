@@ -93,6 +93,24 @@ interface SessionsTableProps {
 const ROW_EXIT_MS = 220;
 
 /**
+ * Where "Last edited by" starts, measured from the sheet's left edge, so it
+ * lands under the tag filter in the toolbar above: search (260) + gap (8) +
+ * status (148) + gap (8) + sort (184) + gap (8). Keep these in step with
+ * repository-shell. Campaign takes whatever Name gives up, so tuning the first
+ * two columns cannot shift the three to their right.
+ */
+const EDITED_LEFT = 616;
+
+/** The Name column's width. */
+const NAME_CAP = 310;
+
+/**
+ * Beyond this the horizontal scroll gets long enough that the columns you added
+ * are hard to find again. The widths above are budgeted for exactly this many.
+ */
+export const MAX_CUSTOM_COLUMNS = 2;
+
+/**
  * The row checkbox: the same 17px square and the same violet as the one in the
  * send sheet, since ticking a row and ticking a campaign are one gesture.
  */
@@ -137,34 +155,46 @@ function SelectBox({
   );
 }
 
-/**
- * "Live in a campaign", said on the row itself: the Campaign column has to be
- * looked at, and below 900px it is not there at all.
- */
-function SentChip({
+/** Names are clipped to this many characters, then an ellipsis. */
+const CAMPAIGN_NAME_MAX = 18;
+
+/** The Campaign column: which campaigns the post lives in, and nothing else. */
+function CampaignNames({
   session,
   campaigns,
 }: {
   session: Session;
   campaigns: Campaign[];
 }) {
-  if (session.sentToCampaignIds.length === 0) return null;
   const names = session.sentToCampaignIds
     .map((id) => campaigns.find((c) => c.id === id)?.name)
     .filter((name): name is string => Boolean(name));
-  const label = names.length
-    ? names.length === 1
-      ? names[0]
-      : `${names[0]} +${names.length - 1}`
-    : `${session.sentToCampaignIds.length} campaigns`;
+
+  // A dot rather than the word "None": on twelve rows that word reads as data.
+  if (names.length === 0) {
+    return (
+      <span title="Not in a campaign" className="text-muted-foreground/40">
+        ·
+      </span>
+    );
+  }
+
+  const clipped =
+    names[0].length > CAMPAIGN_NAME_MAX
+      ? `${names[0].slice(0, CAMPAIGN_NAME_MAX).trimEnd()}…`
+      : names[0];
 
   return (
     <span
-      title={names.length ? `Sent to ${names.join(", ")}` : "Sent"}
-      className="flex h-[15px] shrink-0 items-center gap-1 rounded-[5px] bg-emerald-500/[0.09] px-1.5 text-[10.5px] font-medium text-emerald-300/90 inset-ring-1 inset-ring-emerald-400/30"
+      title={names.length === 1 ? names[0] : `In ${names.join(", ")}`}
+      className="flex min-w-0 items-center gap-1"
     >
-      <Check className="size-2.5 shrink-0" strokeWidth={3} />
-      <span className="max-w-[130px] truncate">{label}</span>
+      <span className="truncate text-foreground/80">{clipped}</span>
+      {names.length > 1 && (
+        <span className="shrink-0 tabular-nums text-muted-foreground/70">
+          +{names.length - 1}
+        </span>
+      )}
     </span>
   );
 }
@@ -363,11 +393,14 @@ export function SessionsTable({
   const [bodyScrolled, setBodyScrolled] = useState(false);
   // starts true so a short, unscrollable list never shows a fade
   const [bodyAtEnd, setBodyAtEnd] = useState(true);
+  /** Same idea sideways, for the custom columns that scroll off the right. */
+  const [bodyAtRight, setBodyAtRight] = useState(true);
 
   const readScrollEdges = useCallback((el: HTMLElement) => {
     setBodyScrolled(el.scrollTop > 2);
     // 1px of slack: fractional scroll heights mean the sum rarely lands exactly
     setBodyAtEnd(el.scrollHeight - el.scrollTop - el.clientHeight <= 1);
+    setBodyAtRight(el.scrollWidth - el.scrollLeft - el.clientWidth <= 1);
   }, []);
 
   /**
@@ -383,6 +416,9 @@ export function SessionsTable({
       readScrollEdges(el);
       const observer = new ResizeObserver(() => readScrollEdges(el));
       observer.observe(el);
+      // The children too: adding a column widens the CONTENT, not the box, so
+      // the container alone never reports it.
+      for (const child of Array.from(el.children)) observer.observe(child);
       return () => {
         observer.disconnect();
         bodyRef.current = null;
@@ -502,7 +538,7 @@ export function SessionsTable({
         icon={LockOpen}
         tone="violet"
         title="Unlock this post?"
-        description="This moves it back to WIP so you can edit it. It stays sent to Wozku as-is until you re-approve and send the update \u2014 nothing changes there until then."
+        description="This moves it back to WIP so you can edit it. It stays sent to Wozku as-is until you re-approve and send the update, and nothing changes there until then."
         actions={[
           {
             label: "Cancel",
@@ -539,7 +575,7 @@ export function SessionsTable({
 
   // Dynamic CSS grid template columns
   const gridStyle = {
-    gridTemplateColumns: `minmax(200px, 1.5fr) 160px 110px 130px ${headerColumns
+    gridTemplateColumns: `minmax(200px, 1.5fr) 110px 160px 110px 130px ${headerColumns
       .map(() => "140px")
       .join(" ")} 60px 40px`,
   };
@@ -548,18 +584,28 @@ export function SessionsTable({
   // Rows live inside one elevated sheet on the washed canvas, so the table
   // reads as the same material as the detail pane.
   const pick = selectable ? "26px " : "";
+  // px-5, then the select box and its gap, then the gap after Name.
+  const campaignLeft = 20 + (selectable ? 26 + 12 : 0) + NAME_CAP + 12;
+  const campaignWidth = EDITED_LEFT - 12 - campaignLeft;
   const canvasGrid = {
-    "--cols-sm": `${pick}minmax(0,1fr) 104px 72px`,
-    "--cols-md": `${pick}minmax(0,1fr) 168px 112px 72px`,
-    "--cols-lg": `${pick}minmax(0,1fr) 176px 116px 132px ${headerColumns
+    // No track for the row icons: they float over the columns instead, so the
+    // custom columns are the last thing in the grid and can scroll away.
+    "--cols-sm": `${pick}minmax(0,1fr) 104px`,
+    "--cols-md": `${pick}minmax(0,1fr) 152px 184px 112px`,
+    // All fixed: nothing squeezes, so every alignment holds however many custom
+    // columns exist.
+    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 184px 138px 138px ${headerColumns
       .map(() => "140px")
-      .join(" ")} 80px`,
+      .join(" ")}`,
   } as React.CSSProperties;
 
   const canvasGridClass =
     "grid-cols-[var(--cols-sm)] @[640px]:grid-cols-[var(--cols-md)] @[900px]:grid-cols-[var(--cols-lg)]";
   /** Columns that only earn their space at full width. */
   const wideOnly = "hidden @[900px]:block";
+  /** Campaign survives one breakpoint lower: where a post lives outranks the
+      verbs for acting on it. */
+  const midOnly = "hidden @[640px]:block";
   /** Same gate, for cells whose own layout is a flex row: `block` would win
       over the component's `flex` and stack its children vertically instead. */
   const wideOnlyRow = "hidden @[900px]:flex";
@@ -719,9 +765,9 @@ export function SessionsTable({
   if (variant === "canvas") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* The sheet owns its own scroll region: the header is a sibling of
-            the body rather than sticky inside it, so the column titles are
-            simply always there. */}
+        {/* The header is sticky INSIDE the scroll region, not a sibling above
+            it: as a sibling it kept the scrollbar's width, so every column
+            title sat a scrollbar to the right of its own cells. */}
         <div className="relative flex min-h-0 flex-col overflow-clip rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08] @container">
             <div
               aria-hidden
@@ -729,15 +775,27 @@ export function SessionsTable({
             />
 
             <div
-              style={canvasGrid}
+              ref={attachBody}
+              onScroll={handleBodyScroll}
+              // pb keeps the final row off the sheet's bottom edge, so the end of
+              // the list reads as an end rather than as a crop
+              className="min-h-0 flex-1 overflow-auto overscroll-contain pb-2"
+            >
+            <div
               className={cn(
-                "z-10 grid shrink-0 items-center gap-3 border-b bg-(--surface-panel) px-5 py-2.5 text-[11px] font-medium text-muted-foreground transition-[border-color,box-shadow] duration-200",
-                canvasGridClass,
+                "sticky top-0 z-10 grid min-w-max border-b bg-(--surface-panel) text-[11px] font-medium text-muted-foreground transition-[border-color,box-shadow] duration-200",
                 // the header acknowledges scroll with the same lift the detail
                 // pane's toolbar uses, so the two read as one system
                 bodyScrolled
                   ? "border-(--ink)/[0.10] shadow-(--lift-md)"
                   : "border-(--ink)/[0.06]",
+              )}
+            >
+            <div
+              style={canvasGrid}
+              className={cn(
+                "col-start-1 row-start-1 grid items-center gap-3 px-5 py-2.5",
+                canvasGridClass,
               )}
             >
               {selectable && (
@@ -762,6 +820,7 @@ export function SessionsTable({
                 onSort={onSort}
                 className="min-w-0"
               />
+              <span className={cn("min-w-0", midOnly)}>Campaign</span>
               <SortableHeader
                 label="Last edited by"
                 columnKey="edited"
@@ -798,7 +857,7 @@ export function SessionsTable({
                   <span>Status</span>
                 )}
               </div>
-              <span className={wideOnly}>Campaign</span>
+              <span className={wideOnly}>Actions</span>
 
               {headerColumns.map((col) => (
                 <CustomColumnHeader
@@ -814,26 +873,32 @@ export function SessionsTable({
                 />
               ))}
 
-              {/* only offered where custom columns actually render */}
-              <div className={cn("items-center justify-end", "hidden @[900px]:flex")}>
+            </div>
+
+              {/* Pinned the same way the row icons are, so it stays reachable
+                  however far the columns scroll. */}
+              <div
+                className={cn(
+                  "sticky right-0 z-20 col-start-1 row-start-1 items-center justify-self-end bg-gradient-to-l from-(--surface-panel) from-65% to-transparent pl-12 pr-5",
+                  "hidden @[900px]:flex",
+                )}
+              >
                 <button
                   onClick={handleAddColumn}
-                  title="Add column"
+                  disabled={customColumns.length >= MAX_CUSTOM_COLUMNS}
+                  title={
+                    customColumns.length >= MAX_CUSTOM_COLUMNS
+                      ? `${MAX_CUSTOM_COLUMNS} columns is the limit`
+                      : "Add column"
+                  }
                   aria-label="Add column"
-                  className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                  className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press) disabled:pointer-events-none disabled:opacity-30"
                 >
                   <Plus className="size-3.5" />
                 </button>
               </div>
             </div>
 
-            <div
-              ref={attachBody}
-              onScroll={handleBodyScroll}
-              // pb keeps the final row off the sheet's bottom edge, so the end of
-              // the list reads as an end rather than as a crop
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2"
-            >
             {loading ? (
               <SkeletonRows rows={pageSize > 10 ? 10 : pageSize} />
             ) : sessions.length === 0 ? (
@@ -852,19 +917,18 @@ export function SessionsTable({
                     data-row-id={session.id}
                     onClick={() => onSelectSession(session.id)}
                     style={{
-                      ...canvasGrid,
                       // Capped at 8 so a full page still lands in under 200ms.
                       animation: `post-type-in 260ms cubic-bezier(0.2,0,0,1) ${
                         Math.min(rowIndex, 7) * 22
                       }ms backwards`,
                     }}
                     className={cn(
-                      // A fixed row height is what makes 15 rows read as a rhythm:
-                      // with padding alone, a row with tags stood 14px taller than
-                      // one without and the whole list stuttered.
-                      "group relative grid h-[58px] cursor-pointer items-center gap-3 border-b border-(--ink)/[0.05] px-5 last:border-b-0",
+                      // One cell holding the columns and the floating actions on
+                      // top of one another. The actions need a containing block as
+                      // wide as the whole row, or they cannot stick to its edge:
+                      // a sticky grid item is trapped inside its own column.
+                      "group relative grid min-w-max cursor-pointer border-b border-(--ink)/[0.05] last:border-b-0",
                       "transition-[height,opacity,translate,background-color,box-shadow] duration-220",
-                      canvasGridClass,
                       // Collapses and slips left on its way out, so the rows
                       // below close the gap instead of jumping into it.
                       session.id === leavingId &&
@@ -901,6 +965,17 @@ export function SessionsTable({
                         isSelected ? "opacity-100" : "opacity-70 group-hover:opacity-100",
                       )}
                     />
+
+                    {/* The columns. A fixed height is what makes 15 rows read as
+                        a rhythm: with padding alone, a row with tags stood 14px
+                        taller than one without and the whole list stuttered. */}
+                    <div
+                      style={canvasGrid}
+                      className={cn(
+                        "col-start-1 row-start-1 grid h-[58px] items-center gap-3 px-5",
+                        canvasGridClass,
+                      )}
+                    >
                     {selectable && (
                       <div
                         className="flex items-center"
@@ -916,10 +991,6 @@ export function SessionsTable({
                       </div>
                     )}
                     <div className="min-w-0 pr-4">
-                      {/* The badge rides with the NAME, not with the tags.
-                          The tag line is a set of colour-coded topics; a
-                          coloured chip inside it reads as a fourth topic in
-                          the same series. */}
                       <div className="flex min-w-0 items-center gap-2">
                         <div
                           data-row-title
@@ -932,7 +1003,6 @@ export function SessionsTable({
                         >
                           {session.title}
                         </div>
-                        <SentChip session={session} campaigns={campaigns} />
                       </div>
                       {/* Tags as quiet text, not pills. Filled chips here put
                           a second chip treatment on screen competing with the
@@ -964,6 +1034,12 @@ export function SessionsTable({
                           )}
                         </div>
                       )}
+                    </div>
+
+                    {/* Names only, and no stopPropagation: nothing here is
+                        clickable, so the row click should pass through. */}
+                    <div className={cn("min-w-0 text-[12.5px]", midOnly)}>
+                      <CampaignNames session={session} campaigns={campaigns} />
                     </div>
 
                     <div className="hidden min-w-0 items-center gap-2 text-[13px] text-muted-foreground @[640px]:flex">
@@ -1022,12 +1098,16 @@ export function SessionsTable({
                       />
                     ))}
 
+                    </div>
+
+                    {/* Floats OVER the columns rather than taking one of its own,
+                        pinned to the right edge as they scroll past underneath.
+                        The gradient is what makes a column read as passing behind
+                        it rather than being cut off by it. */}
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center justify-end gap-0.5"
+                      className="pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end bg-gradient-to-l from-(--surface-raised) from-65% to-transparent pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
                     >
-                      {/* Reveal drifts in from the right rather than blinking
-                          on. */}
                       {/* Unlocking is about EDITING, so it lives with the
                           row's other verbs. */}
                       {locked && (
@@ -1035,10 +1115,12 @@ export function SessionsTable({
                           onClick={() => setConfirmUnlockId(session.id)}
                           aria-label="Unlock to edit"
                           title="Live on Wozku and locked from editing. Unlock to edit."
-                          style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-                          className="flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-(--ink)/[0.08] hover:text-foreground focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100"
+                          className="group/lock relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
                         >
-                          <LockOpen className="size-3.5" />
+                          {/* Shut at rest, because the row IS locked. It opens
+                              under the cursor to say what pressing it does. */}
+                          <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0" />
+                          <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100" />
                         </button>
                       )}
                       {onDuplicateSession && (
@@ -1046,8 +1128,7 @@ export function SessionsTable({
                           onClick={() => onDuplicateSession(session.id)}
                           aria-label="Duplicate"
                           title="Duplicate"
-                          style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-                          className="flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-(--ink)/[0.08] hover:text-foreground focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100"
+                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
                         >
                           <Copy className="size-3.5" />
                         </button>
@@ -1056,8 +1137,7 @@ export function SessionsTable({
                         onClick={() => setConfirmDeleteId(session.id)}
                         aria-label="Delete"
                         title="Delete"
-                        style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
-                        className="flex size-8 translate-x-1.5 items-center justify-center rounded-(--r-pill) text-muted-foreground opacity-0 transition-[opacity,translate,background-color,color,scale] duration-200 hover:bg-destructive/15 hover:text-destructive focus-visible:translate-x-0 focus-visible:opacity-100 active:scale-(--press) group-hover:translate-x-0 group-hover:opacity-100"
+                        className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -1076,6 +1156,16 @@ export function SessionsTable({
               className={cn(
                 "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-(--surface-raised) via-(--surface-raised)/70 to-transparent transition-opacity duration-300",
                 bodyAtEnd ? "opacity-0" : "opacity-100",
+              )}
+            />
+
+            {/* The same edge, sideways: it only appears once a custom column is
+                actually cut off, so a table with none keeps a hard right edge. */}
+            <div
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-(--surface-raised) via-(--surface-raised)/70 to-transparent transition-opacity duration-300",
+                bodyAtRight ? "opacity-0" : "opacity-100",
               )}
             />
           </div>
@@ -1167,9 +1257,10 @@ export function SessionsTable({
           className="grid min-w-max items-center px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/80 gap-3"
         >
           <span>Session Name</span>
+          <span>Campaign</span>
           <span>Last Edited By</span>
           <span>Status</span>
-          <span>Sent to Campaign</span>
+          <span>Actions</span>
 
           {/* Custom Column Headers */}
           {headerColumns.map((col) => (
@@ -1247,7 +1338,10 @@ export function SessionsTable({
                   <span data-row-title className="truncate font-medium text-sm">
                     {session.title}
                   </span>
-                  <SentChip session={session} campaigns={campaigns} />
+                </div>
+
+                <div className="min-w-0 text-sm">
+                  <CampaignNames session={session} campaigns={campaigns} />
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1314,9 +1408,12 @@ export function SessionsTable({
                       onClick={() => setConfirmUnlockId(session.id)}
                       aria-label="Unlock to edit"
                       title="Live on Wozku and locked from editing. Unlock to edit."
-                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                      className="group/lock relative flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
                     >
-                      <LockOpen className="size-3.5" />
+                      {/* Shut at rest, because the row IS locked. It opens
+                          under the cursor to say what pressing it does. */}
+                      <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0 group-focus-visible/lock:scale-90 group-focus-visible/lock:opacity-0" />
+                      <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100 group-focus-visible/lock:scale-100 group-focus-visible/lock:opacity-100" />
                     </button>
                   )}
                   {onDuplicateSession && (

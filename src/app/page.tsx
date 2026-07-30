@@ -14,7 +14,10 @@ import {
   Check,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
-import { SessionsTable } from "@/components/content-planner/sessions-table";
+import {
+  MAX_CUSTOM_COLUMNS,
+  SessionsTable,
+} from "@/components/content-planner/sessions-table";
 import {
   SessionDetailPane,
   type ComposerLayout,
@@ -122,6 +125,11 @@ function migrateSession(
     next.feedback = flat;
   }
 
+  // "Won't do" is called Discard now, so saved notes still carry the old id.
+  next.feedback = next.feedback.map((f) =>
+    (f.status as string) === "wont_do" ? { ...f, status: "discarded" as const } : f,
+  );
+
   return next;
 }
 
@@ -206,10 +214,12 @@ export default function Home() {
 
   function addColumn() {
     const id = `col-${Date.now()}`;
-    setCustomColumns((prev) => [
-      ...prev,
-      { id, name: `Column ${prev.length + 1}` },
-    ]);
+    setCustomColumns((prev) =>
+      // Two is the ceiling the table's column widths are budgeted for.
+      prev.length >= MAX_CUSTOM_COLUMNS
+        ? prev
+        : [...prev, { id, name: `Column ${prev.length + 1}` }],
+    );
     return id;
   }
 
@@ -714,7 +724,7 @@ export default function Home() {
       const author = AUTHORS[i % AUTHORS.length];
       return {
         id: `seed-${i}`,
-        title: `${topic} \u2014 ${String(i + 1).padStart(3, "0")}`,
+        title: `${topic} ${String(i + 1).padStart(3, "0")}`,
         createdAt,
         updatedAt: editedAt,
         lastEditedBy: i % 7 === 0 ? null : author,

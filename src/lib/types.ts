@@ -34,7 +34,7 @@ export interface PostVariation {
  * to be read; a piece of feedback asks to be acted on, and once every item
  * carries a status a reply is the wrong instrument:
  */
-export type FeedbackStatus = "open" | "in_progress" | "done" | "wont_do";
+export type FeedbackStatus = "open" | "in_progress" | "done" | "discarded";
 
 export interface Feedback {
   id: string;
