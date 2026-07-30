@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogDay[] = [
     summary: "Motion, accessibility, and this list",
     entries: [
       {
+        kind: "new",
+        title: "Pick the drafts you want, edit them in place, and mention accounts",
+        commit: "af9304b",
+      },
+      {
         kind: "improved",
         title: "The content table reads the way you work",
         detail: "A Campaign column now says where each post lives, the old Campaign column is called Actions, and the row buttons float above the table so extra columns can scroll along behind them.",
