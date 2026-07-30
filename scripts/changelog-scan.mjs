@@ -103,7 +103,15 @@ const log = execFileSync(
     return { full, short, date, subject, body };
   });
 
-const missing = log.filter((c) => !recorded.some((sha) => c.full.startsWith(sha)));
+// A Changelog-Skip trailer counts as handled on its own: the decision is already
+// recorded in git. Writing it into CHANGELOG_OMITTED as well would mean a
+// changelog-only commit could never leave the check green, since recording its
+// omission takes another commit, whose omission then needs recording.
+const missing = log.filter(
+  (c) =>
+    !recorded.some((sha) => c.full.startsWith(sha)) &&
+    !trailer(c.body, "Changelog-Skip"),
+);
 
 /** Decided up front, so the report and the write cannot disagree. */
 const planned = missing.map((commit) => {
