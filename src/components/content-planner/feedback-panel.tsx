@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { avatarTint, cn } from "@/lib/utils";
+import { useScrollEdges } from "@/lib/scroll-edges";
 import {
   FEEDBACK_STATUSES,
   feedbackStatusMeta,
@@ -247,6 +248,8 @@ export function FeedbackPanel({
   const [tab, setTab] = useState<Tab>("feedback");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [feedbackScrollRef, feedbackScrollMask] = useScrollEdges();
+  const [historyScrollRef, historyScrollMask] = useScrollEdges();
 
   if (!isOpen) return null;
 
@@ -334,12 +337,12 @@ export function FeedbackPanel({
               what makes the right-hand chips read as a column rather than as
               decoration. */}
           {session.feedback.length > 0 && (
-            <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">
+            <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-1.5 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/60">
               <button
                 onClick={() => setOnlyOpen((v) => !v)}
                 title={onlyOpen ? "Show everything" : "Show only what is still open"}
                 className={cn(
-                  "-mx-1.5 flex h-5 items-center gap-1.5 rounded-md px-1.5 uppercase tracking-[0.09em] transition-colors duration-150 hover:text-foreground",
+                  "-mx-1.5 flex h-5 items-center gap-1.5 rounded-md px-1.5 font-(family-name:--font-label) uppercase tracking-[0.09em] transition-colors duration-150 hover:text-foreground",
                   onlyOpen && "text-amber-300",
                 )}
               >
@@ -350,7 +353,11 @@ export function FeedbackPanel({
             </div>
           )}
 
-          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-5 pb-4">
+          <div
+            ref={feedbackScrollRef}
+            style={feedbackScrollMask}
+            className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-5 pb-4"
+          >
             {rows.length === 0 ? (
               <EmptyState
                 icon={MessageSquare}
@@ -405,7 +412,11 @@ export function FeedbackPanel({
           </div>
         </>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+        <div
+          ref={historyScrollRef}
+          style={historyScrollMask}
+          className="min-h-0 flex-1 overflow-y-auto px-5 pb-5"
+        >
           {history.length === 0 ? (
             <EmptyState
               icon={History}

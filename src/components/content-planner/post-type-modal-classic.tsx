@@ -90,7 +90,7 @@ export function ClassicPostTypeModal({
       >
         <DialogHeader className="p-0 text-left">
           <div className="px-5 pb-4 pt-5">
-            <DialogTitle className="text-lg font-semibold tracking-tight">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-balance">
               What are you posting?
             </DialogTitle>
             <DialogDescription className="mt-1 text-[13px] leading-snug text-muted-foreground">

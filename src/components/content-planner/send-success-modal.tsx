@@ -91,7 +91,7 @@ export function SendSuccessModal({
               <Check className="size-6" strokeWidth={2.5} />
             </span>
 
-            <DialogTitle className="mt-4 text-[18px] font-semibold tracking-[-0.015em]">
+            <DialogTitle className="mt-4 text-[18px] font-semibold tracking-[-0.015em] text-balance">
               Sent to {campaigns.length === 1 ? "campaign" : `${campaigns.length} campaigns`}
             </DialogTitle>
             <DialogDescription className="mt-1.5 text-[13px] leading-snug text-muted-foreground text-pretty">

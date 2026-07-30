@@ -337,7 +337,7 @@ function StatusMenu({
             variant="outline"
             size="sm"
             disabled={disabled}
-            className="gap-1.5 text-xs uppercase tracking-wide disabled:opacity-70"
+            className="gap-1.5 text-xs font-(family-name:--font-label) uppercase tracking-wide disabled:opacity-70"
           />
         }
       >

@@ -851,7 +851,13 @@ export function SessionsTable({
                     key={session.id}
                     data-row-id={session.id}
                     onClick={() => onSelectSession(session.id)}
-                    style={canvasGrid}
+                    style={{
+                      ...canvasGrid,
+                      // Capped at 8 so a full page still lands in under 200ms.
+                      animation: `post-type-in 260ms cubic-bezier(0.2,0,0,1) ${
+                        Math.min(rowIndex, 7) * 22
+                      }ms backwards`,
+                    }}
                     className={cn(
                       // A fixed row height is what makes 15 rows read as a rhythm:
                       // with padding alone, a row with tags stood 14px taller than

@@ -136,7 +136,7 @@ export function InviteModal({
               <UserPlus className="size-[18px]" />
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
-              <DialogTitle className="text-[17px] font-semibold tracking-[-0.01em]">
+              <DialogTitle className="text-[17px] font-semibold tracking-[-0.01em] text-balance">
                 Invite to {contextName}
               </DialogTitle>
               <DialogDescription className="mt-1 text-[13px] leading-snug text-muted-foreground text-pretty">

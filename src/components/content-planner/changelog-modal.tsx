@@ -245,10 +245,7 @@ export function ChangelogModal({
             <section key={day.date}>
               {/* Sticky: the date you are reading under has to stay on screen. */}
               <div className="sticky top-0 z-10 flex items-baseline gap-2 border-b border-(--ink)/[0.06] bg-(--surface-dialog)/85 px-6 py-2.5 backdrop-blur-md">
-                <h3
-                  className="text-[11px] font-semibold uppercase tracking-[0.09em] text-foreground"
-                  style={{ fontFamily: "var(--font-label)" }}
-                >
+                <h3 className="font-(family-name:--font-label) text-[11px] font-semibold uppercase tracking-[0.09em] text-foreground">
                   {day.label}
                 </h3>
                 <span className="text-[11px] text-muted-foreground/70">
@@ -314,10 +311,9 @@ export function ChangelogModal({
                             <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                               <span
                                 className={cn(
-                                  "text-[9.5px] font-semibold uppercase tracking-[0.08em]",
+                                  "font-(family-name:--font-label) text-[9.5px] font-semibold uppercase tracking-[0.08em]",
                                   kind.text,
                                 )}
-                                style={{ fontFamily: "var(--font-label)" }}
                               >
                                 {kind.label}
                               </span>
@@ -329,8 +325,7 @@ export function ChangelogModal({
                               {entry.draft && (
                                 <span
                                   title="Written from the commit subject. Not polished yet."
-                                  className="rounded-(--r-pill) bg-(--ink)/[0.05] px-1.5 py-px text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 inset-ring-1 inset-ring-(--ink)/[0.08]"
-                                  style={{ fontFamily: "var(--font-label)" }}
+                                  className="font-(family-name:--font-label) rounded-(--r-pill) bg-(--ink)/[0.05] px-1.5 py-px text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 inset-ring-1 inset-ring-(--ink)/[0.08]"
                                 >
                                   Draft
                                 </span>

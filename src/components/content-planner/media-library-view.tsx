@@ -95,7 +95,7 @@ export function MediaLibraryView({
             </span>
           </button>
 
-          <div className="px-2 pb-1.5 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="px-2 pb-1.5 pt-2 text-[11px] font-medium font-(family-name:--font-label) uppercase tracking-wide text-muted-foreground">
             Collections
           </div>
           {folders.map((folder) => {
@@ -162,7 +162,7 @@ export function MediaLibraryView({
             that all lead nowhere. */}
         {restrictType ? (
           <div className="flex items-center gap-2 border-b border-border/60 px-5 py-2.5 text-xs text-muted-foreground">
-            <span className="rounded-(--r-pill) bg-amber-500/15 px-2.5 py-1 font-medium uppercase tracking-wide text-amber-300">
+            <span className="rounded-(--r-pill) bg-amber-500/15 px-2.5 py-1 font-medium font-(family-name:--font-label) uppercase tracking-wide text-amber-300">
               {restrictType}
             </span>
             {restrictReason ?? `Only ${restrictType.toUpperCase()}s can be picked here`}
@@ -238,12 +238,12 @@ export function MediaLibraryView({
                       url={asset.url}
                       name={asset.name}
                       className={cn(
-                        "aspect-square w-full ring-1 transition-all group-hover:ring-primary",
+                        "aspect-square w-full ring-1 transition-[box-shadow] group-hover:ring-primary",
                         isSelected ? "ring-primary" : "ring-border",
                       )}
                     />
                     {asset.type !== "image" && (
-                      <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur">
+                      <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold font-(family-name:--font-label) uppercase tracking-wide text-white backdrop-blur">
                         {asset.type}
                       </span>
                     )}

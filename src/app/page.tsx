@@ -23,7 +23,7 @@ import { FeedbackPanel } from "@/components/content-planner/feedback-panel";
 import { SendToCampaignSheet } from "@/components/content-planner/send-to-campaign-sheet";
 import { SendSuccessModal } from "@/components/content-planner/send-success-modal";
 import { InviteModal } from "@/components/content-planner/invite-modal";
-import { Sheet, SheetContent, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { PostTypeModal } from "@/components/content-planner/post-type-modal";
 import { ClassicPostTypeModal } from "@/components/content-planner/post-type-modal-classic";
@@ -769,12 +769,15 @@ export default function Home() {
     >
       <div
         className={cn(
-          "flex h-10 shrink-0 items-center justify-between px-4",
+          // Full-bleed background and hairline; the CONTENTS are constrained
+          // below so the breadcrumb lands on the table's left edge.
+          "flex h-10 shrink-0 items-center",
           isCanvas
             ? "border-b border-(--ink)/[0.06] bg-(--sink)/[0.14]"
             : "border-b border-border bg-card/40",
         )}
       >
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-6">
         <div className="flex items-center gap-3">
           {/* The title says which of the two products you are in, because
               that is the single most important fact about this screen. */}
@@ -784,7 +787,7 @@ export default function Home() {
                 <button
                   title="Switch version"
                   className={cn(
-                    "group -ml-1.5 flex h-7 items-center gap-1.5 rounded-(--r-pill) px-1.5 text-xs font-medium transition-[background-color,color] duration-150",
+                    "group -ml-1.5 relative flex h-7 items-center gap-1.5 rounded-(--r-pill) px-1.5 text-xs font-medium transition-[background-color,color] duration-150 after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
                     isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/40",
                   )}
                 />
@@ -830,7 +833,7 @@ export default function Home() {
             className={cn(
               // Given a real width rather than sized to its label: at content
               // width it read as a small button that happened to say "Search".
-              "group flex h-7 w-[240px] items-center gap-2 rounded-(--r-pill) pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground",
+              "group relative flex h-7 w-[240px] items-center gap-2 rounded-(--r-pill) pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
               isCanvas
                 ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.06]"
                 : "border border-border hover:bg-accent/40",
@@ -854,7 +857,7 @@ export default function Home() {
           onClick={seedDemoContent}
           title="Dev: add 450 sample items"
           className={cn(
-            "ml-1 flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium transition-[background-color,color,scale] duration-150 active:scale-(--press)",
+            "ml-1 relative flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium transition-[background-color,color,scale] duration-150 active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
             isCanvas
               ? "bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] hover:text-foreground"
               : "border border-border text-muted-foreground hover:text-foreground",
@@ -881,7 +884,7 @@ export default function Home() {
               key={id}
               onClick={() => setDemoState(id)}
               className={cn(
-                "rounded-(--r-pill) px-2 py-1 transition-[background-color,color,scale] duration-150 active:scale-(--press)",
+                "rounded-(--r-pill) px-2 py-1 transition-[background-color,color,scale] duration-150 active:scale-(--press) relative after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
                 demoState === id
                   ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
                   : "text-muted-foreground hover:text-foreground",
@@ -900,6 +903,7 @@ export default function Home() {
         {mode === "repository" && (
           <BrandToggle mode={brandMode} onChange={setBrandMode} />
         )}
+        </div>
         </div>
       </div>
 
@@ -978,7 +982,7 @@ export default function Home() {
                 {isCanvas ? (
                   <div className="mx-auto w-full max-w-[1280px] px-6 pb-16">
                     <div className="pb-6 pt-7">
-                      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em]">
+                      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                         {selectedCampaign.name}
                       </h1>
                       <p className="mt-1.5 text-[13px] text-muted-foreground">
@@ -1058,16 +1062,17 @@ export default function Home() {
           if (!open) setSelectedSessionId(null);
         }}
       >
-        <SheetPortal>
-          <SheetOverlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
           <SheetContent
             showCloseButton={false}
             side="right"
             aria-label={
               selectedSession ? `Editing ${selectedSession.title}` : "Session details"
             }
+            overlayClassName="z-40 bg-black/40 backdrop-blur-[2px]"
             className={cn(
-              "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[transform,width] duration-250 ease-out data-ending-style:translate-x-full data-starting-style:translate-x-full",
+              // Travel is the spring's job, so no transition or starting/ending
+              // style here. Width still transitions, since that is not a gesture.
+              "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[width] duration-250 ease-out",
               // Canvas is a document rather than a dashboard: a narrower pane keeps the
               // sessions table visible behind it and suits the reading measure.
               mode === "repository" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
@@ -1116,7 +1121,6 @@ export default function Home() {
               </div>
             )}
           </SheetContent>
-        </SheetPortal>
       </Sheet>
 
       {/* The destination picker belongs to the repository model alone: only

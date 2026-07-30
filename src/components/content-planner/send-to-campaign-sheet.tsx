@@ -158,7 +158,7 @@ export function SendToCampaignSheet({
                 selectable, a fourth row you could not tick. */}
             {batch ? (
               <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="shrink-0 uppercase tracking-[0.09em] text-muted-foreground/60">
+                <span className="shrink-0 font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/60">
                   Sending
                 </span>
                 <span className="shrink-0 font-medium text-foreground/85 tabular-nums">
@@ -177,7 +177,7 @@ export function SendToCampaignSheet({
               </div>
             ) : session ? (
               <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="shrink-0 uppercase tracking-[0.09em] text-muted-foreground/60">
+                <span className="shrink-0 font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/60">
                   Sending
                 </span>
                 <span className="truncate font-medium text-foreground/85">
@@ -189,7 +189,7 @@ export function SendToCampaignSheet({
                 <span className="shrink-0">{session.postType}</span>
               </div>
             ) : null}
-            <h2 className="text-[21px] font-semibold leading-tight tracking-[-0.022em]">
+            <h2 className="text-[21px] font-semibold leading-tight tracking-[-0.022em] text-balance">
               Send to campaigns
             </h2>
             <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground text-pretty">
@@ -377,7 +377,7 @@ export function SendToCampaignSheet({
 /** A band inside the sheet, darker than the rows, so it reads as structure. */
 function GroupHeading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-y border-(--ink)/[0.06] bg-(--surface-panel) px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/70">
+    <div className="border-y border-(--ink)/[0.06] bg-(--surface-panel) px-4 py-1.5 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
       {children}
     </div>
   );
@@ -419,7 +419,7 @@ function CampaignRow({
           >
             {campaign.name}
           </span>
-          <span className="shrink-0 rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/85">
+          <span className="shrink-0 rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
             {campaign.tag}
           </span>
         </span>

@@ -472,7 +472,7 @@ function GroupBand({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center gap-2 bg-(--ink)/[0.012] px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/75",
+        "flex shrink-0 items-center gap-2 bg-(--ink)/[0.012] px-5 py-1.5 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/75",
         className,
       )}
     >

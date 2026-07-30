@@ -233,7 +233,7 @@ export function RepositoryShell({
           <div className="flex min-h-0 flex-1 flex-col">
           <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 flex-col px-6 pb-6">
             <div className="shrink-0 pb-6 pt-6">
-              <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em]">
+              <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                 {title}
               </h1>
               {/* The sync signal used to sit under the table, where the pager

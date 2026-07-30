@@ -86,7 +86,7 @@ export function CampaignSidebar({
               key={campaign.id}
               onClick={() => onSelectCampaign(campaign.id)}
               className={cn(
-                "group relative flex w-full items-start gap-3 rounded-xl p-3 text-left transition-all",
+                "group relative flex w-full items-start gap-3 rounded-xl p-3 text-left transition-[background-color,box-shadow]",
                 isSelected
                   ? "bg-accent/70 ring-1 ring-border"
                   : "hover:bg-accent/40",

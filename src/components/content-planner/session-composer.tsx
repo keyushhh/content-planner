@@ -789,7 +789,7 @@ function CardHeader({
     <div className="group/row flex min-h-11 items-center justify-between gap-3 border-b border-(--ink)/[0.06] bg-(--ink)/[0.015] px-4 py-1.5">
       {/* Label and its feedback control travel together; see FeedbackButton */}
       <span className="flex min-w-0 items-center gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <span className="font-(family-name:--font-label) text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </span>
         {onFeedback && (

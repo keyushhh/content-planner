@@ -68,7 +68,7 @@ export function MediaThumb({
         src={url}
         alt={name ?? "Asset preview"}
         draggable={false}
-        className={cn("rounded-xl bg-(--ink)/[0.03] object-cover", className)}
+        className={cn("rounded-xl bg-(--ink)/[0.03] object-cover outline-1 -outline-offset-1 outline-(--ink)/[0.10]", className)}
       />
     );
   }
@@ -84,7 +84,7 @@ export function MediaThumb({
       <div
         title={name ?? "PDF"}
         className={cn(
-          "relative overflow-hidden rounded-xl bg-(--surface-well)",
+          "relative overflow-hidden rounded-xl bg-(--surface-well) outline-1 -outline-offset-1 outline-(--ink)/[0.10]",
           className,
         )}
       >
@@ -99,7 +99,7 @@ export function MediaThumb({
           </span>
         </object>
         {/* Says which format without a caption stealing a line of the tile */}
-        <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 py-px text-[8px] font-semibold uppercase tracking-wider text-(--ink)/80">
+        <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 py-px text-[8px] font-semibold font-(family-name:--font-label) uppercase tracking-wider text-(--ink)/80">
           pdf
         </span>
       </div>
@@ -128,7 +128,7 @@ export function MediaThumb({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl bg-gradient-to-br border p-3 text-center transition-all",
+        "flex flex-col items-center justify-center rounded-xl bg-gradient-to-br border p-3 text-center transition-[background-color,border-color,box-shadow]",
         theme.bg,
         theme.border,
         className
@@ -143,7 +143,7 @@ export function MediaThumb({
           <ImageIcon className="size-5" />
         )}
       </div>
-      <span className={cn("mt-2 text-[10px] font-semibold uppercase tracking-wider", theme.textColor)}>
+      <span className={cn("mt-2 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-wider", theme.textColor)}>
         {theme.label}
       </span>
     </div>
