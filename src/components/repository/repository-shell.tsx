@@ -15,6 +15,7 @@ import {
 import { cn, isSessionLocked } from "@/lib/utils";
 import { SECONDARY_ACTION } from "@/lib/button-styles";
 import {
+  CalendarDays,
   Database,
   PlusCircle,
   Tag,
@@ -51,6 +52,7 @@ interface RepositoryShellProps extends CustomColumnProps {
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
   onBulkSend?: (ids: string[]) => void;
+  onOpenCampaign?: (id: string) => void;
   tableLoading?: boolean;
   tableStyle: ComposerLayout;
 }
@@ -95,6 +97,7 @@ export function RepositoryShell({
   selectedIds,
   onSelectionChange,
   onBulkSend,
+  onOpenCampaign,
   tableLoading = false,
   tableStyle,
   ...columnProps
@@ -315,6 +318,42 @@ export function RepositoryShell({
               </div>
 
               <div className="flex shrink-0 items-center gap-1.5">
+                {onOpenCampaign && campaigns && campaigns.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <button
+                          title="Open a campaign"
+                          className={SECONDARY_ACTION}
+                        />
+                      }
+                    >
+                      <CalendarDays className="size-4" />
+                      Campaigns
+                      <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[220px]">
+                      {campaigns.map((campaign) => {
+                        const drafts = sessions.filter((s) =>
+                          s.draftCampaignIds.includes(campaign.id),
+                        ).length;
+                        return (
+                          <DropdownMenuItem
+                            key={campaign.id}
+                            onClick={() => onOpenCampaign(campaign.id)}
+                          >
+                            <span className="flex-1 truncate">{campaign.name}</span>
+                            {drafts > 0 && (
+                              <span className="shrink-0 rounded-(--r-pill) bg-amber-500/15 px-1.5 text-[10px] font-semibold tabular-nums text-amber-300">
+                                {drafts}
+                              </span>
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <button onClick={() => setShowInvite(true)} className={SECONDARY_ACTION}>
                   <UserPlus className="size-4" />
                   Invite

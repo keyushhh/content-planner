@@ -12,6 +12,7 @@ import {
   FlaskConical,
   ChevronDown,
   Check,
+  Send,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import {
@@ -40,6 +41,7 @@ import {
 } from "@/components/content-planner/changelog-modal";
 import type { ChangeKind } from "@/lib/changelog";
 import { RepositoryShell } from "@/components/repository/repository-shell";
+import { CampaignPage } from "@/components/repository/campaign-page";
 import { BrandToggle, useBrandLayer } from "@/components/content-planner/brand-toggle";
 import {
   VersionChooserModal,
@@ -73,6 +75,7 @@ import type {
   Session,
 } from "@/lib/types";
 import { feedbackStatusMeta } from "@/lib/feedback";
+import { campaignDrafts, campaignMembers } from "@/lib/campaigns";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
@@ -101,6 +104,10 @@ function migrateSession(
   if (!Array.isArray(next.sentToCampaignIds)) {
     const legacy = s.sentToCampaignId;
     next.sentToCampaignIds = legacy ? [legacy] : [];
+  }
+
+  if (!Array.isArray(next.draftCampaignIds)) {
+    next.draftCampaignIds = [];
   }
 
   if (!Array.isArray(next.feedback)) {
@@ -142,6 +149,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
     copy: "",
     variations: [],
     hashtags: "",
+    draftCampaignIds: [],
     sentToCampaignIds: [],
     sentAt: null,
     tags: [],
@@ -168,6 +176,8 @@ export default function Home() {
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkSendIds, setBulkSendIds] = useState<string[] | null>(null);
+  const [sendPreset, setSendPreset] = useState<string[] | null>(null);
+  const [repoCampaignId, setRepoCampaignId] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<
     { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
@@ -315,11 +325,14 @@ export default function Home() {
       : null;
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId)!;
-  const campaignSessions = sessions
-    .filter((s) => selectedCampaign.sessionIds.includes(s.id))
-    .sort(
+  const repoCampaign =
+    mode === "repository"
+      ? campaigns.find((c) => c.id === repoCampaignId) ?? null
+      : null;
+  const campaignSessions = campaignMembers(sessions, selectedCampaign).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
+  const classicDrafts = campaignDrafts(sessions, selectedCampaignId);
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) ?? null;
 
   function updateSession(id: string, patch: Partial<Session>) {
@@ -460,42 +473,85 @@ export default function Home() {
     );
   }
 
-  function shareSessionToCampaigns(sessionId: string, campaignIds: string[]) {
-    if (campaignIds.length === 0) return;
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-    const merged = Array.from(
-      new Set([...session.sentToCampaignIds, ...campaignIds]),
-    );
-    updateSession(sessionId, {
-      sentToCampaignIds: merged,
-      sentAt: new Date().toISOString(),
-    });
-  }
-
-  function requestSend(sessionId: string) {
-    if (mode === "repository") {
-      setSendSheetSessionId(sessionId);
-      return;
-    }
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-    shareSessionToCampaigns(sessionId, [selectedCampaignId]);
-    setSendResult({ title: session.title, campaignIds: [selectedCampaignId] });
-  }
-
-  function shareManyToCampaigns(sessionIds: string[], campaignIds: string[]) {
+  function stageDrafts(sessionIds: string[], campaignIds: string[]) {
     if (campaignIds.length === 0 || sessionIds.length === 0) return;
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (!sessionIds.includes(session.id)) return session;
+        const pending = campaignIds.filter(
+          (id) => !session.sentToCampaignIds.includes(id),
+        );
+        if (pending.length === 0) return session;
+        return {
+          ...session,
+          draftCampaignIds: Array.from(
+            new Set([...session.draftCampaignIds, ...pending]),
+          ),
+        };
+      }),
+    );
+  }
+
+  function submitDrafts(campaignId: string, sessionIds: string[]) {
+    if (sessionIds.length === 0) return;
     const now = new Date().toISOString();
     setSessions((prev) =>
       prev.map((session) => {
         if (!sessionIds.includes(session.id)) return session;
-        const merged = Array.from(
-          new Set([...session.sentToCampaignIds, ...campaignIds]),
-        );
-        return { ...session, sentToCampaignIds: merged, sentAt: now };
+        if (!session.draftCampaignIds.includes(campaignId)) return session;
+        return {
+          ...session,
+          draftCampaignIds: session.draftCampaignIds.filter(
+            (id) => id !== campaignId,
+          ),
+          sentToCampaignIds: Array.from(
+            new Set([...session.sentToCampaignIds, campaignId]),
+          ),
+          sentAt: now,
+          history: [
+            ...session.history,
+            {
+              id: `hist-${Date.now()}-${session.id}-submit`,
+              actor: currentUser,
+              action: `submitted this post to ${
+                campaigns.find((c) => c.id === campaignId)?.name ?? "a campaign"
+              }`,
+              createdAt: now,
+            },
+          ],
+        };
       }),
     );
+    setCampaigns((prev) =>
+      prev.map((c) =>
+        c.id === campaignId
+          ? {
+              ...c,
+              sessionIds: Array.from(new Set([...c.sessionIds, ...sessionIds])),
+            }
+          : c,
+      ),
+    );
+  }
+
+  function withdrawDraft(campaignId: string, sessionId: string) {
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              draftCampaignIds: session.draftCampaignIds.filter(
+                (id) => id !== campaignId,
+              ),
+            }
+          : session,
+      ),
+    );
+  }
+
+  function requestSend(sessionId: string) {
+    setSendPreset(mode === "repository" ? null : [selectedCampaignId]);
+    setSendSheetSessionId(sessionId);
   }
 
   function changeVersion(next: AppVersion) {
@@ -586,6 +642,7 @@ export default function Home() {
       id: newId,
       title: `${source.title} (Copy)`,
       status: "draft",
+      draftCampaignIds: [],
       sentToCampaignIds: [],
       sentAt: null,
       createdAt: new Date().toISOString(),
@@ -650,6 +707,7 @@ export default function Home() {
             : `${topic} copy for item ${i + 1}. Sharing what we shipped and why it matters.`,
         variations: [],
         hashtags: i % 4 === 0 ? "#product #launch" : "",
+        draftCampaignIds: [],
         sentToCampaignIds: [],
         sentAt: null,
         tags: [TAGS[i % TAGS.length], TAGS[(i + 3) % TAGS.length]],
@@ -864,6 +922,23 @@ export default function Home() {
                     <LayoutGrid className="size-4" />
                     Screen Setup
                   </Button>
+                  {classicDrafts.length > 0 && (
+                    <button
+                      onClick={() =>
+                        submitDrafts(
+                          selectedCampaignId,
+                          classicDrafts.map((s) => s.id),
+                        )
+                      }
+                      title="Put these drafts into the campaign"
+                      className="ml-1 flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-[13px] font-medium text-white transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-[0.96]"
+                    >
+                      <Send className="size-3.5" />
+                      Submit{" "}
+                      <span className="tabular-nums">{classicDrafts.length}</span>{" "}
+                      {classicDrafts.length === 1 ? "draft" : "drafts"}
+                    </button>
+                  )}
                 </div>
               </header>
 
@@ -927,6 +1002,24 @@ export default function Home() {
               </footer>
             </div>
           </>
+        ) : repoCampaign ? (
+          <CampaignPage
+            campaign={repoCampaign}
+            campaigns={campaigns}
+            sessions={sessions}
+            mediaAssets={mediaAssets}
+            authorName={currentUser.name}
+            selectedSessionId={selectedSessionId}
+            onBack={() => setRepoCampaignId(null)}
+            onSelectSession={openSession}
+            onOpenSend={requestSend}
+            onDeleteSession={deleteSession}
+            onUnlockSession={unlockSession}
+            onDuplicateSession={duplicateSession}
+            onSubmit={(ids) => submitDrafts(repoCampaign.id, ids)}
+            onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
+            {...customColumnProps}
+          />
         ) : (
           <RepositoryShell
             sessions={demoState === "empty" ? [] : sessions}
@@ -942,6 +1035,7 @@ export default function Home() {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             onBulkSend={(ids) => setBulkSendIds(ids)}
+            onOpenCampaign={(id) => setRepoCampaignId(id)}
             tableStyle={composerLayout}
             {...customColumnProps}
           />
@@ -1017,8 +1111,12 @@ export default function Home() {
           if (open) return;
           setSendSheetSessionId(null);
           setBulkSendIds(null);
+          setSendPreset(null);
         }}
         campaigns={campaigns}
+        mediaAssets={mediaAssets}
+        authorName={currentUser.name}
+        initialCampaignIds={bulkBatch ? undefined : sendPreset ?? undefined}
         session={sessions.find((s) => s.id === sendSheetSessionId) ?? null}
         sessions={bulkBatch ?? undefined}
         alreadySentTo={
@@ -1032,7 +1130,7 @@ export default function Home() {
         }
         onShare={(campaignIds) => {
           if (bulkBatch) {
-            shareManyToCampaigns(
+            stageDrafts(
               bulkBatch.map((s) => s.id),
               campaignIds,
             );
@@ -1047,7 +1145,7 @@ export default function Home() {
           }
           if (!sendSheetSessionId) return;
           const shared = sessions.find((s) => s.id === sendSheetSessionId);
-          shareSessionToCampaigns(sendSheetSessionId, campaignIds);
+          stageDrafts([sendSheetSessionId], campaignIds);
           setSendResult({
             title: shared?.title ?? "",
             campaignIds,
@@ -1074,6 +1172,7 @@ export default function Home() {
           onOpenCampaign: (id) => {
             setSelectedSessionId(null);
             setSelectedCampaignId(id);
+            if (mode === "repository") setRepoCampaignId(id);
           },
         }}
       />
@@ -1085,10 +1184,12 @@ export default function Home() {
         }}
         sessionTitle={sendResult?.title ?? ""}
         plural={sendResult?.plural}
+        staged
         campaigns={campaigns.filter((c) => sendResult?.campaignIds.includes(c.id))}
         onViewCampaign={(campaignId) => {
           setSendResult(null);
           setSelectedCampaignId(campaignId);
+          if (mode === "repository") setRepoCampaignId(campaignId);
         }}
       />
 

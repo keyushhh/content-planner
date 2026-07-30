@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Send } from "lucide-react";
+import { ArrowRight, Check, FileEdit, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ export function SendSuccessModal({
   onOpenChange,
   sessionTitle,
   plural,
+  staged,
   campaigns,
   onViewCampaign,
 }: {
@@ -26,6 +27,7 @@ export function SendSuccessModal({
   onOpenChange: (open: boolean) => void;
   sessionTitle: string;
   plural?: boolean;
+  staged?: boolean;
   campaigns: Campaign[];
   onViewCampaign?: (campaignId: string) => void;
 }) {
@@ -73,18 +75,44 @@ export function SendSuccessModal({
                 )}
                 style={{ transitionTimingFunction: EASE }}
               />
-              <Check className="size-6" strokeWidth={2.5} />
+              {staged ? (
+                <FileEdit className="size-6" strokeWidth={2.5} />
+              ) : (
+                <Check className="size-6" strokeWidth={2.5} />
+              )}
             </span>
 
             <DialogTitle className="mt-4 text-[18px] font-semibold tracking-[-0.015em] text-balance">
-              Sent to {campaigns.length === 1 ? "campaign" : `${campaigns.length} campaigns`}
+              {staged ? "Added as a draft" : "Sent to "}
+              {staged
+                ? campaigns.length === 1
+                  ? ""
+                  : ` in ${campaigns.length} campaigns`
+                : campaigns.length === 1
+                  ? "campaign"
+                  : `${campaigns.length} campaigns`}
             </DialogTitle>
             <DialogDescription className="mt-1.5 text-[13px] leading-snug text-muted-foreground text-pretty">
               <span className="text-foreground/85">
                 {sessionTitle?.trim() || "Untitled content"}
               </span>{" "}
-              {plural ? "are" : "is"} now with{" "}
-              {single ? (plural ? "the team on them" : "the team on it") : "the teams on them"}.
+              {staged ? (
+                <>
+                  {plural ? "are waiting" : "is waiting"} in{" "}
+                  {single ? "the campaign" : "each campaign"} as a draft. Submit{" "}
+                  {plural ? "them" : "it"} from there when the campaign is happy.
+                </>
+              ) : (
+                <>
+                  {plural ? "are" : "is"} now with{" "}
+                  {single
+                    ? plural
+                      ? "the team on them"
+                      : "the team on it"
+                    : "the teams on them"}
+                  .
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -102,7 +130,11 @@ export function SendSuccessModal({
               }}
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) bg-violet-500/12 text-violet-300 inset-ring-1 inset-ring-violet-400/25">
-                <Send className="size-3.5" />
+                {staged ? (
+                  <FileEdit className="size-3.5" />
+                ) : (
+                  <Send className="size-3.5" />
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-medium">
@@ -128,7 +160,7 @@ export function SendSuccessModal({
               }}
               className="flex h-9 items-center gap-1.5 rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
             >
-              Open campaign
+              {staged ? "Review in campaign" : "Open campaign"}
               <ArrowRight className="size-3.5" />
             </button>
           )}

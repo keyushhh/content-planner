@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Check, Plus, Search, Send, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileEdit, Plus, Search, X } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stagger } from "./session-composer";
+import { PostPreview } from "./post-preview";
 import { cn } from "@/lib/utils";
-import type { Campaign, Session } from "@/lib/types";
+import type { Campaign, MediaAsset, Session } from "@/lib/types";
 
 interface SendToCampaignSheetProps {
   open: boolean;
@@ -14,6 +15,9 @@ interface SendToCampaignSheetProps {
   session?: Session | null;
   sessions?: Session[];
   alreadySentTo?: string[];
+  mediaAssets: MediaAsset[];
+  authorName: string;
+  initialCampaignIds?: string[];
   onShare: (campaignIds: string[]) => void;
   allowCreateCampaign?: boolean;
   onCreateCampaign?: (name: string) => string;
@@ -38,6 +42,9 @@ export function SendToCampaignSheet({
   session,
   sessions,
   alreadySentTo = [],
+  mediaAssets,
+  authorName,
+  initialCampaignIds,
   onShare,
   allowCreateCampaign,
   onCreateCampaign,
@@ -46,6 +53,7 @@ export function SendToCampaignSheet({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [search, setSearch] = useState("");
+  const [step, setStep] = useState<"pick" | "preview">("pick");
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   const [now] = useState(() => Date.now());
@@ -54,10 +62,12 @@ export function SendToCampaignSheet({
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setSelectedIds([]);
+      const preset = initialCampaignIds ?? [];
+      setSelectedIds(preset);
       setCreating(false);
       setNewName("");
       setSearch("");
+      setStep(preset.length > 0 ? "preview" : "pick");
     }
   }
 
@@ -96,14 +106,20 @@ export function SendToCampaignSheet({
     setSearch("");
   }
 
-  function send() {
+  function advance() {
     if (count === 0) return;
+    if (step === "pick") {
+      setStep("preview");
+      return;
+    }
     onShare(selectedIds);
     onOpenChange(false);
   }
 
   const canCreate = Boolean(allowCreateCampaign && onCreateCampaign);
   const isEmpty = available.length === 0 && already.length === 0;
+  const previewing = step === "preview";
+  const previewSessions = batch ?? (session ? [session] : []);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -116,7 +132,7 @@ export function SendToCampaignSheet({
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
-            send();
+            advance();
           }
         }}
       >
@@ -157,12 +173,16 @@ export function SendToCampaignSheet({
               </div>
             ) : null}
             <h2 className="text-[21px] font-semibold leading-tight tracking-[-0.022em] text-balance">
-              Send to campaigns
+              {previewing ? "Review before sending" : "Send to campaigns"}
             </h2>
             <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground text-pretty">
-              {batch
-                ? "Every post goes to every campaign you pick. Nothing is removed from where it already is."
-                : "Pick as many as you need. Nothing is removed from where it already is."}
+              {previewing
+                ? batch
+                  ? "This is how each post will read. They land as drafts, so the campaign can look them over before anything goes live."
+                  : "This is how the post will read. It lands as a draft, so the campaign can look it over before it goes live."
+                : batch
+                  ? "Every post goes to every campaign you pick. Nothing is removed from where it already is."
+                  : "Pick as many as you need. Nothing is removed from where it already is."}
             </p>
           </div>
           <button
@@ -174,7 +194,7 @@ export function SendToCampaignSheet({
           </button>
         </div>
 
-        {showSearch && (
+        {showSearch && !previewing && (
           <div className="shrink-0 px-7 pb-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -203,6 +223,47 @@ export function SendToCampaignSheet({
           tabIndex={-1}
           className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] px-6 pb-6 pt-1 outline-none"
         >
+          {previewing ? (
+            <div className="flex flex-col gap-4">
+              <Stagger index={0} className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/60">
+                  Going to
+                </span>
+                {selectedNames.map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex h-6 max-w-full items-center rounded-(--r-pill) bg-violet-500/[0.12] px-2.5 text-[11.5px] font-medium text-violet-100 inset-ring-1 inset-ring-violet-400/25"
+                  >
+                    <span className="truncate">{name}</span>
+                  </span>
+                ))}
+              </Stagger>
+
+              {previewSessions.map((item, i) => (
+                <Stagger key={item.id} index={i + 1} className="flex flex-col gap-1.5">
+                  {batch && (
+                    <span className="flex min-w-0 items-center gap-1.5 pl-0.5 text-[11px] text-muted-foreground">
+                      <span className="shrink-0 tabular-nums text-muted-foreground/60">
+                        {i + 1}/{batch.length}
+                      </span>
+                      <span className="truncate font-medium text-foreground/80">
+                        {item.title}
+                      </span>
+                      <span aria-hidden className="shrink-0 text-muted-foreground/30">
+                        ·
+                      </span>
+                      <span className="shrink-0">{item.postType}</span>
+                    </span>
+                  )}
+                  <PostPreview
+                    session={item}
+                    mediaAssets={mediaAssets}
+                    authorName={item.lastEditedBy?.name ?? authorName}
+                  />
+                </Stagger>
+              ))}
+            </div>
+          ) : (
           <Stagger
             index={0}
             className="overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]"
@@ -292,6 +353,7 @@ export function SendToCampaignSheet({
                 </button>
               ))}
           </Stagger>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.07] bg-(--sink)/[0.22] px-7 py-4">
@@ -304,26 +366,38 @@ export function SendToCampaignSheet({
           >
             {count === 0
               ? "Nothing selected"
-              : count === 1
-                ? selectedNames[0]
-                : `${selectedNames[0]} +${count - 1}`}
+              : previewing
+                ? "Lands as a draft"
+                : count === 1
+                  ? selectedNames[0]
+                  : `${selectedNames[0]} +${count - 1}`}
           </span>
 
           <div className="flex shrink-0 items-center gap-2">
             <button
-              onClick={() => onOpenChange(false)}
-              className="flex h-9 items-center rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+              onClick={() => (previewing ? setStep("pick") : onOpenChange(false))}
+              className="flex h-9 items-center gap-1.5 rounded-(--r-pill) px-3.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
             >
-              Cancel
+              {previewing && <ArrowLeft className="size-3.5" />}
+              {previewing ? "Back" : "Cancel"}
             </button>
             <button
               disabled={count === 0}
-              onClick={send}
-              title="Send (⌘↵)"
+              onClick={advance}
+              title={previewing ? "Add as draft (⌘↵)" : "Review the post (⌘↵)"}
               className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
             >
-              <Send className="size-3.5" />
-              {count > 1 ? `Send to ${count}` : "Send"}
+              {previewing ? (
+                <>
+                  <FileEdit className="size-3.5" />
+                  {count > 1 ? `Add as draft to ${count}` : "Add as draft"}
+                </>
+              ) : (
+                <>
+                  Review
+                  <ArrowRight className="size-3.5" />
+                </>
+              )}
             </button>
           </div>
         </div>

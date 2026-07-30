@@ -65,6 +65,7 @@ export interface Session {
   copy: string;
   variations: PostVariation[];
   hashtags: string;
+  draftCampaignIds: string[];
   sentToCampaignIds: string[];
   sentAt: string | null;
   tags: string[];

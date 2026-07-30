@@ -31,6 +31,7 @@ import {
   ListFilter,
   Tag,
   Minus,
+  FileEdit,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -38,6 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { campaignNamesFor } from "@/lib/campaigns";
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 interface SessionsTableProps {
@@ -125,21 +127,6 @@ function SelectBox({
 
 const CAMPAIGN_NAME_MAX = 18;
 
-const DUMMY_CAMPAIGNS: string[][] = [
-  [],
-  ["Q3 Push"],
-  ["Brand Push"],
-  ["Summer Launch Always-On"],
-  ["Summer Launch Always-On", "Q3 Push"],
-  ["Q3 Push", "Brand Push", "Holiday Gifting 2026"],
-];
-
-function dummyFor(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  return DUMMY_CAMPAIGNS[Math.abs(hash) % DUMMY_CAMPAIGNS.length];
-}
-
 function CampaignNames({
   session,
   campaigns,
@@ -147,13 +134,9 @@ function CampaignNames({
   session: Session;
   campaigns: Campaign[];
 }) {
-  const sent = session.sentToCampaignIds
-    .map((id) => campaigns.find((c) => c.id === id)?.name)
-    .filter((name): name is string => Boolean(name));
+  const named = campaignNamesFor(session, campaigns);
 
-  const names = sent.length ? sent : dummyFor(session.id);
-
-  if (names.length === 0) {
+  if (named.length === 0) {
     return (
       <span title="Not in a campaign" className="text-muted-foreground/40">
         ·
@@ -161,20 +144,37 @@ function CampaignNames({
     );
   }
 
+  const first = named[0];
   const clipped =
-    names[0].length > CAMPAIGN_NAME_MAX
-      ? `${names[0].slice(0, CAMPAIGN_NAME_MAX).trimEnd()}…`
-      : names[0];
+    first.name.length > CAMPAIGN_NAME_MAX
+      ? `${first.name.slice(0, CAMPAIGN_NAME_MAX).trimEnd()}…`
+      : first.name;
+  const describe = named
+    .map((n) => (n.draft ? `${n.name} (draft)` : n.name))
+    .join(", ");
 
   return (
     <span
-      title={names.length === 1 ? names[0] : `In ${names.join(", ")}`}
-      className="flex min-w-0 items-center gap-1"
+      title={named.length === 1 ? describe : `In ${describe}`}
+      className="flex min-w-0 items-center gap-1.5"
     >
-      <span className="truncate text-foreground/80">{clipped}</span>
-      {names.length > 1 && (
+      {first.draft && (
+        <FileEdit
+          aria-label="Waiting as a draft"
+          className="size-3 shrink-0 text-amber-300/85"
+        />
+      )}
+      <span
+        className={cn(
+          "truncate",
+          first.draft ? "text-amber-100/80" : "text-foreground/80",
+        )}
+      >
+        {clipped}
+      </span>
+      {named.length > 1 && (
         <span className="shrink-0 tabular-nums text-muted-foreground/70">
-          +{names.length - 1}
+          +{named.length - 1}
         </span>
       )}
     </span>
@@ -196,8 +196,24 @@ function CampaignCell({
   const needsResend = sessionNeedsResend(session);
   const sent = session.sentToCampaignIds.length > 0;
   const approved = session.status === "approved";
+  const staged = session.draftCampaignIds.length > 0;
 
   if (!sent) {
+    if (staged) {
+      return (
+        <button
+          onClick={() => onOpenSend(session.id)}
+          disabled={!approved}
+          title={`Waiting as a draft in ${session.draftCampaignIds.length} ${
+            session.draftCampaignIds.length === 1 ? "campaign" : "campaigns"
+          }${approved ? " · send it to another" : ""}`}
+          className="group/send inline-flex h-7 max-w-full items-center gap-1.5 rounded-(--r-pill) bg-amber-500/[0.12] px-2.5 text-xs font-medium text-amber-200 inset-ring-1 inset-ring-amber-400/25 transition-[background-color,scale] duration-150 hover:bg-amber-500/20 active:scale-(--press) disabled:pointer-events-none"
+        >
+          <FileEdit className="size-3 shrink-0" />
+          <span className="truncate">In draft</span>
+        </button>
+      );
+    }
     return approved ? (
       <button
         onClick={() => onOpenSend(session.id)}
