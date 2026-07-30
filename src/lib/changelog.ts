@@ -38,6 +38,12 @@ export const CHANGELOG: ChangelogDay[] = [
     summary: "Motion, accessibility, and this list",
     entries: [
       {
+        kind: "improved",
+        title: "The content table reads the way you work",
+        detail: "A Campaign column now says where each post lives, the old Campaign column is called Actions, and the row buttons float above the table so extra columns can scroll along behind them.",
+        commit: "bc8eba1",
+      },
+      {
         kind: "new",
         title: "The session panel can be dragged closed",
         detail: "It tracks the pointer one to one, carries the momentum of a flick so a short fast throw dismisses it, and rubber-bands instead of stopping dead at its edge. Opening and closing became springs, so the motion can be interrupted and reversed mid-flight rather than having to finish.",
