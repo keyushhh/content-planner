@@ -22,6 +22,11 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         kind: "new",
+        title: "Look at a post before you send it, and let the campaign approve it",
+        commit: "01a46ee",
+      },
+      {
+        kind: "new",
         title: "Pick the drafts you want, edit them in place, and mention accounts",
         commit: "af9304b",
       },
