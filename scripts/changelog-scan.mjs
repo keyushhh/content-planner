@@ -1,37 +1,20 @@
 #!/usr/bin/env node
 /**
- * Keeps src/lib/changelog.ts in step with git.
+ * Keeps src/lib/changelog.ts in step with git. Exits 1 when anything is
+ * unlogged, so it can gate a push.
  *
  *   npm run changelog          show what is missing, write nothing
  *   npm run changelog:write    insert the missing entries
  *   npm run changelog:check    exit code only, for a hook or CI
  *
- * Exits 1 when something is unlogged, so it can gate a push.
+ * A commit with a `Changelog:` trailer uses that prose and is final; one
+ * without falls back to the subject and is marked `draft: true`, so an
+ * unpolished entry lands rather than none at all.
  *
- * The copy problem
- * ----------------
- * A commit subject says what the code did ("refactor: derive composer style
- * from mode"); the changelog has to say what changed for the person looking at
- * the screen. No script knows that. So there are two ways in:
- *
- *   1. A `Changelog:` trailer in the commit body. That prose IS the entry, and
- *      the entry is final.
- *   2. Nothing. The subject is used, and the entry is marked `draft: true`, so
- *      the modal shows it with a DRAFT tag until someone rewrites it.
- *
- * Either way the change is IN the list from the moment it ships, which is the
- * whole point: an unpolished entry beats a missing one.
- *
- * Trailers
- * --------
- *   Changelog: Export a campaign to CSV
- *     Includes the custom columns, and respects the current filter.
- *   Changelog-Kind: fixed
- *   Changelog-Skip: build tooling only, nothing visible
- *
- * The trailer's first line is the title; any further lines are the detail.
- * Changelog-Kind overrides the kind guessed from the commit prefix.
- * Changelog-Skip records the commit in CHANGELOG_OMITTED instead of listing it.
+ *   Changelog: Export a campaign to CSV      first line is the title,
+ *     Includes the custom columns.           further lines are the detail
+ *   Changelog-Kind: fixed                    overrides the guess
+ *   Changelog-Skip: tooling only             omits it instead, with a reason
  */
 
 import { execFileSync } from "node:child_process";
@@ -45,9 +28,7 @@ const CHANGELOG_PATH = join(root, "src/lib/changelog.ts");
 const quiet = process.argv.includes("--quiet");
 const write = process.argv.includes("--write");
 
-/* ANSI codes built from a \u001b escape rather than a literal ESC byte, so
-   the source stays greppable and survives an editor that strips control
-   characters. */
+/* Escapes, not literal control bytes, so the source stays greppable. */
 const ESC = "\u001b";
 const BOLD = `${ESC}[1m`;
 const DIM = `${ESC}[2m`;
@@ -59,16 +40,14 @@ const OFF = `${ESC}[0m`;
 const REC = "\u001e";
 const FIELD = "\u001f";
 
-/** Conventional-commit prefix to a changelog kind. A guess, always overridable. */
+/** Prefix to kind. A guess, overridable with Changelog-Kind. */
 function guessKind(subject) {
   const type = subject.match(/^(\w+)(\([^)]*\))?!?:/)?.[1]?.toLowerCase();
   if (type === "feat") return "new";
   if (type === "fix" || type === "revert") return "fixed";
   if (type === "refactor" || type === "style" || type === "perf") return "improved";
-  // chore/docs/test/build are usually invisible to the user, so they are omitted
-  // rather than listed. "Usually" is not "always" though: the webpack pin was a
-  // chore and it was the thing that unbroke the dev server, which is why a
-  // `Changelog:` trailer overrides this.
+  // Usually invisible, so omitted rather than listed. Not always though: the
+  // webpack pin was a chore, hence the trailer override.
   if (type === "chore" || type === "docs" || type === "test" || type === "build") {
     return null;
   }
@@ -81,11 +60,7 @@ function titleFrom(subject) {
   return stripped.charAt(0).toUpperCase() + stripped.slice(1).replace(/\.$/, "");
 }
 
-/**
- * Pulls a trailer's value out of a commit body, including any continuation
- * lines, which are the ones indented under it or simply not starting a new
- * trailer of their own.
- */
+/** A trailer's value, plus any continuation lines under it. */
 function trailer(body, key) {
   const lines = body.split("\n");
   const at = lines.findIndex((l) => new RegExp(`^${key}:`, "i").test(l.trim()));
@@ -94,8 +69,7 @@ function trailer(body, key) {
   const first = lines[at].trim().slice(key.length + 1).trim();
   const rest = [];
   for (const line of lines.slice(at + 1)) {
-    // Stops at a blank line or at the next trailer key, so two trailers in a
-    // row cannot bleed into each other.
+    // Stops at a blank line or the next key, so trailers cannot bleed.
     if (!line.trim()) break;
     if (/^[A-Za-z][A-Za-z-]*:/.test(line.trim())) break;
     rest.push(line.trim());
@@ -108,13 +82,12 @@ const lit = (value) => JSON.stringify(value);
 
 const source = readFileSync(CHANGELOG_PATH, "utf8");
 
-// Every sha the changelog accounts for: the ones it lists (`commit: "..."`) and
-// the ones it deliberately omits (a sha as a key in CHANGELOG_OMITTED). Both are
-// decisions, so both count as handled. Matched as a PREFIX of the full sha
-// below, so this keeps working if git's abbreviation length ever changes.
+// Shas the changelog accounts for, listed or deliberately omitted. Matched as a
+// PREFIX of the full sha, so a change in git's abbreviation length is harmless.
 const recorded = [
   ...[...source.matchAll(/commit:\s*"([0-9a-f]{7,40})"/g)].map((m) => m[1]),
-  ...[...source.matchAll(/^\s*"([0-9a-f]{7,40})":/gm)].map((m) => m[1]),
+  // Quotes optional: a sha starting with a letter is a valid unquoted key.
+  ...[...source.matchAll(/^\s*"?([0-9a-f]{7,40})"?\s*:/gm)].map((m) => m[1]),
 ];
 
 const log = execFileSync(
@@ -132,7 +105,7 @@ const log = execFileSync(
 
 const missing = log.filter((c) => !recorded.some((sha) => c.full.startsWith(sha)));
 
-/** Everything the writer needs, decided before anything is printed or written. */
+/** Decided up front, so the report and the write cannot disagree. */
 const planned = missing.map((commit) => {
   const skip = trailer(commit.body, "Changelog-Skip");
   const prose = trailer(commit.body, "Changelog");
@@ -142,8 +115,7 @@ const planned = missing.map((commit) => {
   if (skip) {
     return { ...commit, action: "omit", reason: skip.first || "No visible change." };
   }
-  // A trailer is an explicit decision to list this, so it beats the prefix
-  // heuristic that would otherwise drop a chore.
+  // A trailer is an explicit decision to list, beating the prefix heuristic.
   if (!prose && guessed === null) {
     return {
       ...commit,
@@ -222,8 +194,7 @@ function insertAfter(haystack, anchor, text) {
 const toList = planned.filter((p) => p.action === "list");
 const toOmit = planned.filter((p) => p.action === "omit");
 
-// Oldest first, because each insert goes to the TOP of its array. Newest-first
-// order plus top-insertion would come out exactly reversed.
+// Oldest first: each insert goes to the TOP, so newest-first would reverse.
 for (const p of [...toList].reverse()) {
   const fields = [
     `        kind: ${lit(p.kind)},`,
@@ -236,15 +207,14 @@ for (const p of [...toList].reverse()) {
 
   const dayAnchor = `    date: "${p.date}",`;
   if (next.includes(dayAnchor)) {
-    // The day exists: find ITS entries array, not the first one in the file.
+    // ITS entries array, not the first one in the file.
     const dayAt = next.indexOf(dayAnchor);
     const entriesAt = next.indexOf("entries: [", dayAt);
     if (entriesAt === -1) throw new Error(`changelog.ts: no entries array for ${p.date}`);
     const cut = entriesAt + "entries: [".length;
     next = next.slice(0, cut) + entry + next.slice(cut);
   } else {
-    // A new day block, at the top of CHANGELOG. No summary: that line is
-    // editorial, and the type makes it optional for exactly this reason.
+    // No summary: that line is editorial, hence optional on the type.
     const block = `\n  {\n    date: ${lit(p.date)},\n    entries: [${entry}\n    ],\n  },`;
     next = insertAfter(next, "export const CHANGELOG: ChangelogDay[] = [", block);
   }

@@ -42,7 +42,7 @@ export interface CommandPaletteActions {
   onOpenCampaign?: (id: string) => void;
   onInvite?: () => void;
   onFilterTag?: (tag: string) => void;
-  /** The changelog's only entry point, which is the whole point of it. */
+  /** The changelog's only entry point. */
   onOpenChangelog?: () => void;
   /** Something in the log postdates the last time it was opened. */
   changelogUnread?: boolean;
@@ -111,11 +111,9 @@ export function CommandPalette({
           : "Every change, by the day it shipped",
         group: "Actions",
         icon: ScrollText,
-        // The accent dot already means "this row carries something": here it
-        // means there is something in the log you have not read.
+        // The accent dot means there is something unread in the log.
         accent: actions.changelogUnread ? "bg-violet-400" : undefined,
-        // "changelog" and "release notes" are what people type; neither word
-        // appears in the label, so both have to be in the haystack.
+        // Neither "changelog" nor "release notes" is in the label.
         haystack: "what's new whats new changelog updates release notes history changes",
         run: actions.onOpenChangelog,
       });

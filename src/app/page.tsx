@@ -182,11 +182,8 @@ export default function Home() {
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(initialMediaAssets);
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
-  /**
-   * The changelog. Its filter lives up here rather than inside the modal so
-   * closing and reopening does not silently throw away the kind you were
-   * reading. The log is long enough that losing "Fixed" is a real cost.
-   */
+  /** The filter lives here, not in the modal, so reopening keeps the kind you
+      were reading. */
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelogFilter, setChangelogFilter] = useState<"all" | ChangeKind>("all");
   const { unread: changelogUnread, markSeen: markChangelogSeen } = useChangelogUnread();
@@ -1189,8 +1186,7 @@ export default function Home() {
           onOpenSession: openSession,
           onNewContent: handleNewContent,
           onInvite: () => setShowInviteModal(true),
-          // Opening it IS reading it: a badge that survives the thing it was
-          // pointing at is just noise the second time you see it.
+          // Opening it IS reading it.
           onOpenChangelog: () => {
             setShowChangelog(true);
             markChangelogSeen();
@@ -1225,7 +1221,7 @@ export default function Home() {
         contextName={selectedCampaign.name}
       />
 
-      {/* Deliberately has no trigger in the chrome. ⌘K is the door. */}
+      {/* No trigger in the chrome: ⌘K is the door. */}
       <ChangelogModal
         open={showChangelog}
         onOpenChange={setShowChangelog}

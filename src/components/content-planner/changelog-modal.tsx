@@ -17,11 +17,8 @@ import {
   type ChangeKind,
 } from "@/lib/changelog";
 
-/**
- * Kind carries a hue, and the hue appears twice: on the spine dot and on the
- * word. Everything resolves through the accent ramp rather than a literal, so
- * the brand layer re-tints all three without a call-site change.
- */
+/** Each kind's hue, on the spine dot and the word. Resolved through the accent
+    ramp, so the brand layer re-tints them with no call-site change. */
 const KIND: Record<ChangeKind, { label: string; text: string; dot: string }> = {
   new: { label: "New", text: "text-violet-300", dot: "bg-violet-400" },
   improved: { label: "Improved", text: "text-sky-300", dot: "bg-sky-400" },
@@ -35,9 +32,8 @@ const FILTERS: { id: "all" | ChangeKind; label: string }[] = [
   { id: "fixed", label: "Fixed" },
 ];
 
-/* Unread tracking
-   The whole reason this exists is that nobody remembers what changed, so the
-   log has to be able to say "there is something here you haven't read". */
+/* Unread tracking: the log has to be able to say "there is something here you
+   haven't read", which is the reason it exists at all. */
 
 const SEEN_KEY = "cp_changelog_seen";
 const SEEN_EVENT = "cp:changelog-seen";
@@ -46,8 +42,7 @@ function readSeen(): string | null {
   try {
     return window.localStorage.getItem(SEEN_KEY);
   } catch {
-    // Blocked storage: treat it as never-read rather than as read, so the
-    // affordance stays visible instead of silently vanishing.
+    // Blocked storage reads as never-read, so the dot stays visible.
     return null;
   }
 }
@@ -62,10 +57,9 @@ function subscribeSeen(onChange: () => void) {
 }
 
 /**
- * Whether the newest entry postdates the last time the log was opened.
- *
- * The server snapshot is deliberately "nothing new": a dot that appears on
- * hydration is a flash, and a dot that appears one frame late is just a dot.
+ * Whether the newest entry postdates the last time the log was opened. The
+ * server snapshot says "nothing new", since a dot appearing on hydration is a
+ * flash and one appearing a frame late is just a dot.
  */
 export function useChangelogUnread() {
   const seen = useSyncExternalStore(subscribeSeen, readSeen, () => CHANGELOG_LATEST);
@@ -79,15 +73,13 @@ export function useChangelogUnread() {
     window.dispatchEvent(new Event(SEEN_EVENT));
   }, []);
 
-  // String compare is safe and exact on ISO dates, and beats parsing two Dates
-  // to ask a question that is really about ordering.
+  // String compare is exact on ISO dates, and the question is only about order.
   return { unread: seen === null || seen < CHANGELOG_LATEST, markSeen };
 }
 
 /** "29 July", plus how long ago that was in words. */
 function formatDay(iso: string, today: Date) {
-  // Noon, not midnight: a date-only value parsed at midnight lands on the
-  // previous day in any negative-offset timezone.
+  // Noon, not midnight: parsed at midnight this lands a day early west of UTC.
   const date = new Date(`${iso}T12:00:00`);
   const label = date.toLocaleDateString(undefined, {
     day: "numeric",
@@ -111,9 +103,9 @@ function formatDay(iso: string, today: Date) {
 }
 
 /**
- * The changelog. Reachable only from ⌘K, on purpose: it is a thing you go
- * looking for when you cannot remember whether a piece of feedback landed, not
- * a thing that should be occupying a slot in the header every other day.
+ * The changelog. Reachable only from ⌘K on purpose: you go looking for it when
+ * you cannot remember whether a piece of feedback landed, which is not often
+ * enough to earn a slot in the header.
  */
 export function ChangelogModal({
   open,
@@ -137,8 +129,7 @@ export function ChangelogModal({
   }, []);
 
   const days = useMemo(() => {
-    // Days that filter down to nothing are dropped rather than shown empty: a
-    // date with no entries under it reads as a bug in the log.
+    // Days that filter down to nothing are dropped: an empty date reads as a bug.
     const today = new Date();
     return CHANGELOG.map((day) => ({
       ...day,
@@ -150,8 +141,8 @@ export function ChangelogModal({
 
   const shown = days.reduce((sum, day) => sum + day.entries.length, 0);
 
-  // Counted across the whole log, not the filtered view: it is a reminder of
-  // work owed, and that total does not change because you clicked "Fixed".
+  // Across the whole log, not the filtered view: work owed does not change
+  // because you clicked "Fixed".
   const draftCount = useMemo(
     () =>
       CHANGELOG.reduce(
@@ -167,8 +158,7 @@ export function ChangelogModal({
     if (!first || !last) return "";
     const from = new Date(`${first}T12:00:00`);
     const to = new Date(`${last}T12:00:00`);
-    // The month is said once when both ends share it: "23–29 July", not
-    // "23 July – 29 July".
+    // Month said once when both ends share it: "23–29 July".
     const sameMonth = from.getMonth() === to.getMonth();
     return `${from.toLocaleDateString(undefined, {
       day: "numeric",
@@ -200,8 +190,7 @@ export function ChangelogModal({
               </DialogDescription>
             </div>
 
-            {/* Its own button rather than the stock one: at the top of a 640px
-                dialog the shared icon button sits too far in and too high. */}
+            {/* Its own button: the stock one sits too far in on a 640px dialog. */}
             <button
               onClick={() => onOpenChange(false)}
               aria-label="Close changelog"
@@ -243,22 +232,18 @@ export function ChangelogModal({
           </div>
         </DialogHeader>
 
-        {/* Keyed on the filter so a switch fades the new list in rather than
-            swapping it between frames. */}
+        {/* Keyed on the filter so a switch fades the new list in. */}
         <div
           key={filter}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-(--ink)/[0.07] duration-200 animate-in fade-in"
         >
           {days.map((day, dayIndex) => {
-            // Only on the newest day, and only when nothing is filtered out:
-            // under "Fixed" the top day is the most recent day with a fix, which
-            // is not the same claim as "this is the latest".
+            // Not under a filter: the top day is then only the latest day with
+            // a fix, which is a different claim.
             const showLatest = dayIndex === 0 && filter === "all";
             return (
             <section key={day.date}>
-              {/* Sticky, blurred, and one step down from the surface: the date
-                  you are reading under has to stay on screen, and a date that
-                  scrolls away is the one thing this list cannot afford. */}
+              {/* Sticky: the date you are reading under has to stay on screen. */}
               <div className="sticky top-0 z-10 flex items-baseline gap-2 border-b border-(--ink)/[0.06] bg-(--surface-dialog)/85 px-6 py-2.5 backdrop-blur-md">
                 <h3
                   className="text-[11px] font-semibold uppercase tracking-[0.09em] text-foreground"
@@ -275,9 +260,7 @@ export function ChangelogModal({
               </div>
 
               <div className="px-6 pb-5 pt-3.5">
-                {/* Not italic: this app uses italics for ABSENT content ("No
-                    copy yet"), so italicising real prose borrows a signal that
-                    already means something else. */}
+                {/* Not italic: this app uses italics for ABSENT content. */}
                 {(day.summary || showLatest) && (
                   <p className="pl-[26px] text-[12px] leading-snug text-muted-foreground/70">
                     {day.summary}
@@ -285,8 +268,7 @@ export function ChangelogModal({
                       <span
                         className={cn(
                           "rounded-(--r-pill) bg-violet-500/[0.14] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.08em] text-violet-200 inset-ring-1 inset-ring-violet-400/25",
-                          // No summary means nothing to sit beside, so the gap
-                          // that separates them would just be a dent.
+                          // Nothing to sit beside without a summary.
                           day.summary && "ml-2",
                         )}
                       >
@@ -296,13 +278,12 @@ export function ChangelogModal({
                   </p>
                 )}
 
-                {/* The spine. One hairline behind every dot in the group,
-                    stopped short at both ends so it reads as a segment of a
-                    timeline rather than a border on a box. */}
+                {/* The spine, stopped short at both ends so it reads as a
+                    timeline segment rather than a border. */}
                 <div
                   className={cn(
                     "relative",
-                    // Only earns the full gap when there is a line above it.
+                    // Full gap only when there is a line above it.
                     day.summary || showLatest ? "mt-3" : "mt-0.5",
                   )}
                 >
@@ -319,8 +300,8 @@ export function ChangelogModal({
                           key={entry.commit + entry.title}
                           className="group relative grid grid-cols-[9px_1fr] gap-x-[17px]"
                         >
-                          {/* Ringed in the surface colour so the dot punches a
-                              hole in the spine instead of sitting on top of it. */}
+                          {/* Ringed in the surface colour, so the dot punches
+                              a hole in the spine. */}
                           <span
                             aria-hidden
                             className={cn(
@@ -343,10 +324,8 @@ export function ChangelogModal({
                               <span className="text-[13.5px] font-medium leading-snug tracking-[-0.006em]">
                                 {entry.title}
                               </span>
-                              {/* Neutral, never the accent: a draft is an
-                                  admission that the wording is machine-written,
-                                  so it must not look like a badge of honour
-                                  competing with the kind beside it. */}
+                              {/* Neutral, never the accent: it admits the
+                                  wording is machine-written. */}
                               {entry.draft && (
                                 <span
                                   title="Written from the commit subject. Not polished yet."
@@ -356,9 +335,7 @@ export function ChangelogModal({
                                   Draft
                                 </span>
                               )}
-                              {/* Traceability without clutter: the sha is the
-                                  answer to "which change was that?", and it is
-                                  only ever asked one row at a time. */}
+                              {/* On hover only: asked one row at a time. */}
                               <span className="font-mono text-[10px] text-muted-foreground/0 transition-colors duration-150 group-hover:text-muted-foreground/55">
                                 {entry.commit}
                               </span>
@@ -389,8 +366,7 @@ export function ChangelogModal({
             ·
           </span>
           <span>{dateRange}</span>
-          {/* Only when there are any: a permanent "0 drafts" is noise, and this
-              is a nudge, not a statistic. */}
+          {/* A nudge, not a statistic, so "0 drafts" never shows. */}
           {draftCount > 0 && (
             <>
               <span aria-hidden className="text-muted-foreground/30">

@@ -1,17 +1,10 @@
 /**
- * The changelog, written by hand from the git history.
- *
- * Hand-written rather than generated: a commit subject says what the code did
- * ("refactor: derive composer style from mode"), and what this list is for is
- * remembering what CHANGED for the person looking at the screen. The commit sha
- * stays on every entry so any line here can be traced back to the diff that
- * caused it.
- *
- * Newest day first, and newest change first within a day.
+ * The changelog. Entries are added by scripts/changelog-scan.mjs and worded by
+ * hand, because a commit subject says what the code did, not what changed for
+ * the person looking at the screen. Newest first, by day and within a day.
  */
 
-/** Three kinds, because a fourth ("polish", "chore") is never the answer to
-    "what happened to my feedback?". It either changed, improved, or broke. */
+/** Three kinds: a change either arrived, got better, or was broken. */
 export type ChangeKind = "new" | "improved" | "fixed";
 
 export type ChangeEntry = {
@@ -23,12 +16,9 @@ export type ChangeEntry = {
   /** Short sha, so a line can always be traced back to its diff. */
   commit: string;
   /**
-   * Written by the scanner from a commit subject, not by a person.
-   *
-   * The point of the flag is that an unpolished entry is better than a missing
-   * one: the change is in the list from the moment it ships, and the modal says
-   * plainly that the wording is still machine-written. A commit carrying a
-   * `Changelog:` trailer is never a draft, because that prose IS the copy.
+   * Worded by the scanner from the commit subject, so the modal can say the copy
+   * is machine-written. An unpolished entry beats a missing one. A commit with a
+   * `Changelog:` trailer is never a draft, since that prose IS the copy.
    */
   draft?: boolean;
 };
@@ -36,13 +26,8 @@ export type ChangeEntry = {
 export type ChangelogDay = {
   /** ISO date. Sorts and formats without a parser. */
   date: string;
-  /**
-   * The day in one line, since a day is usually about one thing.
-   *
-   * Optional because it is the one field no script can write: a day block
-   * created automatically has no summary, and an absent line is better than a
-   * placeholder that reads like a bug in the UI.
-   */
+  /** The day in one line. Optional: it is the one field no script can write, so
+      an auto-created day has none rather than a placeholder. */
   summary?: string;
   entries: ChangeEntry[];
 };
@@ -50,19 +35,20 @@ export type ChangelogDay = {
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-07-30",
-    summary: "This list",
+    summary: "This list, and the job of keeping it honest",
     entries: [
       {
         kind: "new",
-        title: "Add automated changelog tracking script and enforce audit via npm scripts",
+        title: "The changelog keeps itself current",
+        detail:
+          "Every commit without an entry gets one automatically, so a change cannot quietly go missing. Add a `Changelog:` trailer when you commit and that wording becomes the entry; leave it out and the commit subject stands in, tagged DRAFT until someone rewrites it. A push can be made to fail while anything is still unlogged.",
         commit: "6ffdfa5",
-        draft: true,
       },
       {
         kind: "new",
         title: "What's new, from ⌘K",
         detail:
-          "Every change since the first commit, grouped by the day it shipped, reachable only from the search bar. A dot appears on the row when something in here postdates the last time you opened it. `npm run changelog` lists any commit that has not been written up yet, so the list cannot quietly fall behind the code.",
+          "Every change since the first commit, grouped by the day it shipped, reachable only from the search bar. A dot appears on the row when something in here postdates the last time you opened it.",
         commit: "5fefbfb",
       },
     ],
@@ -371,15 +357,13 @@ export const CHANGELOG: ChangelogDay[] = [
 ];
 
 /**
- * Commits deliberately left out, and why.
- *
- * The scanner counts these as accounted for, which is what lets
- * `npm run changelog:check` reach green. Without it the check fails forever on
- * the same two commits, and a gate that can never pass is one nobody runs
- * twice. Recording the decision also means "was this missed, or skipped?" has
- * an answer six weeks from now.
+ * Commits deliberately left out, and why. The scanner counts these as handled,
+ * so the check can reach green, and "missed or skipped?" has an answer later.
  */
 export const CHANGELOG_OMITTED: Record<string, string> = {
+  // Committed as `feat:`, so the scanner would have listed it. Use
+  // `Changelog-Skip:` for the next one.
+  "e25e348": "Changelog copy only. Nothing in the product changed.",
   "58314f7": "Comment rewording only. No behaviour and nothing visible changed.",
   "dd31dfc": "README only. Its content is folded into the webpack entry.",
 };
@@ -389,5 +373,5 @@ export const CHANGELOG_TOTAL = CHANGELOG.reduce(
   0,
 );
 
-/** The newest date in the log: what "you're up to date as of" means. */
+/** The newest date in the log, which is what "unread" is measured against. */
 export const CHANGELOG_LATEST = CHANGELOG[0]?.date ?? "";
