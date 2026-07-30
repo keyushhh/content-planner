@@ -150,6 +150,17 @@ export function ChangelogModal({
 
   const shown = days.reduce((sum, day) => sum + day.entries.length, 0);
 
+  // Counted across the whole log, not the filtered view: it is a reminder of
+  // work owed, and that total does not change because you clicked "Fixed".
+  const draftCount = useMemo(
+    () =>
+      CHANGELOG.reduce(
+        (sum, day) => sum + day.entries.filter((e) => e.draft).length,
+        0,
+      ),
+    [],
+  );
+
   const dateRange = useMemo(() => {
     const first = CHANGELOG.at(-1)?.date;
     const last = CHANGELOG[0]?.date;
@@ -238,7 +249,12 @@ export function ChangelogModal({
           key={filter}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-(--ink)/[0.07] duration-200 animate-in fade-in"
         >
-          {days.map((day, dayIndex) => (
+          {days.map((day, dayIndex) => {
+            // Only on the newest day, and only when nothing is filtered out:
+            // under "Fixed" the top day is the most recent day with a fix, which
+            // is not the same claim as "this is the latest".
+            const showLatest = dayIndex === 0 && filter === "all";
+            return (
             <section key={day.date}>
               {/* Sticky, blurred, and one step down from the surface: the date
                   you are reading under has to stay on screen, and a date that
@@ -262,19 +278,34 @@ export function ChangelogModal({
                 {/* Not italic: this app uses italics for ABSENT content ("No
                     copy yet"), so italicising real prose borrows a signal that
                     already means something else. */}
-                <p className="pl-[26px] text-[12px] leading-snug text-muted-foreground/70">
-                  {day.summary}
-                  {dayIndex === 0 && filter === "all" && (
-                    <span className="ml-2 rounded-(--r-pill) bg-violet-500/[0.14] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.08em] text-violet-200 inset-ring-1 inset-ring-violet-400/25">
-                      Latest
-                    </span>
-                  )}
-                </p>
+                {(day.summary || showLatest) && (
+                  <p className="pl-[26px] text-[12px] leading-snug text-muted-foreground/70">
+                    {day.summary}
+                    {showLatest && (
+                      <span
+                        className={cn(
+                          "rounded-(--r-pill) bg-violet-500/[0.14] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.08em] text-violet-200 inset-ring-1 inset-ring-violet-400/25",
+                          // No summary means nothing to sit beside, so the gap
+                          // that separates them would just be a dent.
+                          day.summary && "ml-2",
+                        )}
+                      >
+                        Latest
+                      </span>
+                    )}
+                  </p>
+                )}
 
                 {/* The spine. One hairline behind every dot in the group,
                     stopped short at both ends so it reads as a segment of a
                     timeline rather than a border on a box. */}
-                <div className="relative mt-3">
+                <div
+                  className={cn(
+                    "relative",
+                    // Only earns the full gap when there is a line above it.
+                    day.summary || showLatest ? "mt-3" : "mt-0.5",
+                  )}
+                >
                   <span
                     aria-hidden
                     className="absolute left-[4px] top-2 bottom-2 w-px bg-(--ink)/[0.09]"
@@ -312,6 +343,19 @@ export function ChangelogModal({
                               <span className="text-[13.5px] font-medium leading-snug tracking-[-0.006em]">
                                 {entry.title}
                               </span>
+                              {/* Neutral, never the accent: a draft is an
+                                  admission that the wording is machine-written,
+                                  so it must not look like a badge of honour
+                                  competing with the kind beside it. */}
+                              {entry.draft && (
+                                <span
+                                  title="Written from the commit subject. Not polished yet."
+                                  className="rounded-(--r-pill) bg-(--ink)/[0.05] px-1.5 py-px text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 inset-ring-1 inset-ring-(--ink)/[0.08]"
+                                  style={{ fontFamily: "var(--font-label)" }}
+                                >
+                                  Draft
+                                </span>
+                              )}
                               {/* Traceability without clutter: the sha is the
                                   answer to "which change was that?", and it is
                                   only ever asked one row at a time. */}
@@ -332,7 +376,8 @@ export function ChangelogModal({
                 </div>
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
 
         <div className="flex shrink-0 items-center gap-3 border-t border-(--ink)/[0.07] bg-(--sink)/[0.15] px-6 py-2.5 text-[11px] text-muted-foreground">
@@ -344,6 +389,21 @@ export function ChangelogModal({
             ·
           </span>
           <span>{dateRange}</span>
+          {/* Only when there are any: a permanent "0 drafts" is noise, and this
+              is a nudge, not a statistic. */}
+          {draftCount > 0 && (
+            <>
+              <span aria-hidden className="text-muted-foreground/30">
+                ·
+              </span>
+              <span
+                title="Entries still worded from their commit subject"
+                className="tabular-nums text-muted-foreground/70"
+              >
+                {draftCount} draft{draftCount === 1 ? "" : "s"}
+              </span>
+            </>
+          )}
           <span className="ml-auto flex items-center gap-1.5">
             <kbd className="rounded-sm bg-(--ink)/[0.06] px-1 py-px text-[10px] inset-ring-1 inset-ring-(--ink)/[0.08]">
               esc

@@ -6,7 +6,10 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "changelog": "node scripts/changelog-scan.mjs",
+    "changelog:write": "node scripts/changelog-scan.mjs --write",
+    "changelog:check": "node scripts/changelog-scan.mjs --quiet"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

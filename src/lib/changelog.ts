@@ -22,17 +22,45 @@ export type ChangeEntry = {
   detail?: string;
   /** Short sha, so a line can always be traced back to its diff. */
   commit: string;
+  /**
+   * Written by the scanner from a commit subject, not by a person.
+   *
+   * The point of the flag is that an unpolished entry is better than a missing
+   * one: the change is in the list from the moment it ships, and the modal says
+   * plainly that the wording is still machine-written. A commit carrying a
+   * `Changelog:` trailer is never a draft, because that prose IS the copy.
+   */
+  draft?: boolean;
 };
 
 export type ChangelogDay = {
   /** ISO date. Sorts and formats without a parser. */
   date: string;
-  /** The day in one line, since a day is usually about one thing. */
-  summary: string;
+  /**
+   * The day in one line, since a day is usually about one thing.
+   *
+   * Optional because it is the one field no script can write: a day block
+   * created automatically has no summary, and an absent line is better than a
+   * placeholder that reads like a bug in the UI.
+   */
+  summary?: string;
   entries: ChangeEntry[];
 };
 
 export const CHANGELOG: ChangelogDay[] = [
+  {
+    date: "2026-07-30",
+    summary: "This list",
+    entries: [
+      {
+        kind: "new",
+        title: "What's new, from ⌘K",
+        detail:
+          "Every change since the first commit, grouped by the day it shipped, reachable only from the search bar. A dot appears on the row when something in here postdates the last time you opened it. `npm run changelog` lists any commit that has not been written up yet, so the list cannot quietly fall behind the code.",
+        commit: "5fefbfb",
+      },
+    ],
+  },
   {
     date: "2026-07-29",
     summary: "Two models separated, and the brand layer",
@@ -335,6 +363,20 @@ export const CHANGELOG: ChangelogDay[] = [
     ],
   },
 ];
+
+/**
+ * Commits deliberately left out, and why.
+ *
+ * The scanner counts these as accounted for, which is what lets
+ * `npm run changelog:check` reach green. Without it the check fails forever on
+ * the same two commits, and a gate that can never pass is one nobody runs
+ * twice. Recording the decision also means "was this missed, or skipped?" has
+ * an answer six weeks from now.
+ */
+export const CHANGELOG_OMITTED: Record<string, string> = {
+  "58314f7": "Comment rewording only. No behaviour and nothing visible changed.",
+  "dd31dfc": "README only. Its content is folded into the webpack entry.",
+};
 
 export const CHANGELOG_TOTAL = CHANGELOG.reduce(
   (sum, day) => sum + day.entries.length,
