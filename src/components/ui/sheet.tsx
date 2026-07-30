@@ -8,16 +8,13 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
-/** Apple's reposition spring: critically damped, so it settles without overshoot. */
 const SPRING = { type: "spring" as const, bounce: 0, duration: 0.4 }
 
-/** Dismiss if dragged past this share of the sheet, or thrown faster than this. */
 const DISMISS_RATIO = 0.35
 const DISMISS_VELOCITY = 400
 
 type Side = "top" | "right" | "bottom" | "left"
 
-/** Which axis the sheet travels on, and which direction closes it. */
 const AXIS: Record<Side, { axis: "x" | "y"; sign: 1 | -1 }> = {
   right: { axis: "x", sign: 1 },
   left: { axis: "x", sign: -1 },
@@ -25,11 +22,6 @@ const AXIS: Record<Side, { axis: "x" | "y"; sign: 1 | -1 }> = {
   top: { axis: "y", sign: -1 },
 }
 
-/**
- * base-ui owns mounting, so the exit has to tell it when the animation is done.
- * `open` comes from this provider rather than base-ui's internal context, which
- * is not part of its public API.
- */
 type SheetState = {
   open: boolean
   actions: React.RefObject<SheetPrimitive.Root.Actions | null>
@@ -76,7 +68,6 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   )
 }
 
-/** Static per-side geometry. Travel is motion's job now, not the class list's. */
 const SIDE_CLASS: Record<Side, string> = {
   right: "inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
   left: "inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
@@ -94,7 +85,6 @@ function SheetContent({
 }: SheetPrimitive.Popup.Props & {
   side?: Side
   showCloseButton?: boolean
-  /** The scrim, for callers that want a heavier one than the default. */
   overlayClassName?: string
 }) {
   const state = React.useContext(SheetStateContext)
@@ -109,8 +99,6 @@ function SheetContent({
   return (
     <SheetPortal keepMounted>
       <AnimatePresence
-        // base-ui restores focus and unlocks scrolling here, once the sheet has
-        // actually left the screen.
         onExitComplete={() => state?.actions.current?.unmount()}
       >
         {state?.open && (
@@ -144,10 +132,7 @@ function SheetContent({
                 animate={shown}
                 exit={hidden}
                 transition={SPRING}
-                // Dragging is only offered when motion is welcome.
                 drag={reduced ? false : axis}
-                // Zero on the closing side is unconstrained, so it tracks the
-                // pointer 1:1; the other side rubber-bands instead of stopping.
                 dragConstraints={
                   axis === "x"
                     ? sign === 1
@@ -160,8 +145,6 @@ function SheetContent({
                 dragElastic={0.55}
                 dragMomentum={false}
                 onDragEnd={(event, info) => {
-                  // Measured off the sheet itself: the event target is whatever
-                  // child was under the pointer.
                   const el = (
                     event.target as HTMLElement | null
                   )?.closest?.('[data-slot="sheet-content"]') as HTMLElement | null
@@ -171,8 +154,6 @@ function SheetContent({
                       : (el?.offsetHeight ?? window.innerHeight)
                   const travelled = info.offset[axis] * sign
                   const velocity = info.velocity[axis] * sign
-                  // Where the throw would come to rest, not where the finger let
-                  // go, so a short fast flick still dismisses.
                   const projected = travelled + (velocity / 1000) * 0.998 / (1 - 0.998)
                   if (
                     projected > size * DISMISS_RATIO ||
@@ -180,7 +161,6 @@ function SheetContent({
                   ) {
                     state?.actions.current?.close()
                   }
-                  // Not dismissed: motion springs back to `animate` on its own.
                 }}
               />
             }

@@ -15,12 +15,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-/**
- * The Wozku brand families. All three load unconditionally even though they
- * only apply under `.wozku`, because the toggle is a client-side class swap
- * and a font fetched at that moment would land a frame late and reflow the
- * page.
- */
 const satoshi = localFont({
   variable: "--font-satoshi",
   display: "swap",
@@ -45,10 +39,6 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
 });
 
-/**
- * The three builds of this product are usually open side by side, and three
- * tabs all reading "Content Planner" are indistinguishable.
- */
 export const metadata: Metadata = {
   title: "Demo · Content Planner",
   description: "Both models in one build. Choose a version at launch.",
@@ -60,9 +50,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // `dark` is unconditional; this product has one mode. The brand layer adds
-    // `wozku` alongside it at runtime, never on the server, because the choice
-    // lives in localStorage and guessing it would flash.
     <html
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} ${satoshi.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}

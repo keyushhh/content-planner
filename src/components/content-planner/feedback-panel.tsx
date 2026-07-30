@@ -28,7 +28,6 @@ interface FeedbackPanelProps {
   onAddFeedback: (text: string, sectionLabel?: string) => void;
   onSetStatus: (feedbackId: string, status: FeedbackStatus) => void;
   onClearHistory?: () => void;
-  /** Section whose feedback affordance was clicked, if any. */
   pendingSectionLabel?: string;
   onClearPendingSection?: () => void;
 }
@@ -61,11 +60,6 @@ export function SectionChip({ label }: { label: string }) {
   );
 }
 
-/**
- * The status control: a chip that reads as its own state and opens the four
- * choices when clicked, so there is no separate "change status" control to
- * find.
- */
 export function StatusChip({
   status,
   onChange,
@@ -141,8 +135,6 @@ function Composer({
             e.preventDefault();
             if (value.trim()) onSubmit();
           } else if (e.key === "Escape" && value.trim()) {
-            // Escape here must not reach the page handler, which closes the whole
-            // sheet and takes the post being edited with it.
             e.preventDefault();
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
@@ -163,11 +155,6 @@ function Composer({
   );
 }
 
-/**
- * One row of the feedback list, laid out as a table row rather than a chat
- * bubble: who, what, where, status, with status in a fixed right-hand column
- * so a column of chips can be scanned in one pass.
- */
 function FeedbackRow({
   item,
   onSetStatus,
@@ -230,10 +217,6 @@ function FeedbackRow({
   );
 }
 
-/**
- * Feedback, and the change log, in one rail. No threads; see the note on
- * `Feedback` in types.ts.
- */
 export function FeedbackPanel({
   session,
   isOpen,
@@ -333,9 +316,6 @@ export function FeedbackPanel({
 
       {tab === "feedback" ? (
         <>
-          {/* Column headers: the list is a table, and saying so out loud is
-              what makes the right-hand chips read as a column rather than as
-              decoration. */}
           {session.feedback.length > 0 && (
             <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-1.5 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/60">
               <button
@@ -384,8 +364,6 @@ export function FeedbackPanel({
           </div>
 
           <div className="shrink-0 border-t border-(--ink)/[0.07] px-5 py-4">
-            {/* Carries the section you clicked through to the note, so it
-                lands attached rather than floating against the whole post. */}
             {pendingSectionLabel && (
               <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span>On</span>
@@ -425,7 +403,6 @@ export function FeedbackPanel({
             />
           ) : (
             <div className="relative">
-              {/* rail sits on the marker centre line: 28px marker → 14px */}
               <div className="absolute bottom-1 left-3.5 top-1 w-px bg-(--ink)/[0.07]" />
               <div className="space-y-4">
                 {history.map((entry) => (

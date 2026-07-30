@@ -21,17 +21,11 @@ import type { PostType } from "@/lib/types";
 
 const EASE = "cubic-bezier(0.2,0,0,1)";
 
-/**
- * Each type states what it needs from you, not what it is: "Image" says
- * nothing, where "one image" says what the next screen will ask for.
- */
 const TYPES: {
   id: PostType;
   label: string;
   hint: string;
   icon: LucideIcon;
-  /** Each type owns a hue, so four rows read as four kinds of thing. Bordered
-      wells rather than ringed ones: Classic draws edges, not elevation. */
   well: string;
   hover: string;
 }[] = [
@@ -69,10 +63,6 @@ const TYPES: {
   },
 ];
 
-/**
- * Post type, asked before the composer opens, in Classic's visual language:
- * bordered card, hairline dividers, flat rows, shared Button for Cancel.
- */
 export function ClassicPostTypeModal({
   open,
   onOpenChange,
@@ -99,8 +89,6 @@ export function ClassicPostTypeModal({
           </div>
         </DialogHeader>
 
-        {/* Rows, not a grid of tiles: the hints are the point and they need
-            the width to be read. */}
         <div className="flex flex-col gap-1.5 border-t border-border p-3">
           {TYPES.map(({ id, label, hint, icon: Icon, well, hover }, i) => (
             <button

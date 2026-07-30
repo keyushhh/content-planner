@@ -14,11 +14,6 @@ import type { Campaign } from "@/lib/types";
 
 const EASE = "cubic-bezier(0.2,0,0,1)";
 
-/**
- * Sending to a campaign is the moment the work leaves your hands, so it gets a
- * modal rather than a toast, and it answers what the toast could not: which
- * campaigns, and what happens to the post now.
- */
 export function SendSuccessModal({
   open,
   onOpenChange,
@@ -30,18 +25,12 @@ export function SendSuccessModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionTitle: string;
-  /** True when the title names several posts, so the verb agrees with it. */
   plural?: boolean;
   campaigns: Campaign[];
-  /** Offered only when there is one obvious place to go next. */
   onViewCampaign?: (campaignId: string) => void;
 }) {
-  // The seal draws itself after the dialog has arrived, so the two animations
-  // read as one gesture landing rather than two things starting at once.
   const [sealed, setSealed] = useState(false);
 
-  // Rewound during render, the way the other dialogs in here do it: an effect
-  // for this would let one frame of the finished state through on reopen.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -67,8 +56,6 @@ export function SendSuccessModal({
           className="h-px w-full shrink-0 [background-image:var(--specular)]"
         />
 
-        {/* One warm wash behind the seal. The glow belongs to the moment, not
-            to the dialog, so it fades out above the content. */}
         <div className="relative [background-image:var(--wash-success)] px-6 pb-5 pt-7">
           <DialogHeader className="items-center p-0 text-center">
             <span
@@ -78,8 +65,6 @@ export function SendSuccessModal({
               )}
               style={{ transitionTimingFunction: EASE }}
             >
-              {/* A ring that expands and fades once: the visual "sent"
-                  sound. */}
               <span
                 aria-hidden
                 className={cn(
@@ -104,7 +89,6 @@ export function SendSuccessModal({
           </DialogHeader>
         </div>
 
-        {/* The destinations, named. This is the part a toast cannot carry. */}
         <div className="flex flex-col gap-1.5 border-t border-(--ink)/[0.06] px-4 py-4">
           {campaigns.map((campaign, i) => (
             <div
@@ -131,9 +115,6 @@ export function SendSuccessModal({
                   )}
                 </span>
               </span>
-              {/* No tick per row: the seal above already said yes once, and
-                  saying it again on every line makes the rows argue for the
-                  outcome instead of naming the destination. */}
             </div>
           ))}
         </div>

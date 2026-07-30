@@ -26,26 +26,16 @@ interface ConfirmDialogProps {
   tone?: Tone;
   title: React.ReactNode;
   description: React.ReactNode;
-  /**
-   * The thing being acted on, shown as its own inset row between the copy and
-   * the footer.
-   */
   preview?: React.ReactNode;
   actions: ConfirmDialogAction[];
 }
 
-/** Icon-well treatment per tone: tinted fill + matching hairline. */
 const TONE_WELL: Record<Tone, string> = {
   destructive: "text-red-300 bg-red-500/[0.13] inset-ring-red-400/25",
   violet: "text-violet-300 bg-violet-500/[0.13] inset-ring-violet-400/25",
   success: "text-emerald-300 bg-emerald-500/[0.13] inset-ring-emerald-400/25",
 };
 
-/**
- * Built as a small Canvas sheet, so a confirmation looks like it belongs to
- * this product rather than to the browser: specular top edge, hairline-divided
- * footer, actions side by side on one row.
- */
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -58,8 +48,6 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const Icon = CustomIcon ?? (tone === "destructive" ? AlertTriangle : null);
 
-  // Cancel-style actions read first, the committing action lands last on the
-  // right, where the eye finishes and the thumb expects it.
   const outlineActions = actions.filter((a) => a.tone === "outline");
   const mainActions = actions.filter((a) => a.tone !== "outline");
   const orderedActions = [...outlineActions, ...mainActions];

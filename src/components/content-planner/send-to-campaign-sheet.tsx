@@ -11,23 +11,14 @@ interface SendToCampaignSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaigns: Campaign[];
-  /** What is being sent, so the sheet can name it rather than imply it. */
   session?: Session | null;
-  /** A batch, when more than one post is going at once. Named as a count with
-   *  the first title, because fifteen titles is a list nobody reads. */
   sessions?: Session[];
-  /** Campaigns this post already lives in, offered as state, not as targets. */
   alreadySentTo?: string[];
   onShare: (campaignIds: string[]) => void;
   allowCreateCampaign?: boolean;
   onCreateCampaign?: (name: string) => string;
 }
 
-/**
- * "Ends 4 Aug", plus a countdown only while it is close. "in 50 days" is
- * arithmetic nobody asked for, and printing it on every row makes the campaign
- * that closes this week look no different from the one closing next quarter.
- */
 function endsLabel(endDate: string, now: number) {
   const parsed = new Date(endDate);
   if (Number.isNaN(parsed.getTime())) return { date: "No end date", soon: null };
@@ -40,10 +31,6 @@ function endsLabel(endDate: string, now: number) {
   return { date: `Ends ${date}`, soon: null };
 }
 
-/**
- * Send to campaigns: one elevated sheet of hairline-divided rows, the same
- * material as the content table.
- */
 export function SendToCampaignSheet({
   open,
   onOpenChange,
@@ -59,18 +46,10 @@ export function SendToCampaignSheet({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [search, setSearch] = useState("");
-  // Focus lands here on open. Left to itself the sheet focused the close button,
-  // so the first thing you saw was a ringed Dismiss.
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
-  // Read once, at mount, not on every render: the countdowns are day-resolution,
-  // so re-reading the clock per keystroke would only make a stable number look
-  // unstable. The lazy initialiser keeps it out of the render path.
   const [now] = useState(() => Date.now());
 
-  // Reset on the way in, not out: closing runs while the sheet is still
-  // animating away, so clearing there makes the footer count tick to zero on
-  // screen.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -94,7 +73,6 @@ export function SendToCampaignSheet({
     };
   }, [campaigns, q, alreadySentTo]);
 
-  /** A batch of two or more; one post is just the single-post flow. */
   const batch = sessions && sessions.length > 1 ? sessions : null;
   const showSearch = campaigns.length > 6;
   const count = selectedIds.length;
@@ -134,9 +112,6 @@ export function SendToCampaignSheet({
         side="right"
         initialFocus={bodyRef}
         aria-label="Send to campaigns"
-        // `!` throughout: the base sheet hard-codes a 3/4-viewport width and a 384px
-        // cap for the right side, both variant-prefixed, so nothing but an important
-        // wins against them.
         className="flex !w-[464px] !max-w-[calc(100vw-2rem)] flex-col gap-0 border-0 bg-(--surface-canvas) p-0 text-foreground shadow-(--lift-edge)"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -145,8 +120,6 @@ export function SendToCampaignSheet({
           }
         }}
       >
-        {/* Lit rim. On a right-hand sheet the light catches the left edge,
-            the same way the canvas sheets catch it along the top. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 left-0 w-px [background-image:var(--specular-v)]"
@@ -154,8 +127,6 @@ export function SendToCampaignSheet({
 
         <div className="flex shrink-0 items-start justify-between gap-3 px-7 pb-4 pt-6">
           <div className="min-w-0">
-            {/* Provenance line, not a card. As an outlined pill it looked
-                selectable, a fourth row you could not tick. */}
             {batch ? (
               <div className="mb-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="shrink-0 font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/60">
@@ -167,10 +138,6 @@ export function SendToCampaignSheet({
                 <span aria-hidden className="shrink-0 text-muted-foreground/30">
                   ·
                 </span>
-                {/* One title carries the batch: it is the row you were
-                    looking at when you ticked, so it tells you the selection
-                    is the one you meant without printing a list you would
-                    have to read. */}
                 <span className="truncate">
                   {batch[0].title} and {batch.length - 1} more
                 </span>
@@ -231,15 +198,11 @@ export function SendToCampaignSheet({
           </div>
         )}
 
-        {/* Washed ground. The sheet below floats on it, which is what makes
-            the surrounding space read as margin rather than as a gap. */}
         <div
           ref={bodyRef}
           tabIndex={-1}
           className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] px-6 pb-6 pt-1 outline-none"
         >
-          {/* ONE elevated sheet, rows divided by hairlines: the sessions-
-              table material. */}
           <Stagger
             index={0}
             className="overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]"
@@ -278,9 +241,6 @@ export function SendToCampaignSheet({
               </>
             )}
 
-            {/* Creating a campaign belongs to the list, so it lives in the
-                sheet, but as its own quiet last row, not as a fourth thing
-                that looks pickable. */}
             {canCreate &&
               (creating ? (
                 <div className="border-t border-(--ink)/[0.06] bg-violet-500/[0.05] px-4 py-3">
@@ -335,8 +295,6 @@ export function SendToCampaignSheet({
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.07] bg-(--sink)/[0.22] px-7 py-4">
-          {/* Names, not a bare number: "2 selected" makes you scroll back up
-              to check which two. */}
           <span
             aria-live="polite"
             className={cn(
@@ -374,7 +332,6 @@ export function SendToCampaignSheet({
   );
 }
 
-/** A band inside the sheet, darker than the rows, so it reads as structure. */
 function GroupHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="border-y border-(--ink)/[0.06] bg-(--surface-panel) px-4 py-1.5 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
@@ -401,8 +358,6 @@ function CampaignRow({
       onClick={onToggle}
       aria-pressed={selected}
       className={cn(
-        // Fixed height is what makes a run of rows read as a rhythm rather than
-        // as a stack of separate objects.
         "group relative flex h-[62px] w-full items-center gap-3 border-b border-(--ink)/[0.05] px-4 text-left transition-colors duration-150 last:border-b-0",
         selected
           ? "bg-violet-500/[0.10]"
@@ -423,8 +378,6 @@ function CampaignRow({
             {campaign.tag}
           </span>
         </span>
-        {/* Tags-as-quiet-text, the same reading the table row uses for its
-            second line, with no second chip treatment competing with the first. */}
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground/70">
           <span className="shrink-0 tabular-nums">
             {campaign.sessionIds.length}{" "}
@@ -444,8 +397,6 @@ function CampaignRow({
         </span>
       </span>
 
-      {/* A square, not a radio: the shape is the only cue that more than one
-          answer is allowed. */}
       <span
         className={cn(
           "flex size-[19px] shrink-0 items-center justify-center rounded-(--r-inner) transition-[background-color,box-shadow] duration-150 inset-ring-1",
@@ -465,7 +416,6 @@ function CampaignRow({
   );
 }
 
-/** A campaign the post is already in, present for orientation, not picking. */
 function SentRow({ campaign, now }: { campaign: Campaign; now: number }) {
   const ends = endsLabel(campaign.endDate, now);
   return (

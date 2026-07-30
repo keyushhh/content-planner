@@ -15,16 +15,11 @@ import { VersionPreview } from "./version-preview";
 
 export type AppVersion = "classic" | "repository";
 
-/**
- * One description of each version, shared by everything that has to name them:
- * these tiles, the title menu, and the switch dialog.
- */
 export const VERSIONS: {
   id: AppVersion;
   label: string;
   hint: string;
   icon: LucideIcon;
-  /** Each version owns a hue, the way the post types do. */
   well: string;
   glow: string;
   ring: string;
@@ -51,10 +46,6 @@ export const VERSIONS: {
 
 export const versionMeta = (v: AppVersion) => VERSIONS.find((x) => x.id === v)!;
 
-/**
- * Two products share this build, and which one you are looking at changes what
- * almost every screen means, so it is asked once up front.
- */
 export function VersionChooserModal({
   open,
   onChoose,
@@ -63,8 +54,6 @@ export function VersionChooserModal({
   onChoose: (version: AppVersion) => void;
 }) {
   return (
-    // No onOpenChange: Escape, the backdrop and a close button all have nothing
-    // to do here, because there is no state behind this to return to.
     <Dialog open={open}>
       <DialogContent
         showCloseButton={false}
@@ -96,12 +85,8 @@ export function VersionChooserModal({
                 "group flex flex-col gap-3 rounded-(--r-float) bg-(--ink)/[0.028] p-3 text-left inset-ring-1 inset-ring-(--ink)/[0.07] transition-[background-color,box-shadow,scale] duration-200 active:scale-(--press-lg)",
                 glow,
               )}
-              // Without this the tile keeps a focus ring after the click, which
-              // reads as "still deciding" on a dialog that is already closing.
               onMouseDown={(e) => e.preventDefault()}
             >
-              {/* The miniature does the explaining. It lifts very slightly on
-                  hover: enough to feel picked up, not enough to bounce. */}
               <VersionPreview
                 version={id}
                 className={cn(
@@ -133,8 +118,6 @@ export function VersionChooserModal({
           ))}
         </div>
 
-        {/* Hairline, not a filled band: there is nothing to cancel to, so the
-            footer only orients; it holds no action. */}
         <div className="border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
             Switch any time from the title menu

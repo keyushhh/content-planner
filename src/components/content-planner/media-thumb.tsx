@@ -33,11 +33,6 @@ const THEMES: Record<string, { bg: string; border: string; iconBg: string; textC
   },
 };
 
-/**
- * `compact` is the composer's reading. The full tile packs a 44px icon well
- * and an uppercase "PNG IMAGE" caption into whatever box it is given, and at
- * the 80px the composer uses that is a cramped label under an oversized icon.
- */
 export function MediaThumb({
   assetId,
   type = "image",
@@ -49,7 +44,6 @@ export function MediaThumb({
   assetId: string;
   type?: MediaAssetType;
   compact?: boolean;
-  /** The real picture, when there is one. Mock assets have none. */
   url?: string;
   name?: string;
   className?: string;
@@ -57,12 +51,8 @@ export function MediaThumb({
   const isEmbed = type === "embed";
   const isPdf = type === "pdf";
 
-  // An actual image beats any placeholder: the glyph tiles exist because the
-  // seeded assets carry no file, not because a thumbnail should be an icon.
   if (url && type === "image") {
     return (
-      // blob: URLs from a local file pick, which next/image cannot optimise and
-      // must not be handed.
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={url}
@@ -73,12 +63,6 @@ export function MediaThumb({
     );
   }
 
-  /**
-   * A PDF gets its first page, not a document glyph. `<object>` does something
-   * an `<img>` cannot: the browser's own PDF renderer draws the page, and if
-   * it has none, the fallback children render instead, so the glyph tile is
-   * the automatic backstop.
-   */
   if (url && isPdf) {
     return (
       <div
@@ -98,7 +82,6 @@ export function MediaThumb({
             <FileText className="size-5" />
           </span>
         </object>
-        {/* Says which format without a caption stealing a line of the tile */}
         <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 py-px text-[8px] font-semibold font-(family-name:--font-label) uppercase tracking-wider text-(--ink)/80">
           pdf
         </span>

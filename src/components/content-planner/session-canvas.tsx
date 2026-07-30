@@ -39,7 +39,6 @@ import {
 } from "./session-composer";
 import type { Feedback } from "@/lib/types";
 
-/** Canvas layout: the single-column alternative to SessionComposer. */
 export function SessionCanvas({
   session,
   mediaAssets,
@@ -83,8 +82,6 @@ export function SessionCanvas({
 
   const checklist = [
     { label: "copy", done: copyDraft.trim().length > 0 },
-    // Reshare has no media of its own, so requiring an asset would make it
-    // permanently incomplete.
     ...(session.postType === "Reshare"
       ? []
       : [
@@ -129,8 +126,6 @@ export function SessionCanvas({
           {readyToSend && (
             <Button
               size="sm"
-              // Appears the instant the last checklist item lands, the sheet's
-              // most triumphant moment, so it arrives rather than blinking in.
               className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
               onClick={onOpenSend}
               title={`${needsResend ? "Send update" : "Send to campaign"} (⌘↵)`}
@@ -200,34 +195,25 @@ export function SessionCanvas({
         </Banner>
       )}
 
-      {/* Canvas: the wash makes the surrounding space read as deliberate
-          margin */}
       <div
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         className={cn(
           "min-h-0 flex-1 overflow-y-auto transition-[background-image] duration-500",
-          // the canvas itself loses its violet cast when the post is locked
           isCampaignLocked
             ? "[background-image:var(--wash-neutral)]"
             : "[background-image:var(--wash-page)]",
         )}
       >
-        {/* items-start: the sheet sizes to its content instead of stretching,
-            so no dead space opens up inside it. */}
         <div className="flex min-h-full items-start justify-center px-7 pb-12 pt-6 @container">
           <Stagger
             index={0}
             className={cn(
               "flex w-full max-w-[900px] flex-col overflow-hidden rounded-(--r-surface) transition-[filter,box-shadow,background-color] duration-500",
-              // A locked document should look locked from across the room: colour
-              // drains out and it settles lower, as though set down rather than held.
               isCampaignLocked
                 ? "bg-(--ink)/[0.018] shadow-(--lift-sm) saturate-50 inset-ring-1 inset-ring-(--ink)/[0.05]"
                 : "bg-(--ink)/[0.028] shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08]",
             )}
           >
-            {/* Readiness reads as a hairline at the sheet's edge, not another
-                card. */}
             {!isCampaignLocked && (
               <div className="flex h-0.5 w-full shrink-0 overflow-hidden">
                 {checklist.map((item, i) => (
@@ -242,7 +228,6 @@ export function SessionCanvas({
                 ))}
               </div>
             )}
-            {/* Specular edge: light catching the rim of a physical surface */}
             <div
               className={cn(
                 "h-px w-full shrink-0 bg-gradient-to-r from-transparent to-transparent transition-colors duration-500",
@@ -250,7 +235,6 @@ export function SessionCanvas({
               )}
             />
 
-            {/* Title */}
             <Stagger index={1} className="px-9 pb-7 pt-8">
               <div className="min-w-0">
                 <input
@@ -260,12 +244,9 @@ export function SessionCanvas({
                   disabled={isCampaignLocked}
                   aria-label="Session title"
                   placeholder="Untitled session"
-                  // The landing pad for the row title's flight; see title-flight.ts
                   data-pane-title
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
-                {/* Byline moved to the toolbar, so this line now carries one
-                    thought only: how close this post is to being sendable. */}
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-0.5 text-[13px] text-muted-foreground">
                   {isCampaignLocked && (
                     <span className="inline-flex items-center gap-1.5">
@@ -291,10 +272,7 @@ export function SessionCanvas({
               </div>
             </Stagger>
 
-            {/* Copy: the writing surface, flush to the sheet, no nested box. */}
             <Stagger index={2}>
-              {/* Focus is a barely-there warming of the whole section,
-                  nothing more. */}
               <div className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
               <div className="group/row flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
                 <span className="flex min-w-0 items-center gap-1.5">
@@ -322,7 +300,6 @@ export function SessionCanvas({
                   <AiAssistButton className="ml-1" />
                 </div>
               </div>
-              {/* relative: hosts the stand-in caret below */}
               <div className="relative">
                 <textarea
                   id="canvas-copy"
@@ -333,8 +310,6 @@ export function SessionCanvas({
                   disabled={isCampaignLocked}
                   className="peer block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-70"
                 />
-                {/* Empty and unfocused, the field looked inert, with no caret,
-                    and a placeholder alone does not say "type here". */}
                 {!copyDraft && !isCampaignLocked && (
                   <span
                     aria-hidden
@@ -349,16 +324,7 @@ export function SessionCanvas({
               </div>
             </Stagger>
 
-            {/* Settings-style rows: label left, control right */}
-            {/* No "Post type" row: the type is chosen in the creation modal
-                and cannot change afterwards, so restating it here spent a row
-                of the sheet on a fact you already acted on. */}
-
-            {/* Reshare carries no media of its own: Wozku keeps the original
-                post's. */}
             {session.postType === "Reshare" ? (
-              // anchored to "Assets", not "Media", so a comment about the post's
-              // imagery survives a switch between Image and Reshare
               <SettingRow
                 label="Media"
                 feedback={feedbackFor("Assets")}
@@ -376,8 +342,6 @@ export function SessionCanvas({
               label={media.section}
               feedback={feedbackFor("Assets")}
               onFeedback={() => onOpenFeedback("Assets")}
-              // a single pill sits right; a wrapping thumbnail grid must start
-              // left, or the ragged edge lands on the wrong side
               align={session.visualAssetIds.length > 0 ? "start" : "center"}
               valueAlign={session.visualAssetIds.length > 0 ? "start" : "end"}
               staggerIndex={4}
@@ -430,8 +394,6 @@ export function SessionCanvas({
                       onClick={onOpenMediaLibrary}
                       title="Pick from Media Library"
                       aria-label="Add another asset"
-                      // solid hairline, not dashed: a dashed edge reads as a
-                      // wireframe placeholder rather than a real control
                       className="flex size-20 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-200 hover:bg-violet-500/[0.08] hover:text-violet-300 hover:inset-ring-violet-400/40 active:scale-(--press)"
                     >
                       <UploadCloud className="size-5" />
@@ -459,8 +421,6 @@ export function SessionCanvas({
                         "inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs font-medium inset-ring-1 transition-[background-color,box-shadow,scale] duration-200",
                         flashedTag === tag
                           ? "scale-[1.06] bg-amber-500/20 inset-ring-amber-400/50"
-                          // Its own hue, so the same tag is the same colour here
-                          // as it is in the table row and the filter menu.
                           : cn(tagTint(tag), "inset-ring-(--ink)/[0.06]"),
                       )}
                     >
@@ -522,13 +482,10 @@ export function SessionCanvas({
               </div>
             </SettingRow>
 
-            {/* Colophon: metadata as a quiet footer, not a card */}
             <Stagger
               index={6}
               className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-(--ink)/[0.06] bg-(--ink)/[0.012] px-9 py-3 text-[11px] text-muted-foreground"
             >
-              {/* Only facts that exist. "No variations · No comments" was two
-                  lines of nothing, stated every time. */}
               <span className="tabular-nums">Created {formatDate(session.createdAt)}</span>
               {session.variations.length > 0 && (
                 <>
@@ -559,11 +516,6 @@ export function SessionCanvas({
   );
 }
 
-/**
- * Label left, value right. Two columns, not three: the third was a permanent
- * 32px slot for a feedback button that only appeared on hover, so it ran as a
- * dead stripe down the sheet.
- */
 function SettingRow({
   label,
   htmlFor,
@@ -575,7 +527,6 @@ function SettingRow({
   children,
 }: {
   label: string;
-  /** Bind the label to its control so clicking it focuses the field. */
   htmlFor?: string;
   align?: "center" | "start";
   valueAlign?: "start" | "end";

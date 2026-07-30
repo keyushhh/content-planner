@@ -6,29 +6,20 @@ import { cn } from "@/lib/utils";
 
 const BRAND_STORAGE_KEY = "cp_brand";
 
-/** Classes the brand layer hangs off, applied to <html> next to `dark`. */
 const BRAND_CLASS = "wozku";
 const BRAND_LIGHT_CLASS = "wozku-light";
 
-/** Fired on write so every mounted subscriber re-reads, not just this tab. */
 const BRAND_EVENT = "cp:brand";
 
-/**
- * One value rather than an `on` boolean beside a `light` boolean, since those
- * two can represent "off, but light".
- */
 export type BrandMode = "off" | "dark" | "light";
 
 function read(): BrandMode {
   try {
     const raw = window.localStorage.getItem(BRAND_STORAGE_KEY);
-    // "on" is what the first version of this wrote, before light existed.
     if (raw === "on" || raw === "dark") return "dark";
     if (raw === "light") return "light";
     return "off";
   } catch {
-    // Private browsing and blocked storage both throw. This is a preview
-    // toggle, so failing to remember it is not worth surfacing.
     return "off";
   }
 }
@@ -48,28 +39,20 @@ function subscribe(onChange: () => void) {
   };
 }
 
-/**
- * Which brand layer is active, stored in localStorage and mirrored onto <html>
- * as classes.
- */
 export function useBrandLayer(active = true) {
   const stored = useSyncExternalStore(subscribe, read, (): BrandMode => "off");
 
-  /** `active` is how the combined build keeps this away from Classic. */
   const mode: BrandMode = active ? stored : "off";
 
   const setMode = useCallback((next: BrandMode) => {
     try {
       window.localStorage.setItem(BRAND_STORAGE_KEY, next);
     } catch {
-      // as above: the classes still apply, they just won't survive a reload
     }
     apply(next);
     window.dispatchEvent(new Event(BRAND_EVENT));
   }, []);
 
-  // Keeps <html> honest when the value did not come from this tab's click: a
-  // second tab switching it, or the stored value on first paint.
   if (typeof document !== "undefined") apply(mode);
 
   return { mode, setMode };
@@ -80,10 +63,6 @@ const MODES: { id: Exclude<BrandMode, "off">; label: string; Icon: typeof Sun }[
   { id: "light", label: "Light", Icon: Sun },
 ];
 
-/**
- * Switches between the app's own visual language and the Wozku brand system,
- * and inside the brand, between its two themes.
- */
 export function BrandToggle({
   mode,
   onChange,
@@ -100,20 +79,13 @@ export function BrandToggle({
         role="switch"
         aria-checked={on}
         aria-label="Wozku brand guideline"
-        // Both states named, because "Brand guideline" alone leaves you guessing
-        // which way the switch points.
         title={
           on
             ? "Wozku brand guideline is on. Click for the original look"
             : "Wozku brand guideline is off. Click to apply the Wozku design system"
         }
-        // Turning it on lands on dark, which is the theme this app already
-        // is, so one variable changes at a time: you can see what the brand
-        // did before you also change what the lighting did.
         onClick={() => onChange(on ? "off" : "dark")}
         className={cn(
-          // h-7 matches the dev controls beside it; the pseudo-element takes the
-          // hit area to 40px tall without changing how it sits in the bar.
           "relative ml-1 flex h-7 items-center gap-2 rounded-(--r-pill) px-2.5 text-[11px] font-medium inset-ring-1 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-(--press)",
           "after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
           on
@@ -123,8 +95,6 @@ export function BrandToggle({
       >
         <Palette className="size-3.5 shrink-0" />
         Brand guideline
-        {/* The knob travels most of the track's width: one that barely moves
-            reads as a dot changing colour rather than a switch throwing. */}
         <span
           aria-hidden
           className={cn(
@@ -142,9 +112,6 @@ export function BrandToggle({
         </span>
       </button>
 
-      {/* Collapsed by grid template rather than unmounted, so the reveal
-          slides the control out from nothing instead of making the toolbar
-          jump. */}
       <div
         aria-hidden={!on}
         className={cn(
@@ -162,8 +129,6 @@ export function BrandToggle({
               <button
                 key={id}
                 type="button"
-                // Unreachable by keyboard while collapsed: a focusable child
-                // inside aria-hidden is a trap, not a shortcut.
                 tabIndex={on ? 0 : -1}
                 aria-pressed={mode === id}
                 onClick={() => onChange(id)}

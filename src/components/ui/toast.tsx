@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 
 const EASE = "cubic-bezier(0.2,0,0,1)";
 const DEFAULT_DURATION = 4200;
-/** Beyond this the stack starts covering the app it is reporting on. */
 const MAX_VISIBLE = 3;
 
 export interface ToastAction {
@@ -27,27 +26,22 @@ export interface ToastOptions {
   title: string;
   description?: string;
   tone?: "default" | "success" | "danger";
-  /** A second chance, for anything destructive. Dismisses the toast when taken. */
   action?: ToastAction;
   durationMs?: number;
 }
 
 interface ToastRecord extends ToastOptions {
   id: number;
-  /** Drives the enter transition; false for one frame on mount. */
   open: boolean;
-  /** Set while the exit transition plays, so leaving can differ from arriving. */
   closing: boolean;
 }
 
 const ToastContext = createContext<((options: ToastOptions) => void) | null>(null);
 
-/** Toasts: the app confirming something happened somewhere you are not looking. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
   const [paused, setPaused] = useState(false);
   const nextId = useRef(1);
-  /** Per-toast countdown, kept as a deadline so it can be paused and resumed. */
   const clocks = useRef(
     new Map<number, { timeout: ReturnType<typeof setTimeout>; endsAt: number; left: number }>(),
   );
@@ -58,8 +52,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(clock.timeout);
       clocks.current.delete(id);
     }
-    // Out-transition first, unmount after: removing the node immediately would
-    // make every toast vanish rather than leave.
     setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, closing: true } : t)));
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 240);
   }, []);
@@ -82,8 +74,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         ...prev.slice(-(MAX_VISIBLE - 1)),
         { ...options, id, open: false, closing: false },
       ]);
-      // Mount closed, open on the next frame, so the enter transition has a
-      // "from" state to travel out of.
       requestAnimationFrame(() =>
         setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, open: true } : t))),
       );
@@ -92,10 +82,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [arm],
   );
 
-  /**
-   * Reading a toast must not cost you the toast, so hovering stops the clock
-   * as well as the bar.
-   */
   const pause = useCallback(() => {
     clocks.current.forEach((clock) => {
       clearTimeout(clock.timeout);
@@ -153,8 +139,6 @@ function ToastViewport({
   onPause: () => void;
   onResume: () => void;
 }) {
-  // Portalled to the body: the trigger's stacking context is often a dialog
-  // that is about to close, and the confirmation must outlive it.
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -164,20 +148,15 @@ function ToastViewport({
 
   return createPortal(
     <div
-      // aria-live so the confirmation reaches a screen reader too, which is the
-      // whole population the green-button pattern left out.
       role="region"
       aria-live="polite"
       aria-label="Notifications"
-      // Pointer AND focus: a keyboard user tabbing to Dismiss deserves the same
-      // stay of execution as someone resting the mouse there.
       onPointerEnter={onPause}
       onPointerLeave={onResume}
       onFocusCapture={onPause}
       onBlurCapture={onResume}
       className={cn(
         "pointer-events-none fixed bottom-5 right-5 z-[100] flex w-[min(360px,calc(100vw-2.5rem))] flex-col transition-[gap] duration-250",
-        // Collapsed, the deck is tight; attended to, it opens up.
         paused ? "gap-2.5" : "gap-1.5",
       )}
       style={{ transitionTimingFunction: EASE }}
@@ -186,8 +165,6 @@ function ToastViewport({
         <ToastCard
           key={t.id}
           toast={t}
-          // How far back in the deck this card sits. The newest is always at the
-          // front, which is where the eye goes.
           depth={paused ? 0 : toasts.length - 1 - i}
           paused={paused}
           onDismiss={() => onDismiss(t.id)}
@@ -198,10 +175,6 @@ function ToastViewport({
   );
 }
 
-/**
- * Tone is carried by the medallion and the drain bar, and that is the whole
- * system.
- */
 const TONES = {
   default: {
     medallion: "bg-(--ink)/[0.07] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.12]",
@@ -232,16 +205,12 @@ function ToastCard({
   const t = TONES[tone];
   const Glyph = tone === "success" ? Check : tone === "danger" ? Trash2 : Info;
 
-  // Receding, not shrinking: two steps back is the most that still reads as the
-  // same object further away. Past that it looks like a smaller card.
   const recede = Math.min(depth, 2);
 
   return (
     <div
       className={cn(
         "pointer-events-auto relative overflow-hidden rounded-(--r-float) bg-(--surface-float) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09]",
-        // Arrives rising from below; leaves toward the right edge, so dismissal
-        // reads as the card going away rather than the entrance played backwards.
         "transition-[opacity,translate,scale] duration-240 motion-reduce:transition-none",
         toast.closing
           ? "translate-x-8 scale-[0.98] opacity-0"
@@ -251,8 +220,6 @@ function ToastCard({
       )}
       style={{
         transitionTimingFunction: EASE,
-        // Only while stacked and settled: an entering or leaving card owns its own
-        // transform and must not fight the deck for it.
         ...(toast.open && !toast.closing
           ? {
               scale: `${1 - recede * 0.02}`,
@@ -261,29 +228,20 @@ function ToastCard({
           : null),
       }}
     >
-      {/* Specular top edge, the same one every raised surface in the app
-          wears. Neutral, because it describes the light in the room, not the
-          message. */}
       <span
         aria-hidden
         className="absolute inset-x-0 top-0 h-px [background-image:var(--specular)]"
       />
 
-      {/* The life left on the clock, drawn as it drains. Also the thing that
-          makes the toast feel like it is leaving on purpose rather than
-          disappearing on you. */}
       {toast.open && !toast.closing && (
         <span
           aria-hidden
           className={cn(
-            // Inset from the corners so it reads as a measure inside the card
-            // rather than a stripe stuck to its edge.
             "absolute bottom-0 left-3.5 right-3.5 h-px origin-left rounded-(--r-pill) motion-reduce:hidden",
             t.bar,
           )}
           style={{
             animation: `toast-drain ${toast.durationMs ?? DEFAULT_DURATION}ms linear forwards`,
-            // Held, not restarted: the bar resumes from exactly where it stopped.
             animationPlayState: paused ? "paused" : "running",
           }}
         />

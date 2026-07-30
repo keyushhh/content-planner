@@ -29,22 +29,14 @@ interface VariationsViewProps {
   onChange: (variations: PostVariation[]) => void;
   mediaAssets: MediaAsset[];
   mediaFolders: MediaFolder[];
-  /** Opens the media library, targeted at one variation. */
   onOpenMediaLibrary?: (variationId: string) => void;
   onClose: () => void;
   disabled?: boolean;
-  /** The post's own copy and assets, shown as the first row for comparison. */
   primaryCopy?: string;
   primaryAssetIds?: string[];
-  /** Set when returning from the media library, so the editor reopens where you left it. */
   initialVariationId?: string | null;
 }
 
-/**
- * Post variations, as a table: one row per alternate with the copy and the
- * images side by side, and the post's own copy pinned at the top as the thing
- * they are alternates of.
- */
 export function VariationsView({
   variations,
   onChange,
@@ -62,8 +54,6 @@ export function VariationsView({
 
   const current = variations.find((v) => v.id === editingId) ?? null;
 
-  // Escape steps back one level, editor to table and table to the post, rather
-  // than closing the whole pane and losing the post being edited.
   const leave = useCallback(() => {
     if (editingId) setEditingId(null);
     else onClose();
@@ -111,11 +101,6 @@ export function VariationsView({
     return id;
   }
 
-  /**
-   * The generated batch lands in one write, and the view goes back to the table
-   * rather than into an editor: ten new alternates are read as a set first, and
-   * opening the last one would hide the other nine.
-   */
   function addVariations(copies: string[]) {
     const stamp = Date.now();
     onChange([
@@ -143,7 +128,6 @@ export function VariationsView({
     if (editingId === id) setEditingId(null);
   }
 
-  // ---- Editor ---------------------------------------------------------------
   if (current) {
     return (
       <VariationEditor
@@ -164,7 +148,6 @@ export function VariationsView({
     );
   }
 
-  // ---- Table ----------------------------------------------------------------
   const grid = {
     "--cols-sm": "minmax(0,1.1fr) minmax(0,2fr) 76px",
     "--cols-lg": "minmax(0,1.1fr) minmax(0,2fr) 96px 76px",
@@ -225,9 +208,6 @@ export function VariationsView({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [background-image:var(--wash-page)] px-6 py-6 @container">
-        {/* The card takes the whole height rather than floating in the top
-            third: a table that stops halfway down a dark pane reads as a
-            loading state. */}
         <Stagger
           index={0}
           className="mx-auto flex w-full max-w-[900px] flex-1 flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08] @container"
@@ -244,15 +224,12 @@ export function VariationsView({
               gridClass,
             )}
           >
-            {/* "Name", not "Variation": the column also heads the post row. */}
             <span className="min-w-0">Name</span>
             <span className="min-w-0">Copy</span>
             <span className={cn("min-w-0", wideOnly)}>Images</span>
             <span aria-hidden />
           </div>
 
-          {/* The primary post, pinned, kept in the same columns because the
-              whole point is comparing against it. */}
           <GroupBand>
             The post
             <span className="ml-auto font-normal normal-case tracking-normal text-muted-foreground/55">
@@ -281,8 +258,6 @@ export function VariationsView({
             <span className={cn("min-w-0", wideOnly)}>
               <ThumbStack assetIds={primaryAssetIds} mediaAssets={mediaAssets} />
             </span>
-            {/* The missing affordance: the reason this row does not open an
-                editor is that its editor is the post, one step back. */}
             <span className="flex justify-end">
               <button
                 onClick={onClose}
@@ -328,8 +303,6 @@ export function VariationsView({
                     Add a variation
                   </button>
                   {primaryCopy.trim() && (
-                    // The commonest first move is "the primary, but shorter", and
-                    // starting from a blank sheet makes you paste it in by hand.
                     <button
                       onClick={() => addVariation(primaryCopy)}
                       className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3.5 text-[13px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-(--ink)/[0.07] active:scale-(--press)"
@@ -377,9 +350,6 @@ export function VariationsView({
 
                 <div className="min-w-0 text-[12.5px] leading-snug text-muted-foreground">
                   {v.copy.trim() ? (
-                    // Two lines at rest, four under the cursor. A 300-character
-                    // alternate clamped to two lines shows you the hook and hides
-                    // the thing you are actually comparing.
                     <span className="line-clamp-2 group-hover:line-clamp-4">{v.copy}</span>
                   ) : (
                     <span className="italic text-muted-foreground/60">
@@ -416,8 +386,6 @@ export function VariationsView({
             ))
           )}
 
-          {/* A quiet last row instead of a hard edge: the table ends where
-              you would add the next thing to it. */}
           {filtered.length > 0 && !disabled && !q && (
             <button
               onClick={() => addVariation()}
@@ -431,8 +399,6 @@ export function VariationsView({
           )}
           </div>
 
-          {/* Anchors the bottom edge so the card reads as finished at any
-              height. */}
           <div className="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-(--ink)/[0.06] bg-(--surface-panel) px-5 py-2.5 text-[11px] text-muted-foreground">
             <span className="tabular-nums">
               {variations.length === 0
@@ -457,11 +423,6 @@ export function VariationsView({
   );
 }
 
-/**
- * A section band inside the table. Two kinds of thing live in these columns,
- * the post and alternates of it, and the band is what stops them reading as one
- * list where the first item happens to be styled oddly.
- */
 function GroupBand({
   children,
   className,
@@ -510,7 +471,6 @@ function RowAction({
   );
 }
 
-/** Up to three overlapping thumbs, then a count. Reads as "how much art is here". */
 function ThumbStack({
   assetIds,
   mediaAssets,
@@ -583,10 +543,6 @@ function VariationNameEdit({
   );
 }
 
-/**
- * The writing surface for one variation: the same document sheet as the post
- * itself, so switching between them does not feel like changing application.
- */
 function VariationEditor({
   variation,
   index,
@@ -605,12 +561,10 @@ function VariationEditor({
   total: number;
   mediaAssets: MediaAsset[];
   disabled?: boolean;
-  /** The post's own copy, what a generated alternate is an alternate OF. */
   primaryCopy: string;
   onBack: () => void;
   onPatch: (next: Partial<PostVariation>) => void;
   onRemove: () => void;
-  /** Keeps generated drafts as further alternates, alongside this one. */
   onAddAlternates: (copies: string[]) => void;
   onOpenMediaLibrary?: () => void;
 }) {
@@ -623,8 +577,6 @@ function VariationEditor({
     copyDraft !== variation.copy ||
     (labelDraft.trim().length > 0 && labelDraft.trim() !== variation.label);
 
-  // Drafts belong to THIS variation; remounting on id change is what keeps them
-  // from following you into the next row.
   const flush = useCallback(() => {
     const next: Partial<PostVariation> = {};
     if (copyDraft !== variation.copy) next.copy = copyDraft;
@@ -634,8 +586,6 @@ function VariationEditor({
     setSaveStatus("saving");
   }, [copyDraft, labelDraft, variation.copy, variation.label, onPatch]);
 
-  // A "Saving…" that vanishes the same frame it appears reads as a glitch; the
-  // beat is for the reader, not for the write, which already happened.
   useEffect(() => {
     if (saveStatus !== "saving") return;
     const t = setTimeout(() => setSaveStatus("saved"), 380);
@@ -647,16 +597,12 @@ function VariationEditor({
     return () => clearInterval(interval);
   }, [flush]);
 
-  // Escape unmounts this editor from the parent without going through back(),
-  // so without a flush on the way out the last thing typed is simply lost.
   const flushRef = useRef(flush);
   useEffect(() => {
     flushRef.current = flush;
   }, [flush]);
   useEffect(() => () => flushRef.current(), []);
 
-  // ⌘S is the reflex the indicator's tooltip promises. Honour it rather than
-  // letting the browser offer to save the page.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.key === "s" && (e.metaKey || e.ctrlKey))) return;
@@ -668,7 +614,6 @@ function VariationEditor({
   }, []);
 
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
-  // With no copy on the post yet, this alternate is the only thing to work from.
   const primarySource = primaryCopy.trim() || copyDraft;
   const hasAssets = variation.assetIds.length > 0;
   const canAddAsset = variation.assetIds.length < MAX_ASSETS;
@@ -711,8 +656,6 @@ function VariationEditor({
               Remove
             </button>
           )}
-          {/* Not a Save button: the work is already safe, and a button that
-              implies otherwise teaches people to fear closing the pane. */}
           {!disabled && (
             <SaveChip
               saveStatus={saveStatus}
@@ -766,8 +709,6 @@ function VariationEditor({
                 >
                   Alternate copy
                 </label>
-                {/* The one place generation belongs: beside the field it
-                    fills, on the surface where the writing happens. */}
                 {!disabled && !generating && (
                   <button
                     onClick={() => setGenerating(true)}

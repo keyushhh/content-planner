@@ -29,7 +29,6 @@ import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
 import type { Feedback, MediaAsset, PostType, Session } from "@/lib/types";
 
-/** Post types offered in the composer, matching the creation modal. */
 export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
   { id: "Image", icon: ImageIcon },
   { id: "Frames", icon: Layers2 },
@@ -37,17 +36,12 @@ export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
   { id: "Reshare", icon: Repeat2 },
 ];
 
-/**
- * The media section is the same component in both layouts; only its wording
- * and its ceiling change with the post type.
- */
 export const MEDIA_COPY: Record<
   PostType,
   {
     section: string;
     checklist: string;
     attached: string;
-    /** Canvas: one-line pill. Split: title + hint stacked. */
     cta: string;
     ctaTitle: string;
     ctaHint: string;
@@ -81,7 +75,6 @@ export const MEDIA_COPY: Record<
     ctaHint: "One document, swiped as pages",
     max: 1,
   },
-  // Reshare never reaches the picker: its media comes from the original post.
   Reshare: {
     section: "Media",
     checklist: "",
@@ -93,11 +86,6 @@ export const MEDIA_COPY: Record<
   },
 };
 
-/**
- * What survives a post-type change. A PDF post cannot carry images and an
- * image post cannot carry a PDF, so the attachments are reconciled rather than
- * left to show three thumbnails under a heading that says PDF.
- */
 export function assetsForType(
   ids: string[],
   assets: MediaAsset[],
@@ -106,7 +94,6 @@ export function assetsForType(
   if (type === "Reshare") return ids;
   const kept = ids.filter((id) => {
     const asset = assets.find((a) => a.id === id);
-    // an id we cannot resolve (a device upload) is not assumed to be a PDF
     if (!asset) return type !== "PDF";
     return type === "PDF" ? asset.type === "pdf" : asset.type !== "pdf";
   });
@@ -136,10 +123,6 @@ export const TAG_SUGGESTIONS = [
 
 export const EASE = "cubic-bezier(0.2,0,0,1)";
 
-/**
- * Composer keyboard shortcuts, shared by both layouts. Escape is handled by
- * the page, which closes the sheet but does not flush drafts:
- */
 export function useComposerShortcuts({
   savePendingChanges,
   readyToSend,
@@ -167,10 +150,6 @@ export function useComposerShortcuts({
   }, [savePendingChanges, readyToSend, onOpenSend]);
 }
 
-/**
- * Adding a tag that already exists is silently ignored by the update logic,
- * which reads as a broken input.
- */
 export function useTagFlash() {
   const [flashedTag, setFlashedTag] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -276,7 +255,6 @@ export function SessionComposer({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Header: hairline + lift appear only once content scrolls under it */}
       <div
         className={cn(
           "z-10 flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3 transition-colors duration-200",
@@ -287,7 +265,6 @@ export function SessionComposer({
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {statusMenu}
-          {/* Title hands off to the header once it scrolls out of view */}
           <span
             aria-hidden={!scrolled}
             className={cn(
@@ -304,8 +281,6 @@ export function SessionComposer({
           {readyToSend && (
             <Button
               size="sm"
-              // Appears the instant the last checklist item lands, the sheet's
-              // most triumphant moment, so it arrives rather than blinking in.
               className="h-8 animate-in gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-sm text-white shadow-(--lift-accent) duration-300 fade-in zoom-in-95 inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] hover:bg-violet-500 active:scale-(--press)"
               onClick={onOpenSend}
             >
@@ -374,16 +349,11 @@ export function SessionComposer({
         </Banner>
       )}
 
-      {/* Body: one scroll container, two grid columns when the pane is wide
-          enough. */}
       <div
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         className="@container min-h-0 flex-1 overflow-y-auto @[880px]:overflow-hidden"
       >
         <div className="grid min-h-full grid-cols-1 @[880px]:h-full @[880px]:grid-cols-[minmax(0,1fr)_352px]">
-          {/* Wide: the editor column is pinned to the pane height and scrolls
-              only if its own content overflows, so no dead space opens up
-              beneath Assets. */}
           <main
             onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
             className="min-w-0 @[880px]:min-h-0 @[880px]:overflow-y-auto"
@@ -397,14 +367,11 @@ export function SessionComposer({
                   disabled={isCampaignLocked}
                   aria-label="Session title"
                   placeholder="Untitled session"
-                  // The landing pad for the row title's flight; see title-flight.ts
                   data-pane-title
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
               </Stagger>
 
-              {/* Copy leads: it is the artifact. Assets support it and sit
-                  below. */}
               <Stagger index={1} className="mb-4">
                 <Card focusable>
                   <CardHeader
@@ -426,7 +393,6 @@ export function SessionComposer({
                       </div>
                     }
                   />
-                  {/* relative: hosts the stand-in caret below */}
                   <div className="relative">
                     <textarea
                       value={copyDraft}
@@ -450,12 +416,6 @@ export function SessionComposer({
                 </Card>
               </Stagger>
 
-              {/* No "Post type" card: it is chosen at creation and fixed for
-                  the life of the post; see the note in session-canvas.tsx. */}
-
-              {/* Reshare keeps the original post's media, so there is nothing
-                  to pick, so the row says so rather than offering a dead
-                  picker. */}
               {session.postType === "Reshare" ? (
                 <Stagger index={3}>
                   <Card>
@@ -478,8 +438,6 @@ export function SessionComposer({
                     feedback={feedbackFor("Assets")}
                     onFeedback={() => onOpenFeedback("Assets")}
                     action={
-                      // a count is only information when the number can vary;
-                      // "1 attached" on a one-PDF post says nothing
                       session.visualAssetIds.length > 0 && media.max > 1 ? (
                         <span className="text-[11px] tabular-nums text-muted-foreground">
                           {session.visualAssetIds.length} attached
@@ -489,7 +447,6 @@ export function SessionComposer({
                   />
                   <div className="p-3">
                     {session.visualAssetIds.length === 0 ? (
-                      // Compact row, not a hero dropzone: assets are optional here
                       <button
                         disabled={isCampaignLocked}
                         onClick={onOpenMediaLibrary}
@@ -558,8 +515,6 @@ export function SessionComposer({
             </div>
           </main>
 
-          {/* Right rail: secondary fields + context, so the main column
-              keeps a readable measure. */}
           <aside className="min-w-0 border-(--ink)/[0.06] @[880px]:min-h-0 @[880px]:overflow-y-auto @[880px]:border-l @[880px]:bg-(--sink)/[0.14]">
             <div className="mx-auto w-full max-w-[860px] space-y-4 px-8 pb-16 pt-2 @[880px]:max-w-none @[880px]:px-5 @[880px]:pt-7">
               {!isCampaignLocked && (
@@ -574,8 +529,6 @@ export function SessionComposer({
                         </span>
                       </span>
                     </div>
-                    {/* fills left-to-right by count, not per-item, so it reads
-                        as progress */}
                     <div className="mt-2.5 flex gap-1">
                       {checklist.map((item, i) => (
                         <span
@@ -629,8 +582,6 @@ export function SessionComposer({
                     {session.tags.map((tag) => (
                       <span
                         key={tag}
-                        // Its own hue, so the same tag is the same colour here as
-                        // it is in the table row and the filter menu.
                         className={cn(
                           "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium inset-ring-1 inset-ring-(--ink)/[0.06]",
                           tagTint(tag),
@@ -694,8 +645,6 @@ export function SessionComposer({
               <Stagger index={3}>
                 <RailCard label="Details">
                   <dl className="divide-y divide-(--ink)/[0.06]">
-                    {/* "Last edited" lived here and in the toolbar byline:
-                        the same fact twice, six inches apart. */}
                     <DetailRow label="Created" value={formatDate(session.createdAt)} />
                     <DetailRow
                       label="Variations"
@@ -725,8 +674,6 @@ export function SessionComposer({
     </div>
   );
 }
-
-/* ---------- primitives ---------- */
 
 export function Stagger({
   index,
@@ -764,8 +711,6 @@ function Card({
       className={cn(
         "overflow-hidden rounded-2xl bg-(--ink)/[0.025] shadow-(--lift-md) inset-ring-1 inset-ring-(--ink)/[0.07] transition-[box-shadow] duration-200",
         fill && "flex min-h-0 flex-1 flex-col",
-        // A lit hairline is enough. The 4px violet halo this used to add read as
-        // an error state stacked on top of a focus state.
         focusable && "focus-within:inset-ring-violet-400/30",
       )}
     >
@@ -787,7 +732,6 @@ function CardHeader({
 }) {
   return (
     <div className="group/row flex min-h-11 items-center justify-between gap-3 border-b border-(--ink)/[0.06] bg-(--ink)/[0.015] px-4 py-1.5">
-      {/* Label and its feedback control travel together; see FeedbackButton */}
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="font-(family-name:--font-label) text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
@@ -827,11 +771,6 @@ export function RailCard({
   );
 }
 
-/**
- * Opens the feedback rail. The badge counts what is still open rather than the
- * total, so a post with six closed notes and nothing outstanding does not look
- * unfinished. Amber, because an open note is a request somebody is waiting on.
- */
 export function FeedbackToolbarButton({
   openCount,
   isOpen,
@@ -864,7 +803,6 @@ export function FeedbackToolbarButton({
   );
 }
 
-/** The feedback control for one section, inline after the section label. */
 export function FeedbackButton({
   items,
   onClick,
@@ -907,16 +845,8 @@ export function FeedbackButton({
   );
 }
 
-/**
- * Who touched it last, and when. Provenance rather than content, so it belongs
- * in the toolbar beside the save state rather than under the title, where it
- * competed for the eye and pushed the readiness line down.
- */
 export function Byline({ session }: { session: Session }) {
   return (
-    // mr- widens the 6px toolbar gap on the save-chip side only: the byline
-    // reports on the file and the chip reports on the save, so they should not read
-    // as one cluster.
     <span className="mr-2 hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
       <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
         <AvatarFallback className="text-[8px]">
@@ -945,9 +875,6 @@ export function GhostAction({
     <button
       type="button"
       onClick={onClick}
-      // Link blue: these two navigate away from the copy field rather than acting on
-      // it, and blue is the one colour the web already reads as "goes somewhere". It
-      // also keeps them out of the violet the app spends on state.
       className="flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-blue-400 transition-[background-color,color,scale] duration-150 hover:bg-blue-400/10 hover:text-blue-300 active:scale-(--press)"
     >
       <Icon className="size-3.5" />
@@ -986,11 +913,6 @@ export function LimitMeter({
   );
 }
 
-/**
- * Character budgets read as a traffic light rather than as brand colour: the
- * whole app is violet, so a violet meter said nothing about whether you were
- * safe.
- */
 export type LimitZone = "safe" | "near" | "over";
 
 export function limitZone(count: number, limit: number): LimitZone {
@@ -1020,7 +942,6 @@ export const LIMIT_ZONE: Record<
   },
 };
 
-/** Character budgets shown under the copy field, in reading order. */
 export const COPY_LIMITS: { label: string; limit: number }[] = [
   { label: "LinkedIn", limit: 3000 },
   { label: "X", limit: 280 },
@@ -1037,15 +958,8 @@ export function CopyLimits({ count }: { count: number }) {
   );
 }
 
-/**
- * One footer line under the copy field. The standalone "340 characters" that
- * used to sit here restated what all three meters already say.
- */
 export function CopyMeta({ words, count }: { words: number; count: number }) {
   return (
-    // @container so the meters answer the pane's width: with the discussion panel
-    // open they used to wrap onto a second line. Below 460px the bars drop and the
-    // numbers stay, which is the part that carries the meaning.
     <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 @container">
       <span className="text-[11px] tabular-nums text-muted-foreground">
         {words} {words === 1 ? "word" : "words"}
@@ -1055,10 +969,6 @@ export function CopyMeta({ words, count }: { words: number; count: number }) {
   );
 }
 
-/**
- * The app's secondary action, same as Invite in the repository toolbar: an
- * outlined pill, no gradient, no sheen, no glow.
- */
 export function AiAssistButton({ className }: { className?: string }) {
   return (
     <button title="AI Assist" className={cn(SECONDARY_ACTION_SM, className)}>
@@ -1068,10 +978,6 @@ export function AiAssistButton({ className }: { className?: string }) {
   );
 }
 
-/**
- * Suggestions, optionally revealed on demand. Always on, two of these rows sat
- * permanently in the lower third of the sheet.
- */
 export function ChipRow({
   children,
   collapsible = false,
@@ -1159,13 +1065,10 @@ export function SaveChip({
   onClick,
 }: {
   saveStatus: "idle" | "saving" | "saved";
-  /** Drafts differ from the saved session, so work is genuinely not saved yet. */
   isDirty: boolean;
   onClick: () => void;
 }) {
   const saving = saveStatus === "saving";
-  // Dirty must win over "saved": having typed since the last flush is the whole
-  // point of the indicator, and claiming "Autosaved" then would be a lie.
   const state = saving ? "saving" : isDirty ? "dirty" : "saved";
 
   return (
@@ -1179,8 +1082,6 @@ export function SaveChip({
           : "bg-(--ink)/[0.03] inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.07] hover:inset-ring-(--ink)/15",
       )}
     >
-      {/* all three icons stay mounted and cross-fade, so swaps animate in and
-          out */}
       <span className="relative flex size-3 items-center justify-center">
         <Loader2
           className={cn(
@@ -1208,8 +1109,6 @@ export function SaveChip({
         aria-live="polite"
         className={cn(state === "dirty" ? "text-amber-300" : "text-muted-foreground")}
       >
-        {/* Which mechanism saved it (blur, timer, ⌘S) is our business, not
-            the writer's. */}
         {state === "saving"
           ? "Saving…"
           : state === "dirty"

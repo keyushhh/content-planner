@@ -1,16 +1,10 @@
 import type { Feedback, FeedbackStatus } from "./types";
 
-/**
- * The status vocabulary, in workflow order, defined once. Four states rather
- * than two:
- */
 export const FEEDBACK_STATUSES: {
   id: FeedbackStatus;
   label: string;
-  /** Chip treatment. */
   chip: string;
   dot: string;
-  /** Still asking for something. */
   active: boolean;
 }[] = [
   {
@@ -47,15 +41,10 @@ export function feedbackStatusMeta(status: FeedbackStatus) {
   return FEEDBACK_STATUSES.find((s) => s.id === status) ?? FEEDBACK_STATUSES[0];
 }
 
-/** Items still asking for something, the only count worth a badge. */
 export function openFeedback(items: Feedback[]): Feedback[] {
   return items.filter((f) => feedbackStatusMeta(f.status).active);
 }
 
-/**
- * Open first, then the closed ones, each group newest first. A resolved note
- * sorted in by date buries the one thing somebody still has to do.
- */
 export function sortFeedback(items: Feedback[]): Feedback[] {
   return [...items].sort((a, b) => {
     const aActive = feedbackStatusMeta(a.status).active;

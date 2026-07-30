@@ -1,33 +1,16 @@
-/**
- * The changelog. Entries are added by scripts/changelog-scan.mjs and worded by
- * hand, because a commit subject says what the code did, not what changed for
- * the person looking at the screen. Newest first, by day and within a day.
- */
 
-/** Three kinds: a change either arrived, got better, or was broken. */
 export type ChangeKind = "new" | "improved" | "fixed";
 
 export type ChangeEntry = {
   kind: ChangeKind;
-  /** What changed, as the person who asked for it would say it. */
   title: string;
-  /** The part you'd forget in a week: why, or what it means in practice. */
   detail?: string;
-  /** Short sha, so a line can always be traced back to its diff. */
   commit: string;
-  /**
-   * Worded by the scanner from the commit subject, so the modal can say the copy
-   * is machine-written. An unpolished entry beats a missing one. A commit with a
-   * `Changelog:` trailer is never a draft, since that prose IS the copy.
-   */
   draft?: boolean;
 };
 
 export type ChangelogDay = {
-  /** ISO date. Sorts and formats without a parser. */
   date: string;
-  /** The day in one line. Optional: it is the one field no script can write, so
-      an auto-created day has none rather than a placeholder. */
   summary?: string;
   entries: ChangeEntry[];
 };
@@ -396,14 +379,8 @@ export const CHANGELOG: ChangelogDay[] = [
   },
 ];
 
-/**
- * Commits deliberately left out, and why. The scanner counts these as handled,
- * so the check can reach green, and "missed or skipped?" has an answer later.
- */
 export const CHANGELOG_OMITTED: Record<string, string> = {
   "53558f4": "chore commit, nothing visible changed.",
-  // Committed as `feat:`, so the scanner would have listed it. Use
-  // `Changelog-Skip:` for the next one.
   "e25e348": "Changelog copy only. Nothing in the product changed.",
   "58314f7": "Comment rewording only. No behaviour and nothing visible changed.",
   "dd31dfc": "README only. Its content is folded into the webpack entry.",
@@ -414,5 +391,4 @@ export const CHANGELOG_TOTAL = CHANGELOG.reduce(
   0,
 );
 
-/** The newest date in the log, which is what "unread" is measured against. */
 export const CHANGELOG_LATEST = CHANGELOG[0]?.date ?? "";

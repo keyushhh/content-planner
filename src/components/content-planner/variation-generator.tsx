@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-
 export const OPTIMIZATIONS = [
   "Engagement",
   "Reach",
@@ -77,12 +76,6 @@ const DEFAULT_SETTINGS: GeneratorSettings = {
   useEmojis: false,
 };
 
-
-/**
- * A local stand-in for the model. There is no API behind this build, so the
- * copy is composed from the post, the brief and the settings rather than
- * sampled.
- */
 function subjectOf(source: string) {
   const cleaned = source
     .replace(/@\w+/g, "")
@@ -213,9 +206,7 @@ const HOOK_EMOJI: Record<string, string> = {
 };
 
 export function generateVariations(
-  /** The post's own copy, what the alternates are alternates OF. */
   source: string,
-  /** The one-line steer, if the writer gave one. */
   brief: string,
   settings: GeneratorSettings,
 ): string[] {
@@ -244,8 +235,6 @@ export function generateVariations(
     lines.push("");
     lines.push(...bodyLines(structure, subject, detail.trim()));
 
-    // The use case reads as the reason for the post, so it sits where a writer
-    // would put the "what this is" line: near the end, before the ask.
     if (useCase) {
       lines.push("");
       lines.push(useCaseLine(useCase, subject));
@@ -263,12 +252,6 @@ export function generateVariations(
   });
 }
 
-
-/**
- * Generation, attached to the field it fills. Not a mode, tab or second
- * screen: it opens under the copy label of the alternate you are already
- * writing, and everything it produces is offered to that field.
- */
 export function GeneratePanel({
   source,
   disabled,
@@ -276,12 +259,9 @@ export function GeneratePanel({
   onAddAlternates,
   onClose,
 }: {
-  /** The post's primary copy, which the drafts are alternates of. */
   source: string;
   disabled?: boolean;
-  /** Put this draft in the field being edited. */
   onUse: (copy: string) => void;
-  /** Keep these drafts as further alternates, without touching this one. */
   onAddAlternates: (copies: string[]) => void;
   onClose: () => void;
 }) {
@@ -293,9 +273,6 @@ export function GeneratePanel({
 
   const canGenerate = !disabled && status === "idle" && source.trim().length > 0;
 
-  // Shut, the header has to say what the settings are currently doing. Names
-  // where there are one or two, counts beyond that: the point is to answer "will
-  // this generate what I asked for" without opening anything.
   const settingsSummary = useMemo(() => {
     const parts = [`${settings.count} ${settings.count === 1 ? "draft" : "drafts"}`];
     if (settings.optimization) parts.push(settings.optimization);
@@ -316,8 +293,6 @@ export function GeneratePanel({
     if (!canGenerate) return;
     setStatus("generating");
     const next = generateVariations(source, brief, settings);
-    // The beat is for the reader: results that appear on mousedown read as
-    // canned rather than made.
     window.setTimeout(() => {
       setDrafts(next);
       setStatus("idle");
@@ -348,10 +323,6 @@ export function GeneratePanel({
         className="h-9 w-full rounded-(--r-inner) bg-(--ink)/[0.03] px-3 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:bg-(--ink)/[0.05] focus:inset-ring-violet-400/45 disabled:cursor-not-allowed disabled:opacity-70"
       />
 
-      {/* Additional settings: a named group, disclosed, exactly as the live
-          product has it: six labelled controls are six decisions, and
-          stripping the labels off to save space made you learn what a chip
-          meant. */}
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between gap-3">
           <button
@@ -484,8 +455,6 @@ export function GeneratePanel({
                     {copy.length} characters
                   </span>
                 </span>
-                {/* "Use" replaces what is in the field, so it says so plainly
-                    and stays the quieter of the two, since adding is the safe one. */}
                 <span className="flex shrink-0 items-center gap-1">
                   <DraftAction
                     label="Add as alternate"
@@ -517,7 +486,6 @@ export function GeneratePanel({
   );
 }
 
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -527,7 +495,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/** 32px, not the 36px of a page form: these sit inside a panel, under a field. */
 const TRIGGER =
   "flex h-8 w-full items-center justify-between gap-2 rounded-(--r-inner) bg-(--ink)/[0.03] px-2.5 text-left text-[12.5px] inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow] duration-150 hover:bg-(--ink)/[0.055] data-[popup-open]:inset-ring-violet-400/45 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -584,13 +551,10 @@ function SelectMulti({
 }: {
   values: string[];
   options: string[];
-  /** Fills the empty label: "Choose hook(s)…". */
   noun: string;
   disabled?: boolean;
   onChange: (values: string[]) => void;
 }) {
-  // Names first, count second: with three picked, "Question, Story +1" tells you
-  // what the generator will do, where "3 selected" makes you open the menu.
   const label = values.length
     ? values.length <= 2
       ? values.join(", ")
@@ -617,7 +581,6 @@ function SelectMulti({
           <DropdownMenuCheckboxItem
             key={o}
             checked={values.includes(o)}
-            // Closing after each tick would make three constraints three trips.
             closeOnClick={false}
             onCheckedChange={(checked) =>
               onChange(checked ? [...values, o] : values.filter((v) => v !== o))
@@ -650,10 +613,6 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className="flex shrink-0 items-center gap-2 text-[11.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {/* 28×16 track, 12px knob, 2px inset on every side: the knob is placed
-          by `left`/`top` and moved by exactly the slack (28 − 12 − 2 − 2 =
-          12px), so there is no arithmetic to get wrong and nothing can ride
-          outside the pill. */}
       <span
         aria-hidden
         className={cn(

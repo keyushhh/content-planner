@@ -22,7 +22,6 @@ import { SessionCanvas } from "./session-canvas";
 export type ComposerLayout = "split" | "canvas";
 export const LAYOUT_STORAGE_KEY = "content-planner:composer-layout";
 
-/** Lazy initialiser shared with the page, which owns the pane's width. */
 export function readStoredLayout(): ComposerLayout {
   if (typeof window === "undefined") return "split";
   const stored = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
@@ -41,7 +40,6 @@ interface SessionDetailPaneProps {
   session: Session;
   mediaFolders: MediaFolder[];
   mediaAssets: MediaAsset[];
-  /** Adds files to the library and returns the ids they landed under. */
   onUploadAssets?: (files: File[], folderId: string) => string[];
   onUpdate: (patch: Partial<Session>) => void;
   onClose: () => void;
@@ -66,20 +64,13 @@ export function SessionDetailPane({
   composerLayout,
 }: SessionDetailPaneProps) {
   const [view, setView] = useState<"form" | "media-library" | "variations">("form");
-  /**
-   * Who asked for the media library, and therefore where the chosen asset
-   * goes.
-   */
   const [mediaTarget, setMediaTarget] = useState<
     { kind: "post" } | { kind: "variation"; id: string }
   >({ kind: "post" });
   const [tagDraft, setTagDraft] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
-  // The table owns this now; fall back to the stored value if the pane is ever
-  // rendered uncontrolled.
   const layout = composerLayout ?? readStoredLayout();
 
-  // Local draft states for blur & 30-second timer autosave
   const [titleDraft, setTitleDraft] = useState(session.title);
   const [copyDraft, setCopyDraft] = useState(session.copy);
   const [hashtagsDraft, setHashtagsDraft] = useState(session.hashtags);
@@ -88,7 +79,6 @@ export function SessionDetailPane({
   const [saveSource, setSaveSource] = useState<"blur" | "timer" | "instant" | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync draft states when session changes or is re-loaded
   useEffect(() => {
     setTitleDraft(session.title);
     setCopyDraft(session.copy);
@@ -97,7 +87,6 @@ export function SessionDetailPane({
     setSaveSource(null);
   }, [session.id]);
 
-  // Flush pending local draft changes to onUpdate
   const savePendingChanges = useCallback(
     (source: "blur" | "timer" | "instant" = "blur") => {
       const patch: Partial<Session> = {};
@@ -118,7 +107,6 @@ export function SessionDetailPane({
     [titleDraft, copyDraft, hashtagsDraft, session.title, session.copy, session.hashtags, onUpdate]
   );
 
-  // 30-second periodic timer autosave
   useEffect(() => {
     const interval = setInterval(() => {
       savePendingChanges("timer");
@@ -126,7 +114,6 @@ export function SessionDetailPane({
     return () => clearInterval(interval);
   }, [savePendingChanges]);
 
-  // Helper for instant actions (e.g. status, dropdowns, asset add/remove)
   const handleUpdateWithPendingSave = (patch: Partial<Session>) => {
     const draftPatch: Partial<Session> = {};
     if (titleDraft !== session.title) draftPatch.title = titleDraft;
@@ -152,7 +139,6 @@ export function SessionDetailPane({
           mediaFolders={mediaFolders}
           primaryCopy={copyDraft}
           primaryAssetIds={session.visualAssetIds}
-          // Reopens on the variation you were editing when you left for the library
           initialVariationId={
             mediaTarget.kind === "variation" ? mediaTarget.id : null
           }
@@ -182,8 +168,6 @@ export function SessionDetailPane({
               ? (session.variations.find((v) => v.id === mediaTarget.id)?.assetIds ?? [])
               : session.visualAssetIds
           }
-          // A variation carries images whatever the post type is; only the post
-          // itself is bound by the PDF-means-one-PDF rule.
           restrictType={!forVariation && session.postType === "PDF" ? "pdf" : undefined}
           restrictReason="A PDF post carries one PDF, rendered as swipeable pages"
           onUpload={onUploadAssets}
@@ -216,8 +200,6 @@ export function SessionDetailPane({
   if (!copyDraft.trim()) sendReadinessIssues.push("copy");
   const canApprove = sendReadinessIssues.length === 0;
 
-  // Drafts that have not reached onUpdate yet. The save chip must not claim
-  // "Autosaved" while these differ.
   const isDirty =
     titleDraft !== session.title ||
     copyDraft !== session.copy ||
@@ -263,19 +245,11 @@ export function SessionDetailPane({
     />
   );
 
-  // The design style is chosen at the table level now, so the pane shows no
-  // layout switcher of its own.
   const layoutToggle = null;
 
-  // Both models get a composer layout; the model decides which, because each was
-  // designed around one: Classic the split pane, Repository the canvas.
   const LayoutComponent = layout === "canvas" ? SessionCanvas : SessionComposer;
   return (
     <LayoutComponent
-      // Keyed on the session too, not just the layout: the stagger is what makes the
-      // sheet feel authored, and without a remount it only ever played on the first
-      // open, so clicking row after row swapped the text in place. Drafts live in
-      // this component, so remounting the layout costs nothing but the animation.
       key={`${layout}:${session.id}`}
       session={session}
       mediaAssets={mediaAssets}
@@ -301,8 +275,6 @@ export function SessionDetailPane({
       onOpenSend={onOpenSend}
       onOpenMediaLibrary={() => setView("media-library")}
       onOpenVariations={() => {
-        // Entering from the composer starts at the table, never inside
-        // whichever variation last borrowed the media library.
         setMediaTarget({ kind: "post" });
         setView("variations");
       }}

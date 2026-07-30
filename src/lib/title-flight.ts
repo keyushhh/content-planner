@@ -1,4 +1,3 @@
-/** Animates the row title into the detail pane's title on open. */
 
 const DURATION = 380;
 const EASE = "cubic-bezier(0.2,0,0,1)";
@@ -26,8 +25,6 @@ export function flyTitle(from: HTMLElement | null, to: HTMLElement | null) {
   ghost.setAttribute("aria-hidden", "true");
   Object.assign(ghost.style, {
     position: "fixed",
-    // Left/top of the ROW title, then transformed to the pane's. Animating
-    // transform rather than position keeps it on the compositor.
     left: `${start.left}px`,
     top: `${start.top}px`,
     margin: "0",
@@ -48,12 +45,8 @@ export function flyTitle(from: HTMLElement | null, to: HTMLElement | null) {
 
   document.body.appendChild(ghost);
 
-  // Scale carries the size change: animating font-size would relayout the text
-  // on every frame, and the whole point is that this costs nothing.
   const scale = toSize / fromSize;
   const dx = end.left - start.left;
-  // Optical, not geometric: matching the text BASELINES is what stops the words
-  // appearing to jump at the hand-off. Cap heights sit at roughly 0.72em.
   const dy = end.top - start.top + (end.height - start.height * scale) * 0.5;
 
   const animation = ghost.animate(
@@ -64,8 +57,6 @@ export function flyTitle(from: HTMLElement | null, to: HTMLElement | null) {
         opacity: 1,
         offset: 0.82,
       },
-      // Fades out at the end rather than stopping dead: the real title is
-      // already underneath by then, so the last frames are a cross-dissolve.
       { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 0 },
     ],
     { duration: DURATION, easing: EASE, fill: "forwards" },
@@ -74,19 +65,11 @@ export function flyTitle(from: HTMLElement | null, to: HTMLElement | null) {
   const cleanup = () => ghost.remove();
   animation.addEventListener("finish", cleanup);
   animation.addEventListener("cancel", cleanup);
-  // Backstop: if the tab is hidden mid-flight the events may never fire.
   setTimeout(cleanup, DURATION + 400);
 }
 
-/**
- * Waits for the pane's title to exist, then flies to it. The pane mounts a
- * frame or two after selection and its layout settles after that, so the target
- * cannot be measured synchronously. Polls a few frames and gives up quietly.
- */
 export function flyTitleWhenReady(from: HTMLElement | null, toSelector: string, tries = 8) {
   if (!from) return;
-  // The row is about to be covered by the pane, so its rect is captured NOW and
-  // the clone is built from a detached copy rather than from the live node.
   const snapshot = from.cloneNode(true) as HTMLElement;
   const rect = from.getBoundingClientRect();
   const style = getComputedStyle(from);

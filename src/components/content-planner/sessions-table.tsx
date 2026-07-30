@@ -41,8 +41,6 @@ import {
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 interface SessionsTableProps {
-  /** Custom columns are owned above the table so they outlive filtering,
-      sorting, paging and reloads. See the page component. */
   customColumns: CustomColumn[];
   customCellValues: CustomCellValues;
   onAddColumn: () => string;
@@ -50,8 +48,6 @@ interface SessionsTableProps {
   onDeleteColumn: (colId: string) => void;
   onSetCellValue: (sessionId: string, colId: string, value: string) => void;
   sessions: Session[];
-  /** Canvas only: so the Campaign column can name where a post went, rather
-   *  than reporting that it went somewhere. */
   campaigns?: Campaign[];
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
@@ -62,58 +58,30 @@ interface SessionsTableProps {
   emptyState?: {
     title: string;
     description: string;
-    /** The way out, when there is one. Filtered-to-nothing gets "Clear filters". */
     action?: { label: string; onClick: () => void };
-    /** True when the table is empty because of filters, not because there is
-     *  nothing to show, a different situation that deserves different words. */
     filtered?: boolean;
   };
-  /** Shows skeleton rows in place of the body. No data source is async yet, so
-   *  today this is driven by the dev controls. */
   loading?: boolean;
-  /** "classic" keeps the original table; "canvas" matches the Canvas pane. */
   variant?: "classic" | "canvas";
-  /** Canvas only: rows per page. */
   pageSize?: number;
-  /** Canvas only: makes the column headers clickable sort controls. */
   sortKey?: string;
   sortReversed?: boolean;
   onSort?: (key: string) => void;
-  /** Canvas only: Status header cycles the status filter. */
   statusLabel?: string;
   statusFiltered?: boolean;
   onCycleStatus?: () => void;
-  /** Canvas only. Passing both turns on the select column; the ids live above
-   *  the table so a selection survives paging, sorting and filtering. */
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
 }
 
-/** How long a deleted row takes to collapse before the data is dropped. */
 const ROW_EXIT_MS = 220;
 
-/**
- * Where "Last edited by" starts, measured from the sheet's left edge, so it
- * lands under the tag filter in the toolbar above: search (260) + gap (8) +
- * status (148) + gap (8) + sort (184) + gap (8). Keep these in step with
- * repository-shell. Campaign takes whatever Name gives up, so tuning the first
- * two columns cannot shift the three to their right.
- */
 const EDITED_LEFT = 616;
 
-/** The Name column's width. */
 const NAME_CAP = 310;
 
-/**
- * Beyond this the horizontal scroll gets long enough that the columns you added
- * are hard to find again. The widths above are budgeted for exactly this many.
- */
 export const MAX_CUSTOM_COLUMNS = 2;
 
-/**
- * The row checkbox: the same 17px square and the same violet as the one in the
- * send sheet, since ticking a row and ticking a campaign are one gesture.
- */
 function SelectBox({
   checked,
   indeterminate,
@@ -155,14 +123,8 @@ function SelectBox({
   );
 }
 
-/** Names are clipped to this many characters, then an ellipsis. */
 const CAMPAIGN_NAME_MAX = 18;
 
-/**
- * TEMPORARY, FOR LOOKING AT ONLY. Stand-in names so the Campaign column can be
- * judged with long names and several campaigns at once. Revert this commit to
- * drop it.
- */
 const DUMMY_CAMPAIGNS: string[][] = [
   [],
   ["Q3 Push"],
@@ -172,14 +134,12 @@ const DUMMY_CAMPAIGNS: string[][] = [
   ["Q3 Push", "Brand Push", "Holiday Gifting 2026"],
 ];
 
-/** Stable per row, so the names do not reshuffle when you sort or page. */
 function dummyFor(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
   return DUMMY_CAMPAIGNS[Math.abs(hash) % DUMMY_CAMPAIGNS.length];
 }
 
-/** The Campaign column: which campaigns the post lives in, and nothing else. */
 function CampaignNames({
   session,
   campaigns,
@@ -191,10 +151,8 @@ function CampaignNames({
     .map((id) => campaigns.find((c) => c.id === id)?.name)
     .filter((name): name is string => Boolean(name));
 
-  // TEMPORARY: see DUMMY_CAMPAIGNS. Real names always win.
   const names = sent.length ? sent : dummyFor(session.id);
 
-  // A dot rather than the word "None": on twelve rows that word reads as data.
   if (names.length === 0) {
     return (
       <span title="Not in a campaign" className="text-muted-foreground/40">
@@ -223,7 +181,6 @@ function CampaignNames({
   );
 }
 
-/** The Campaign cell: where the post went, and how to send it somewhere else. */
 function CampaignCell({
   session,
   campaigns,
@@ -233,7 +190,6 @@ function CampaignCell({
   session: Session;
   campaigns: Campaign[];
   onOpenSend: (id: string) => void;
-  /** Classic: one campaign, so there is nowhere else to send it. */
   singleDestination?: boolean;
 }) {
   const locked = isSessionLocked(session);
@@ -251,7 +207,6 @@ function CampaignCell({
         Send
       </button>
     ) : (
-      // plain text, not a dead button that reads as broken chrome
       <span
         title="Approve this post to send it"
         className="text-xs text-muted-foreground/70"
@@ -264,8 +219,6 @@ function CampaignCell({
   const names = session.sentToCampaignIds
     .map((id) => campaigns.find((c) => c.id === id)?.name)
     .filter((name): name is string => Boolean(name));
-  // One name plus a count, not a list: the first destination is the one people
-  // recognise the post by, and three names do not fit a 132px column anyway.
   const label = names.length
     ? names.length === 1
       ? names[0]
@@ -323,11 +276,6 @@ function CampaignCell({
   );
 }
 
-/**
- * A column title that sorts. Inactive headers stay plain text with the arrow
- * held back until hover, so the header row does not turn into a row of controls
- * before you go looking for one.
- */
 function SortableHeader({
   label,
   columnKey,
@@ -415,24 +363,15 @@ export function SessionsTable({
   const [page, setPage] = useState(1);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [bodyScrolled, setBodyScrolled] = useState(false);
-  // starts true so a short, unscrollable list never shows a fade
   const [bodyAtEnd, setBodyAtEnd] = useState(true);
-  /** Same idea sideways, for the custom columns that scroll off the right. */
   const [bodyAtRight, setBodyAtRight] = useState(true);
 
   const readScrollEdges = useCallback((el: HTMLElement) => {
     setBodyScrolled(el.scrollTop > 2);
-    // 1px of slack: fractional scroll heights mean the sum rarely lands exactly
     setBodyAtEnd(el.scrollHeight - el.scrollTop - el.clientHeight <= 1);
     setBodyAtRight(el.scrollWidth - el.scrollLeft - el.clientWidth <= 1);
   }, []);
 
-  /**
-   * A measuring ref rather than an effect. Whether the fade should show depends on
-   * whether the body actually overflows, which only the DOM knows, and it changes
-   * when the window resizes or the detail pane opens, neither of which fires a
-   * scroll event. Memoised so React does not re-observe on every render.
-   */
   const attachBody = useCallback(
     (el: HTMLDivElement | null) => {
       bodyRef.current = el;
@@ -440,8 +379,6 @@ export function SessionsTable({
       readScrollEdges(el);
       const observer = new ResizeObserver(() => readScrollEdges(el));
       observer.observe(el);
-      // The children too: adding a column widens the CONTENT, not the box, so
-      // the container alone never reports it.
       for (const child of Array.from(el.children)) observer.observe(child);
       return () => {
         observer.disconnect();
@@ -451,11 +388,9 @@ export function SessionsTable({
     [readScrollEdges],
   );
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  /** The row currently playing its exit, still in `sessions` until it finishes. */
   const [leavingId, setLeavingId] = useState<string | null>(null);
   const [confirmUnlockId, setConfirmUnlockId] = useState<string | null>(null);
 
-  // Only which cell is being typed in is local; that is transient UI, not data.
   const [editingHeaderId, setEditingHeaderId] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{
     sessionId: string;
@@ -475,25 +410,15 @@ export function SessionsTable({
   const columnPendingDelete =
     customColumns.find((c) => c.id === confirmDeleteColId) ?? null;
 
-  /** How many rows have something written in this column. */
   const filledCells = (colId: string) =>
     Object.values(customCellValues).filter((cells) => (cells?.[colId] ?? "").trim())
       .length;
 
-  /**
-   * An empty column is scaffolding, so it goes. One with data in it is work, and
-   * deleting work silently is how people stop trusting a table.
-   */
   function requestDeleteColumn(colId: string) {
     if (filledCells(colId) === 0) onDeleteColumn(colId);
     else setConfirmDeleteColId(colId);
   }
 
-  /**
-   * The row leaves before the data does. Deleting used to yank the row out on
-   * the same frame the dialog closed, so the list snapped shut and, on the
-   * last row, an empty state appeared out of nowhere.
-   */
   function confirmDelete(id: string) {
     setConfirmDeleteId(null);
     setLeavingId(id);
@@ -583,41 +508,24 @@ export function SessionsTable({
     </>
   );
 
-  /**
-   * Selection. The ids belong to the page above, so ticks survive filtering
-   * and paging.
-   */
   const selectable = Boolean(selectedIds && onSelectionChange);
   const selectedSet = new Set<string>(selectedIds ?? []);
   const lastPickedRef = useRef<number | null>(null);
 
-  /**
-   * Custom columns describe rows, so they are hidden while there are none: a
-   * heading over nothing makes an empty table look misconfigured.
-   */
   const headerColumns = sessions.length === 0 || loading ? [] : customColumns;
 
-  // Dynamic CSS grid template columns
   const gridStyle = {
     gridTemplateColumns: `minmax(200px, 1.5fr) 110px 160px 110px 130px ${headerColumns
       .map(() => "140px")
       .join(" ")} 60px 40px`,
   };
 
-  // ---- Canvas variant ----
-  // Rows live inside one elevated sheet on the washed canvas, so the table
-  // reads as the same material as the detail pane.
   const pick = selectable ? "26px " : "";
-  // px-5, then the select box and its gap, then the gap after Name.
   const campaignLeft = 20 + (selectable ? 26 + 12 : 0) + NAME_CAP + 12;
   const campaignWidth = EDITED_LEFT - 12 - campaignLeft;
   const canvasGrid = {
-    // No track for the row icons: they float over the columns instead, so the
-    // custom columns are the last thing in the grid and can scroll away.
     "--cols-sm": `${pick}minmax(0,1fr) 104px`,
     "--cols-md": `${pick}minmax(0,1fr) 152px 184px 112px`,
-    // All fixed: nothing squeezes, so every alignment holds however many custom
-    // columns exist.
     "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 184px 138px 138px ${headerColumns
       .map(() => "140px")
       .join(" ")}`,
@@ -625,13 +533,8 @@ export function SessionsTable({
 
   const canvasGridClass =
     "grid-cols-[var(--cols-sm)] @[640px]:grid-cols-[var(--cols-md)] @[900px]:grid-cols-[var(--cols-lg)]";
-  /** Columns that only earn their space at full width. */
   const wideOnly = "hidden @[900px]:block";
-  /** Campaign survives one breakpoint lower: where a post lives outranks the
-      verbs for acting on it. */
   const midOnly = "hidden @[640px]:block";
-  /** Same gate, for cells whose own layout is a flex row: `block` would win
-      over the component's `flex` and stack its children vertically instead. */
   const wideOnlyRow = "hidden @[900px]:flex";
 
   const totalPages = Math.max(1, Math.ceil(sessions.length / pageSize));
@@ -648,16 +551,11 @@ export function SessionsTable({
     onSelectionChange?.(Array.from(next));
   }
 
-  // Memoised, and reading the page out of `sessions` rather than closing over
-  // the derived `pageRows`: the keyboard handler depends on this function, and a
-  // new identity every render would rebuild the listener every render.
   const toggleRow = useCallback(
     (index: number, id: string, shiftKey: boolean) => {
       const rows = sessions.slice((safePage - 1) * pageSize, safePage * pageSize);
       const next = new Set<string>(selectedIds ?? []);
       const turningOn = !next.has(id);
-      // Shift extends from the last row you touched, inclusive, and applies THAT
-      // row's new state to the whole run, so a shift-click can clear a block too.
       if (shiftKey && lastPickedRef.current !== null) {
         const from = Math.min(lastPickedRef.current, index);
         const to = Math.max(lastPickedRef.current, index);
@@ -676,8 +574,6 @@ export function SessionsTable({
     [sessions, safePage, pageSize, selectedIds, onSelectionChange],
   );
 
-  /** The header box takes the page, not the whole repository: it can only speak
-      for the rows it is sitting above. */
   function togglePage() {
     const next = new Set<string>(selectedSet);
     for (const id of pageIds) {
@@ -688,7 +584,6 @@ export function SessionsTable({
     commitSelection(next);
   }
 
-  /** Keyboard row cursor: j/k and the arrow keys move it, Enter opens. */
   const [cursor, setCursor] = useState<number | null>(null);
   const cursorId = cursor !== null ? pageRows[cursor]?.id ?? null : null;
 
@@ -697,7 +592,6 @@ export function SessionsTable({
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      // Never while the caret is in a field: j is a letter first.
       const el = document.activeElement;
       if (
         el instanceof HTMLInputElement ||
@@ -713,8 +607,6 @@ export function SessionsTable({
       if (!down && !up && !tick && e.key !== "Enter" && e.key !== "Escape") return;
       if (pageRows.length === 0) return;
 
-      // x ticks the row the cursor is on, the way Mail and Gmail do: the point of a
-      // keyboard cursor is to act without reaching for the mouse.
       if (tick) {
         if (selectable && cursor !== null && cursorId) {
           e.preventDefault();
@@ -737,7 +629,6 @@ export function SessionsTable({
 
       e.preventDefault();
       setCursor((prev) => {
-        // First press lands on the first row rather than jumping to row 2
         if (prev === null) return down ? 0 : pageRows.length - 1;
         const next = down ? prev + 1 : prev - 1;
         return Math.max(0, Math.min(pageRows.length - 1, next));
@@ -756,7 +647,6 @@ export function SessionsTable({
     toggleRow,
   ]);
 
-  /** Keeps the cursor row on screen when it walks past the fold. */
   useEffect(() => {
     if (cursorId === null) return;
     bodyRef.current
@@ -770,16 +660,12 @@ export function SessionsTable({
     readScrollEdges(e.currentTarget);
   }
 
-  /** Changing pages while scrolled mid-list would land you in the middle of the
-      new page, so the body goes back to row 1. Instant, not smooth: the rows under
-      the cursor have already been replaced, so animating past them is a lie. */
   function goToPage(next: number) {
     setPage(next);
     const el = bodyRef.current;
     if (el) {
       el.scrollTo({ top: 0 });
       setBodyScrolled(false);
-      // the next page can be shorter than this one, so re-test the bottom edge
       requestAnimationFrame(() => {
         if (bodyRef.current) readScrollEdges(bodyRef.current);
       });
@@ -789,9 +675,6 @@ export function SessionsTable({
   if (variant === "canvas") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* The header is sticky INSIDE the scroll region, not a sibling above
-            it: as a sibling it kept the scrollbar's width, so every column
-            title sat a scrollbar to the right of its own cells. */}
         <div className="relative flex min-h-0 flex-col overflow-clip rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) [.wozku.wozku-light_&]:shadow-none inset-ring-1 inset-ring-(--ink)/[0.08] @container">
             <div
               aria-hidden
@@ -801,15 +684,11 @@ export function SessionsTable({
             <div
               ref={attachBody}
               onScroll={handleBodyScroll}
-              // pb keeps the final row off the sheet's bottom edge, so the end of
-              // the list reads as an end rather than as a crop
               className="min-h-0 flex-1 overflow-auto overscroll-contain pb-2"
             >
             <div
               className={cn(
                 "sticky top-0 z-10 grid min-w-max border-b bg-(--surface-panel) text-[11px] font-medium text-muted-foreground transition-[border-color,box-shadow] duration-200",
-                // the header acknowledges scroll with the same lift the detail
-                // pane's toolbar uses, so the two read as one system
                 bodyScrolled
                   ? "border-(--ink)/[0.10] shadow-(--lift-md)"
                   : "border-(--ink)/[0.06]",
@@ -853,9 +732,6 @@ export function SessionsTable({
                 onSort={onSort}
                 className="hidden min-w-0 @[640px]:block"
               />
-              {/* Status filters rather than sorts: ordering by bucket answers
-                  a question nobody asks, where "show me only the approved
-                  ones" is the whole reason to touch this column. */}
               <div className="min-w-0">
                 {onCycleStatus ? (
                   <button
@@ -899,8 +775,6 @@ export function SessionsTable({
 
             </div>
 
-              {/* Pinned the same way the row icons are, so it stays reachable
-                  however far the columns scroll. */}
               <div
                 className={cn(
                   "sticky right-0 z-20 col-start-1 row-start-1 items-center justify-self-end bg-gradient-to-l from-(--surface-panel) from-65% to-transparent pl-12 pr-5",
@@ -931,8 +805,6 @@ export function SessionsTable({
               pageRows.map((session, rowIndex) => {
                 const isSelected = session.id === selectedSessionId;
                 const picked = selectedSet.has(session.id);
-                // Only the lock is needed out here now; the Campaign cell works
-                // out its own state from the session.
                 const locked = isSessionLocked(session);
 
                 return (
@@ -941,58 +813,34 @@ export function SessionsTable({
                     data-row-id={session.id}
                     onClick={() => onSelectSession(session.id)}
                     style={{
-                      // Capped at 8 so a full page still lands in under 200ms.
                       animation: `post-type-in 260ms cubic-bezier(0.2,0,0,1) ${
                         Math.min(rowIndex, 7) * 22
                       }ms backwards`,
                     }}
                     className={cn(
-                      // One cell holding the columns and the floating actions on
-                      // top of one another. The actions need a containing block as
-                      // wide as the whole row, or they cannot stick to its edge:
-                      // a sticky grid item is trapped inside its own column.
                       "group relative grid min-w-max cursor-pointer border-b border-(--ink)/[0.05] last:border-b-0",
                       "transition-[height,opacity,translate,background-color,box-shadow] duration-220",
-                      // Collapses and slips left on its way out, so the rows
-                      // below close the gap instead of jumping into it.
                       session.id === leavingId &&
                         "pointer-events-none !h-0 -translate-x-2 overflow-hidden !border-b-0 opacity-0",
-                      // Selection is a lift: a ring plus a shadow, the row
-                      // coming forward off the sheet.
                       isSelected
                         ? "z-10 bg-violet-500/[0.09] shadow-(--lift-md) inset-ring-1 inset-ring-violet-400/35"
-                        // Ticked is a wash, not a lift: a row you have marked for a
-                        // later action is not a row you are reading, so it must not
-                        // compete with the one that is open.
                         : picked
                           ? "bg-violet-500/[0.05] hover:bg-violet-500/[0.075]"
                           : "hover:bg-(--ink)/[0.035]",
-                      // The keyboard cursor: lighter than selection, because it is
-                      // a place you are pointing at rather than a thing you have
-                      // opened.
                       !isSelected &&
                         session.id === cursorId &&
                         "bg-(--ink)/[0.05] inset-ring-1 inset-ring-(--ink)/[0.14]",
                     )}
                   >
-                    {/* Status, as a hairline down the leading edge. Fifteen
-                        of these read as a column of state before you have
-                        read a single word, which is the job the badge cannot
-                        do, because you have to look at it to use it. */}
                     <span
                       aria-hidden
                       className={cn(
                         "absolute inset-y-0 left-0 w-[2px] transition-opacity duration-150",
                         STATUS_TONE[session.status].bar,
-                        // Held back a little at rest so a full table does not
-                        // read as a barcode; full strength on the row you are on.
                         isSelected ? "opacity-100" : "opacity-70 group-hover:opacity-100",
                       )}
                     />
 
-                    {/* The columns. A fixed height is what makes 15 rows read as
-                        a rhythm: with padding alone, a row with tags stood 14px
-                        taller than one without and the whole list stuttered. */}
                     <div
                       style={canvasGrid}
                       className={cn(
@@ -1028,13 +876,8 @@ export function SessionsTable({
                           {session.title}
                         </div>
                       </div>
-                      {/* Tags as quiet text, not pills. Filled chips here put
-                          a second chip treatment on screen competing with the
-                          filter bar, and they out-weighted the title itself. */}
                       {session.tags.length > 0 && (
                         <div className="mt-0.5 flex items-center gap-2 truncate text-[11px] text-muted-foreground/70">
-                          {/* The glyph says what the dots ARE. Unlabelled, a
-                              row of coloured dots is a legend with no key. */}
                           <Tag
                             aria-hidden
                             className="size-2.5 shrink-0 text-muted-foreground/45"
@@ -1060,8 +903,6 @@ export function SessionsTable({
                       )}
                     </div>
 
-                    {/* Names only, and no stopPropagation: nothing here is
-                        clickable, so the row click should pass through. */}
                     <div className={cn("min-w-0 text-[12.5px]", midOnly)}>
                       <CampaignNames session={session} campaigns={campaigns} />
                     </div>
@@ -1124,16 +965,10 @@ export function SessionsTable({
 
                     </div>
 
-                    {/* Floats OVER the columns rather than taking one of its own,
-                        pinned to the right edge as they scroll past underneath.
-                        The gradient is what makes a column read as passing behind
-                        it rather than being cut off by it. */}
                     <div
                       onClick={(e) => e.stopPropagation()}
                       className="pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end bg-gradient-to-l from-(--surface-raised) from-65% to-transparent pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
                     >
-                      {/* Unlocking is about EDITING, so it lives with the
-                          row's other verbs. */}
                       {locked && (
                         <button
                           onClick={() => setConfirmUnlockId(session.id)}
@@ -1141,8 +976,6 @@ export function SessionsTable({
                           title="Live on Wozku and locked from editing. Unlock to edit."
                           className="group/lock relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
                         >
-                          {/* Shut at rest, because the row IS locked. It opens
-                              under the cursor to say what pressing it does. */}
                           <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0" />
                           <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100" />
                         </button>
@@ -1172,9 +1005,6 @@ export function SessionsTable({
             )}
             </div>
 
-            {/* Scroll-edge fade: only while rows continue below. It says
-                "there is more" without a scrollbar having to, and it means
-                the row at the boundary dissolves instead of looking sliced. */}
             <div
               aria-hidden
               className={cn(
@@ -1183,8 +1013,6 @@ export function SessionsTable({
               )}
             />
 
-            {/* The same edge, sideways: it only appears once a custom column is
-                actually cut off, so a table with none keeps a hard right edge. */}
             <div
               aria-hidden
               className={cn(
@@ -1194,14 +1022,8 @@ export function SessionsTable({
             />
           </div>
 
-        {/* The row is always present once there are rows at all: a footer
-            that appears only past 15 items makes the whole table shift on
-            filter. */}
         {sessions.length > 0 && (
           <div className="mt-4 flex min-h-9 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
-            {/* Range first: the count is what people actually read; "page N
-                of M" is redundant with the highlighted number in the control
-                itself. */}
             <p className="text-[12px] text-muted-foreground">
               <span className="font-medium tabular-nums text-foreground/90">
                 {rangeStart}&ndash;{rangeEnd}
@@ -1209,8 +1031,6 @@ export function SessionsTable({
               of <span className="tabular-nums">{sessions.length}</span>
             </p>
 
-            {/* One cohesive control, same segmented-pill idiom as the design
-                toggle. */}
             {totalPages > 1 && (
             <nav
               aria-label="Pagination"
@@ -1242,7 +1062,6 @@ export function SessionsTable({
                     aria-label={`Page ${item}`}
                     aria-current={item === safePage ? "page" : undefined}
                     className={cn(
-                      // pseudo-element extends the tap target past the 32px pill
                       "relative flex h-8 min-w-8 items-center justify-center rounded-(--r-pill) px-2.5 text-[12px] font-medium tabular-nums transition-[background-color,color,box-shadow,scale] duration-150 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] active:scale-(--press)",
                       item === safePage
                         ? "bg-violet-500/[0.17] text-violet-100 shadow-(--lift-sm) inset-ring-1 inset-ring-violet-400/40"
@@ -1286,7 +1105,6 @@ export function SessionsTable({
           <span>Status</span>
           <span>Actions</span>
 
-          {/* Custom Column Headers */}
           {headerColumns.map((col) => (
             <CustomColumnHeader
               key={col.id}
@@ -1302,7 +1120,6 @@ export function SessionsTable({
 
           <span />
 
-          {/* Add Column Button (+ icon at the extreme right) */}
           <div className="flex items-center justify-center">
             <button
               onClick={handleAddColumn}
@@ -1315,7 +1132,6 @@ export function SessionsTable({
         </div>
       </div>
 
-      {/* relative: anchors the scroll-edge fade below */}
       <div className="relative min-h-0 flex-1">
       <div
         ref={attachBody}
@@ -1344,12 +1160,10 @@ export function SessionsTable({
                   isSelected
                     ? "z-10 bg-primary/[0.06] shadow-(--lift-md) inset-ring-1 inset-ring-violet-400/30"
                     : "hover:bg-accent/30",
-                  // Same exit as the canvas rows; see confirmDelete
                   session.id === leavingId &&
                     "pointer-events-none !h-0 -translate-x-2 overflow-hidden !border-b-0 !py-0 opacity-0",
                 )}
               >
-                {/* Status hairline, same as the canvas table */}
                 <span
                   aria-hidden
                   className={cn(
@@ -1396,14 +1210,10 @@ export function SessionsTable({
                     session={session}
                     campaigns={campaigns}
                     onOpenSend={onOpenSend}
-                    // Classic has exactly one destination, the campaign in the
-                    // sidebar, so "send it to another" is an offer it cannot keep.
-                    // A sent, untouched post there is simply up to date.
                     singleDestination
                   />
                 </div>
 
-                {/* Custom Column Cell Values */}
                 {customColumns.map((col) => (
                   <CustomCell
                     key={col.id}
@@ -1422,7 +1232,6 @@ export function SessionsTable({
                   />
                 ))}
 
-                {/* Actions column */}
                 <div
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center justify-end gap-1"
@@ -1434,8 +1243,6 @@ export function SessionsTable({
                       title="Live on Wozku and locked from editing. Unlock to edit."
                       className="group/lock relative flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
                     >
-                      {/* Shut at rest, because the row IS locked. It opens
-                          under the cursor to say what pressing it does. */}
                       <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0 group-focus-visible/lock:scale-90 group-focus-visible/lock:opacity-0" />
                       <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100 group-focus-visible/lock:scale-100 group-focus-visible/lock:opacity-100" />
                     </button>
@@ -1460,7 +1267,6 @@ export function SessionsTable({
                   </button>
                 </div>
 
-                {/* Empty column placeholder matching header + button */}
                 <div />
               </div>
             );
@@ -1468,8 +1274,6 @@ export function SessionsTable({
         )}
       </div>
 
-        {/* Same scroll-edge fade as Canvas, in this table's own surface
-            colour, so the boundary row dissolves instead of looking sliced. */}
         <div
           aria-hidden
           className={cn(
@@ -1479,8 +1283,6 @@ export function SessionsTable({
         />
       </div>
 
-      {/* Classic pagination: bordered footer bar, square controls, no violet
-          since it belongs to this table's language, not the Canvas one. */}
       {sessions.length > 0 && (
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border px-4 py-2.5">
           <span className="text-xs text-muted-foreground">
@@ -1545,15 +1347,6 @@ export function SessionsTable({
   );
 }
 
-/**
- * A one-line field that exists only while it is being edited. The draft is
- * local, so an emptied field is not instantly refilled with its fallback and a
- * name can be cleared and retyped. Enter and blur commit, Escape abandons.
- */
-/**
- * Loading rows, built to the real row's 58px pitch so the table does not jump
- * when data lands. One sheen sweeps the block rather than each bar pulsing.
- */
 function SkeletonRows({ rows = 8 }: { rows?: number }) {
   return (
     <div aria-hidden className="relative overflow-hidden">
@@ -1564,8 +1357,6 @@ function SkeletonRows({ rows = 8 }: { rows?: number }) {
         >
           <div
             className="h-2.5 rounded-(--r-pill) bg-(--ink)/[0.055]"
-            // Varied widths: equal bars read as a grid of placeholders, uneven
-            // ones read as titles of different lengths.
             style={{ width: `${28 + ((i * 37) % 22)}%` }}
           />
           <div className="h-2.5 w-14 rounded-(--r-pill) bg-(--ink)/[0.04]" />
@@ -1588,10 +1379,6 @@ function SkeletonRows({ rows = 8 }: { rows?: number }) {
   );
 }
 
-/**
- * The empty table. No ghost rows: dim bars at row pitch are the vocabulary of
- * loading, and an empty table is a finished state.
- */
 function EmptyRows({
   emptyState,
 }: {
@@ -1605,11 +1392,7 @@ function EmptyRows({
   const Glyph = emptyState.filtered ? SearchX : Inbox;
 
   return (
-    // Fades in, because it usually arrives right after the last row left: two
-    // hard cuts in a row is what made deleting feel like the table broke.
     <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden duration-300 animate-in fade-in">
-      {/* One soft violet lift under the composition: the app's own signal
-          that a surface is a place where something begins. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 [background-image:var(--wash-center)]"
@@ -1631,8 +1414,6 @@ function EmptyRows({
             onClick={emptyState.action.onClick}
             className={cn(
               "mt-3.5 flex h-9 items-center gap-1.5 rounded-(--r-pill) px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
-              // Creating content is the primary act; clearing a filter is a way
-              // back. Only one of the two earns the violet.
               emptyState.filtered
                 ? "bg-(--ink)/[0.04] inset-ring-1 inset-ring-(--ink)/[0.09] hover:bg-(--ink)/[0.08] hover:inset-ring-(--ink)/20"
                 : "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500",
@@ -1679,7 +1460,6 @@ function InlineEdit({
       onKeyDown={(e) => {
         if (e.key === "Enter") commit();
         else if (e.key === "Escape") {
-          // must not reach the page handler, which closes the whole view
           e.stopPropagation();
           onDone();
         }
@@ -1690,11 +1470,6 @@ function InlineEdit({
   );
 }
 
-/**
- * A custom column's title. Renaming keeps a local draft: writing every
- * keystroke straight to the column meant an emptied field instantly refilled
- * itself with "Column", so the name could never be cleared and retyped.
- */
 function CustomColumnHeader({
   column,
   variant,
@@ -1719,8 +1494,6 @@ function CustomColumnHeader({
   if (editing) {
     return (
       <div className={cn("min-w-0", className)}>
-        {/* Mounted only while renaming, so its draft starts from the current
-            name by construction, with no effect re-seeding it after the fact. */}
         <InlineEdit
           initial={column.name}
           selectOnFocus
@@ -1765,9 +1538,6 @@ function CustomColumnHeader({
         >
           <MoreHorizontal className="size-3.5" />
         </DropdownMenuTrigger>
-        {/* Sized to its items, not to the 20px trigger it is anchored to:
-            inheriting the anchor width wrapped "Delete column" onto two
-            lines. */}
         <DropdownMenuContent align="end" className="w-auto min-w-[172px]">
           <DropdownMenuItem onClick={onStartRename} className="whitespace-nowrap">
             <Pencil className="size-3.5 text-muted-foreground" />
@@ -1783,11 +1553,6 @@ function CustomColumnHeader({
   );
 }
 
-/**
- * One custom-column cell. Editable at any point in the row's life, not only at
- * the moment the column is born: click or Enter opens it, blur or Enter
- * commits, Escape reverts to what was there.
- */
 function CustomCell({
   variant,
   className,
@@ -1833,9 +1598,7 @@ function CustomCell({
             isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/60",
             value
               ? "font-medium"
-              : // Nothing written yet: stay out of the way until the row is
-                // hovered, then offer. A column of italic "Empty" repeated 15
-                // times is noise pretending to be data.
+              :
                 "text-muted-foreground/60 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
           )}
         >
@@ -1846,10 +1609,6 @@ function CustomCell({
   );
 }
 
-/**
- * Deleting a piece of content, stated as the thing itself rather than as a
- * generic alarm.
- */
 function DeleteContentDialog({
   session,
   onOpenChange,
@@ -1941,10 +1700,6 @@ function ClassicPagerButton({
   );
 }
 
-/**
- * A sliding window of `size` consecutive pages, plus the first and last pinned
- * with gaps.
- */
 function buildPageItems(
   current: number,
   total: number,

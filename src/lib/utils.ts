@@ -6,8 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// A session is "locked" (read-only, live on the campaign) only while it is
-// still approved and has not been edited since the last successful send.
 export function isSessionLocked(session: Session) {
   return (
     isSessionSent(session) &&
@@ -17,7 +15,6 @@ export function isSessionLocked(session: Session) {
   )
 }
 
-/** Sent to at least one campaign. */
 export function isSessionSent(session: Session) {
   return session.sentToCampaignIds.length > 0
 }
@@ -26,11 +23,6 @@ export function sessionNeedsResend(session: Session) {
   return isSessionSent(session) && !isSessionLocked(session)
 }
 
-/**
- * Stable per-person avatar tint. Colour is the fastest same-person signal
- * there is and it costs no space, which is the difference between scanning 450
- * rows and reading them.
- */
 const AVATAR_TINTS = [
   "bg-violet-500/[0.18] text-violet-200",
   "bg-sky-500/[0.18] text-sky-200",
@@ -42,7 +34,6 @@ const AVATAR_TINTS = [
   "bg-indigo-500/[0.18] text-indigo-200",
 ] as const;
 
-/** Same string, same colour, forever, and never a colour picked at random. */
 function hashOf(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) | 0;
@@ -54,10 +45,6 @@ export function avatarTint(name: string | undefined | null): string {
   return AVATAR_TINTS[hashOf(name) % AVATAR_TINTS.length];
 }
 
-/**
- * Stable per-tag tint, the avatar idea applied to topics, but much quieter:
- * tags sit several to a row, and at avatar strength the row turns to confetti.
- */
 const TAG_TINTS = [
   { idle: "bg-violet-400/[0.10] text-violet-200/85", on: "bg-violet-400/25 text-violet-100 inset-ring-violet-300/40" },
   { idle: "bg-sky-400/[0.10] text-sky-200/85", on: "bg-sky-400/25 text-sky-100 inset-ring-sky-300/40" },
@@ -74,7 +61,6 @@ export function tagTint(tag: string, active = false): string {
   return active ? tint.on : tint.idle;
 }
 
-/** The tag's hue alone, for a dot or a rule rather than a filled chip. */
 export function tagDot(tag: string): string {
   return TAG_DOTS[hashOf(tag.toLowerCase()) % TAG_DOTS.length];
 }
@@ -90,7 +76,6 @@ const TAG_DOTS = [
   "bg-indigo-400",
 ] as const;
 
-/** Compact relative time: "just now", "2h ago", "3d ago", then a date. */
 export function relativeTime(iso: string, now: number = Date.now()): string {
   const diff = now - new Date(iso).getTime();
   const min = Math.round(diff / 60000);
@@ -104,10 +89,6 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/**
- * Coarse time bucket used for the table's group separators: temporal
- * orientation across a long list without decorating every row.
- */
 export function timeBucket(iso: string, now: number = Date.now()): string {
   const then = new Date(iso);
   const startOfToday = new Date(now);

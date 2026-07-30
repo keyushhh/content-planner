@@ -18,20 +18,15 @@ import { STATUS_TONE } from "./status-badge";
 import type { Campaign, Session } from "@/lib/types";
 
 const EASE = "cubic-bezier(0.2,0,0,1)";
-/** Enough to fill the panel; past this you should be typing, not scrolling. */
 const MAX_PER_GROUP = 6;
 
 type Item = {
   id: string;
-  /** What the row says. */
   label: string;
-  /** Second line, when the label alone is ambiguous. */
   hint?: string;
   group: string;
   icon: React.ComponentType<{ className?: string }>;
-  /** Everything the query is matched against, lowercased. */
   haystack: string;
-  /** A status hairline or tag hue, for rows that carry one. */
   accent?: string;
   run: () => void;
 };
@@ -42,16 +37,10 @@ export interface CommandPaletteActions {
   onOpenCampaign?: (id: string) => void;
   onInvite?: () => void;
   onFilterTag?: (tag: string) => void;
-  /** The changelog's only entry point. */
   onOpenChangelog?: () => void;
-  /** Something in the log postdates the last time it was opened. */
   changelogUnread?: boolean;
 }
 
-/**
- * The command palette. Deliberately not a fuzzy matcher: subsequence matching
- * ("ncnt" for "New content") also matches everything else.
- */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -69,7 +58,6 @@ export function CommandPalette({
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Rewound on open during render, so the panel never flashes the last search.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -111,9 +99,7 @@ export function CommandPalette({
           : "Every change, by the day it shipped",
         group: "Actions",
         icon: ScrollText,
-        // The accent dot means there is something unread in the log.
         accent: actions.changelogUnread ? "bg-violet-400" : undefined,
-        // Neither "changelog" nor "release notes" is in the label.
         haystack: "what's new whats new changelog updates release notes history changes",
         run: actions.onOpenChangelog,
       });
@@ -127,8 +113,6 @@ export function CommandPalette({
         group: "Content",
         icon: FileText,
         accent: STATUS_TONE[session.status].bar,
-        // Tags in the haystack but not the label: searching "launch" should find
-        // the posts tagged launch without the row shouting the tag back at you.
         haystack: `${session.title} ${session.postType} ${session.status} ${session.tags.join(" ")}`.toLowerCase(),
         run: () => actions.onOpenSession(session.id),
       });
@@ -171,8 +155,6 @@ export function CommandPalette({
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
-      // No query: offer the actions and the most recent content rather than an
-      // arbitrary alphabetical slice. An empty palette should still be useful.
       return [
         ...items.filter((i) => i.group === "Actions"),
         ...items.filter((i) => i.group === "Content").slice(0, MAX_PER_GROUP),
@@ -183,14 +165,12 @@ export function CommandPalette({
       .map((item) => {
         const at = item.haystack.indexOf(q);
         if (at === -1) return null;
-        // Prefix beats word-start beats anywhere, so the obvious answer is first.
         const isWordStart = at === 0 || /\s/.test(item.haystack[at - 1]);
         return { item, rank: at === 0 ? 0 : isWordStart ? 1 : 2, at };
       })
       .filter((x): x is { item: Item; rank: number; at: number } => x !== null)
       .sort((a, b) => a.rank - b.rank || a.at - b.at);
 
-    // Capped per group so one big group cannot bury the others.
     const perGroup = new Map<string, number>();
     const out: Item[] = [];
     for (const { item } of scored) {
@@ -202,8 +182,6 @@ export function CommandPalette({
     return out;
   }, [items, query]);
 
-  // Clamped rather than reset: retyping should not throw you back to the top of
-  // a list you were already walking.
   const activeIndex = Math.min(active, Math.max(0, results.length - 1));
 
   useEffect(() => {
@@ -238,7 +216,6 @@ export function CommandPalette({
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [open, results, activeIndex, onOpenChange]);
 
-  /** Keeps the highlighted row in view as it walks off the bottom. */
   useEffect(() => {
     listRef.current
       ?.querySelector('[data-active="true"]')
@@ -254,8 +231,6 @@ export function CommandPalette({
       <button
         aria-label="Close command palette"
         onClick={() => onOpenChange(false)}
-        // Scrim, not a wall of black: the app stays legible behind it, which is
-        // what keeps the palette feeling like a layer rather than another page.
         className="absolute inset-0 cursor-default bg-black/45 backdrop-blur-[2px] duration-200 animate-in fade-in"
       />
 
@@ -312,8 +287,6 @@ export function CommandPalette({
                   )}
                   <button
                     data-active={isActive}
-                    // Pointer moves the selection rather than fighting it, so the
-                    // mouse and the keyboard drive the same single highlight.
                     onPointerMove={() => setActive(i)}
                     onClick={() => {
                       onOpenChange(false);
@@ -326,7 +299,6 @@ export function CommandPalette({
                   >
                     <span className="relative flex size-7 shrink-0 items-center justify-center rounded-(--r-inner) bg-(--ink)/[0.05] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.07]">
                       <item.icon className="size-3.5" />
-                      {/* status / tag hue, as a dot on the glyph tile */}
                       {item.accent && (
                         <span
                           aria-hidden
@@ -349,7 +321,6 @@ export function CommandPalette({
                       )}
                     </span>
 
-                    {/* The affordance appears on the row you are about to run */}
                     <ArrowRight
                       className={cn(
                         "size-3.5 shrink-0 transition-[opacity,translate] duration-150",
@@ -390,7 +361,6 @@ export function CommandPalette({
   );
 }
 
-/** Registers ⌘K / Ctrl-K globally. Kept next to the palette so the two cannot drift. */
 export function useCommandPalette() {
   const [open, setOpen] = useState(false);
 

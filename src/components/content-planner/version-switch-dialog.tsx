@@ -11,10 +11,6 @@ import {
 import { versionMeta, type AppVersion } from "./version-chooser-modal";
 import { VersionPreview } from "./version-preview";
 
-/**
- * A three-lobe gradient mesh per version: offset radials at different sizes
- * and opacities, which read as one soft field rather than three circles.
- */
 const MESH: Record<AppVersion, string> = {
   repository: [
     "radial-gradient(58% 68% at 18% 12%, rgba(167,139,250,0.16), transparent 62%)",
@@ -28,24 +24,15 @@ const MESH: Record<AppVersion, string> = {
   ].join(", "),
 };
 
-/**
- * Switching version is confirmed rather than instant: the two models show the
- * same content so differently that arriving unannounced reads as a bug.
- */
 export function VersionSwitchDialog({
   target,
   onOpenChange,
   onConfirm,
 }: {
-  /** The version being switched TO, or null when nothing is pending. */
   target: AppVersion | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
-  /**
-   * The last version asked about, kept after `target` clears so the dialog can
-   * animate out with its content intact.
-   */
   const [shown, setShown] = useState(target);
   if (target && target !== shown) setShown(target);
   const meta = shown ? versionMeta(shown) : null;
@@ -63,14 +50,10 @@ export function VersionSwitchDialog({
 
         {shown && meta && (
           <div className="flex">
-            {/* The destination, shown. Its own hue washes the panel so the
-                miniature sits in the colour it is about. */}
             <div
               className="relative flex w-[54%] shrink-0 items-center border-r border-(--ink)/[0.06] px-6 py-8"
               style={{ backgroundImage: MESH[shown] }}
             >
-              {/* The miniature is lifted off the mesh rather than pasted on
-                  it: a cast shadow is what tells you the field is behind it. */}
               <VersionPreview
                 version={shown}
                 className="shadow-[0_2px_6px_rgba(0,0,0,0.35),0_18px_44px_-20px_rgba(0,0,0,0.9)]"

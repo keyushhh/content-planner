@@ -77,7 +77,6 @@ import { feedbackStatusMeta } from "@/lib/feedback";
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
 
-/** Dev-only table state overrides, for demoing states real data will not show. */
 type DemoState = "live" | "empty" | "loading";
 const DEMO_STATES: { id: DemoState; label: string }[] = [
   { id: "live", label: "Live" },
@@ -85,7 +84,6 @@ const DEMO_STATES: { id: DemoState; label: string }[] = [
   { id: "loading", label: "Loading" },
 ];
 
-/** Sessions saved by earlier builds carry a single `sentToCampaignId`. */
 type LegacyComment = {
   id: string;
   author: Session["lastEditedBy"];
@@ -105,9 +103,6 @@ function migrateSession(
     next.sentToCampaignIds = legacy ? [legacy] : [];
   }
 
-  // Comments became feedback, and threads went away with them: a reply carries
-  // the same weight as the note it answered, so it is flattened into its own item
-  // rather than silently dropped.
   if (!Array.isArray(next.feedback)) {
     const flat: Feedback[] = [];
     const visit = (c: LegacyComment, section?: string) => {
@@ -125,7 +120,6 @@ function migrateSession(
     next.feedback = flat;
   }
 
-  // "Won't do" is called Discard now, so saved notes still carry the old id.
   next.feedback = next.feedback.map((f) =>
     (f.status as string) === "wont_do" ? { ...f, status: "discarded" as const } : f,
   );
@@ -159,12 +153,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
-  /**
-   * `null` is a real state, not a missing value: nobody has chosen a version
-   * yet, and it is what opens the chooser.
-   */
   const [mode, setMode] = useState<AppVersion | null>(null);
-  /** A pending switch, held until it is confirmed. */
   const [pendingVersion, setPendingVersion] = useState<AppVersion | null>(null);
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
@@ -177,45 +166,29 @@ export default function Home() {
   const [showPostType, setShowPostType] = useState(false);
   const [feedbackSection, setFeedbackSection] = useState<string | undefined>(undefined);
   const [sendSheetSessionId, setSendSheetSessionId] = useState<string | null>(null);
-  /** What the last send actually did, for the confirmation that follows it. */
-  /** Repository only: the ticked rows, and the batch send they feed. */
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkSendIds, setBulkSendIds] = useState<string[] | null>(null);
   const [sendResult, setSendResult] = useState<
     { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
-  // Assets have to be state, not the imported constant: an upload that cannot
-  // add to the library is not an upload, and the old file input threw the file
-  // away and closed the dialog.
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(initialMediaAssets);
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
-  /** The filter lives here, not in the modal, so reopening keeps the kind you
-      were reading. */
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelogFilter, setChangelogFilter] = useState<"all" | ChangeKind>("all");
   const { unread: changelogUnread, markSeen: markChangelogSeen } = useChangelogUnread();
-  /**
-   * Each model owns one layout. The repository model was designed around Canvas
-   * and the classic model around Classic (internally "split"), so deriving it
-   * from `mode` makes the unsupported pairings unreachable.
-   */
   const composerLayout: ComposerLayout = mode === "repository" ? "canvas" : "split";
 
-  /** The Wozku brand layer, live only while the Repository model is on screen. */
   const { mode: brandMode, setMode: setBrandMode } = useBrandLayer(
     mode === "repository",
   );
 
-  // Custom table columns live here, above the table, so adding a column, naming
-  // it and filling cells all survive filtering, sorting, paging and reloads.
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
   const [customCellValues, setCustomCellValues] = useState<CustomCellValues>({});
 
   function addColumn() {
     const id = `col-${Date.now()}`;
     setCustomColumns((prev) =>
-      // Two is the ceiling the table's column widths are budgeted for.
       prev.length >= MAX_CUSTOM_COLUMNS
         ? prev
         : [...prev, { id, name: `Column ${prev.length + 1}` }],
@@ -229,8 +202,6 @@ export default function Home() {
     );
   }
 
-  /** Deleting a column takes its cell values with it. Leaving them behind
-      would silently resurrect old text under a new column of the same id. */
   function deleteColumn(colId: string) {
     setCustomColumns((prev) => prev.filter((c) => c.id !== colId));
     setCustomCellValues((prev) =>
@@ -261,22 +232,14 @@ export default function Home() {
 
   const nextId = useRef(1000);
 
-  /**
-   * This build is usually open alongside the two standalone ones, so the tab says
-   * which version is on screen rather than just which app it is.
-   */
   useEffect(() => {
     document.title = mode
       ? `${mode === "repository" ? "Repository" : "Classic"} · Content Planner (Demo)`
       : "Choose a version · Content Planner (Demo)";
   }, [mode]);
 
-  // Load persisted state safely after initial client mount to prevent SSR hydration mismatch
   useEffect(() => {
     setMounted(true);
-    // The version is deliberately NOT restored. This build exists to show both
-    // models, so every load starts at the question. Remembering it would also hide
-    // the chooser, which is the thing being demonstrated.
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -286,9 +249,6 @@ export default function Home() {
     const savedSessions = localStorage.getItem("cp_sessions");
     if (savedSessions) {
       try {
-        // Dedupe on the way in: earlier builds restarted the id counter at 1000 on
-        // every reload, so saved state can already hold two `session-1000` entries. The
-        // generator no longer creates them, but it cannot undo the ones already saved.
         const parsed: Session[] = JSON.parse(savedSessions);
         const seen = new Set<string>();
         setSessions(
@@ -349,7 +309,6 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedSessionId]);
 
-  /** The ticked posts the batch send is actually going to act on. */
   const bulkBatch =
     bulkSendIds && bulkSendIds.length > 0
       ? sessions.filter((s) => bulkSendIds.includes(s.id))
@@ -368,7 +327,6 @@ export default function Home() {
       prev.map((s) => {
         if (s.id !== id) return s;
 
-        // Build history entries, coalescing recent edits to the same field (within 10s)
         const updatedHistory = [...s.history];
         const now = new Date();
 
@@ -418,7 +376,6 @@ export default function Home() {
           );
         }
 
-        // Any edit while Draft or Approved automatically sets/reverts status to WIP
         let nextStatus = patch.status;
         if (nextStatus === undefined) {
           if (s.status === "draft" || s.status === "approved") {
@@ -454,8 +411,6 @@ export default function Home() {
       id: `fb-${Date.now()}`,
       author: currentUser,
       text,
-      // Which section the affordance was clicked on, so it lands attached
-      // instead of floating against the whole post.
       ...(sectionLabel ? { sectionLabel } : {}),
       createdAt: new Date().toISOString(),
       status: "open",
@@ -465,11 +420,6 @@ export default function Home() {
     );
   }
 
-  /**
-   * Moving a piece of feedback is a real event in the life of the post, so it is
-   * logged; otherwise "who closed this, and when" is unanswerable, which is
-   * exactly the question a status invites.
-   */
   function setFeedbackStatus(
     sessionId: string,
     feedbackId: string,
@@ -510,10 +460,6 @@ export default function Home() {
     );
   }
 
-  /**
-   * Sending is additive: a post already live in one campaign stays there when it
-   * is also sent to another, so the ids are merged rather than replaced.
-   */
   function shareSessionToCampaigns(sessionId: string, campaignIds: string[]) {
     if (campaignIds.length === 0) return;
     const session = sessions.find((s) => s.id === sessionId);
@@ -527,10 +473,6 @@ export default function Home() {
     });
   }
 
-  /**
-   * Send means different things in the two models, so it forks here rather
-   * than inside the sheet.
-   */
   function requestSend(sessionId: string) {
     if (mode === "repository") {
       setSendSheetSessionId(sessionId);
@@ -542,10 +484,6 @@ export default function Home() {
     setSendResult({ title: session.title, campaignIds: [selectedCampaignId] });
   }
 
-  /**
-   * Sending a batch is N single sends, not a new kind of write: same merge,
-   * same additive rule, same history entries.
-   */
   function shareManyToCampaigns(sessionIds: string[], campaignIds: string[]) {
     if (campaignIds.length === 0 || sessionIds.length === 0) return;
     const now = new Date().toISOString();
@@ -560,7 +498,6 @@ export default function Home() {
     );
   }
 
-  /** Changing version, which is the only way to leave the repository table. */
   function changeVersion(next: AppVersion) {
     setMode(next);
     setSelectedIds([]);
@@ -570,7 +507,6 @@ export default function Home() {
     updateSession(id, { status: "wip" });
   }
 
-  // Repository model only: create a campaign inline, without leaving the send flow.
   function createCampaign(name: string): string {
     const id = `camp-${Date.now()}`;
     setCampaigns((prev) => [
@@ -580,10 +516,6 @@ export default function Home() {
     return id;
   }
 
-  /**
-   * Takes files off a file input into the library and returns the new ids, so
-   * the picker can attach them straight to whatever asked.
-   */
   function uploadAssets(files: File[], folderId: string): string[] {
     const created: MediaAsset[] = files.map((file, i) => ({
       id: `asset-${Date.now()}-${i}`,
@@ -602,10 +534,6 @@ export default function Home() {
     return created.map((a) => a.id);
   }
 
-  /**
-   * Opens a post in the detail pane and hands its title across, so the pane
-   * reads as that row opening rather than a second screen sliding over it.
-   */
   function openSession(id: string) {
     const rowTitle = document.querySelector<HTMLElement>(
       `[data-row-id="${id}"] [data-row-title]`,
@@ -619,8 +547,6 @@ export default function Home() {
     if (!removed) return;
 
     setSessions((prev) => prev.filter((s) => s.id !== id));
-    // A deleted post cannot stay in the batch, or the count would report a row
-    // that is no longer on screen.
     setSelectedIds((prev) => prev.filter((sid) => sid !== id));
     setCustomCellValues((prev) => {
       const { [id]: _removed, ...rest } = prev;
@@ -634,8 +560,6 @@ export default function Home() {
     );
     if (selectedSessionId === id) setSelectedSessionId(null);
 
-    // No undo offered: the confirm dialog promises the deletion is permanent,
-    // and a toast that then hands back an Undo makes one of the two a lie.
     toast({
       title: "Content deleted",
       description: removed.title
@@ -645,11 +569,6 @@ export default function Home() {
     });
   }
 
-  /**
-   * Sessions persist to localStorage but this counter does not, so after a reload
-   * it restarted at 1000 while `session-1000` was still in the saved list, giving
-   * two children the same key. Skipping taken ids makes it safe either way.
-   */
   function makeSessionId() {
     const taken = new Set(sessions.map((s) => s.id));
     let n = nextId.current;
@@ -677,8 +596,6 @@ export default function Home() {
     setSelectedSessionId(newId);
   }
 
-  // Repository model: content is created standalone and belongs to no campaign
-  // until it is sent to one.
   function handleNewContent() {
     setShowPostType(true);
   }
@@ -686,8 +603,6 @@ export default function Home() {
   function createContent(postType: PostType) {
     const id = makeSessionId();
     setSessions((prev) => [...prev, createBlankSession(id, postType)]);
-    // Classic shows one campaign at a time, so a post belonging to none would be
-    // created and then invisible. The repository is campaign-agnostic by design.
     if (mode === "classic") {
       setCampaigns((prev) =>
         prev.map((c) =>
@@ -701,8 +616,6 @@ export default function Home() {
     setShowPostType(false);
   }
 
-  // Dev helper: generate a realistically sized repository so the table can be
-  // demoed at scale (sticky header, windowing, search, sort).
   function seedDemoContent() {
     const TOPICS = [
       "Product launch", "Feature spotlight", "Customer story", "Behind the scenes",
@@ -718,7 +631,6 @@ export default function Home() {
     const seeded: Session[] = Array.from({ length: 450 }, (_, i) => {
       const topic = TOPICS[i % TOPICS.length];
       const status = STATUSES[i % STATUSES.length];
-      // spread edits across ~90 days so "recently edited" sorting is meaningful
       const editedAt = new Date(now - i * 4.8 * 3600 * 1000).toISOString();
       const createdAt = new Date(now - (i + 30) * 6.2 * 3600 * 1000).toISOString();
       const author = AUTHORS[i % AUTHORS.length];
@@ -750,13 +662,9 @@ export default function Home() {
 
     setSessions((prev) => {
       const withoutSeeds = prev.filter((s) => !s.id.startsWith("seed-"));
-      // second click clears instead of stacking another 450
       return seeding ? [...withoutSeeds, ...seeded] : withoutSeeds;
     });
 
-    // Classic reads one campaign at a time, so sessions that belong to no campaign
-    // are invisible there and the seed appeared to do nothing. Join them to the
-    // campaign that is open, which is the one the demo is looking at.
     setCampaigns((prev) =>
       prev.map((c) => {
         const withoutSeeds = c.sessionIds.filter((id) => !id.startsWith("seed-"));
@@ -772,15 +680,12 @@ export default function Home() {
     <div
       className={cn(
         "flex h-screen w-full flex-col overflow-hidden bg-background text-foreground",
-        // the whole page picks up the canvas wash, not just the table
         isCanvas &&
           "[background-image:var(--wash-page)]",
       )}
     >
       <div
         className={cn(
-          // Full-bleed background and hairline; the CONTENTS are constrained
-          // below so the breadcrumb lands on the table's left edge.
           "flex h-10 shrink-0 items-center",
           isCanvas
             ? "border-b border-(--ink)/[0.06] bg-(--sink)/[0.14]"
@@ -789,8 +694,6 @@ export default function Home() {
       >
         <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          {/* The title says which of the two products you are in, because
-              that is the single most important fact about this screen. */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -817,9 +720,6 @@ export default function Home() {
                 <DropdownMenuItem
                   key={id}
                   onClick={() => {
-                    // Switching is a confirmed act: the two versions read the
-                    // same content but present it so differently that landing in
-                    // the other one unannounced feels like a bug.
                     if (id !== mode) setPendingVersion(id);
                   }}
                   className="gap-2"
@@ -835,14 +735,10 @@ export default function Home() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* The palette needs a door. A shortcut nobody can see is a
-              shortcut only the person who built it uses. */}
           <button
             onClick={() => setPaletteOpen(true)}
             title="Search everything (⌘K)"
             className={cn(
-              // Given a real width rather than sized to its label: at content
-              // width it read as a small button that happened to say "Search".
               "group relative flex h-7 w-[240px] items-center gap-2 rounded-(--r-pill) pl-2 pr-1.5 text-[11px] font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
               isCanvas
                 ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08] hover:bg-(--ink)/[0.06]"
@@ -857,12 +753,8 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center gap-1.5">
-        {/* The dev controls act on a table that is not on screen until a
-            version is picked, so they wait for the choice too. */}
         {mode !== null && (
           <>
-        {/* Dev only: stress the table so the demo shows a realistic
-            repository */}
         <button
           onClick={seedDemoContent}
           title="Dev: add 450 sample items"
@@ -877,9 +769,6 @@ export default function Home() {
           Seed 450
         </button>
 
-        {/* Dev only: force the table's empty and loading states, so a demo
-            can show them without deleting anyone's content or faking a slow
-            network. */}
         <div
           title="Dev: preview the table's empty and loading states"
           className={cn(
@@ -907,9 +796,6 @@ export default function Home() {
           </>
         )}
 
-        {/* Repository only. The brand system is being evaluated for that
-            model, and Classic exists to mirror what is live in Wozku today, so
-            restyling it would defeat the only reason it is a separate build. */}
         {mode === "repository" && (
           <BrandToggle mode={brandMode} onChange={setBrandMode} />
         )}
@@ -919,8 +805,6 @@ export default function Home() {
 
       <div className="flex min-h-0 flex-1">
         {mode === null ? (
-          // Before a choice there is no product to show. An empty frame beats
-          // guessing, and it keeps the chooser the only thing to attend to.
           <div className="flex-1" />
         ) : mode === "classic" ? (
           <>
@@ -1045,8 +929,6 @@ export default function Home() {
           </>
         ) : (
           <RepositoryShell
-            // Dev states win over the real data, so the demo can show an empty
-            // repository without anyone having to delete their content first.
             sessions={demoState === "empty" ? [] : sessions}
             campaigns={campaigns}
             tableLoading={demoState === "loading"}
@@ -1080,11 +962,7 @@ export default function Home() {
             }
             overlayClassName="z-40 bg-black/40 backdrop-blur-[2px]"
             className={cn(
-              // Travel is the spring's job, so no transition or starting/ending
-              // style here. Width still transitions, since that is not a gesture.
               "session-pane-surface fixed inset-y-0 right-0 left-auto z-50 flex h-full !max-w-none min-w-[720px] rounded-none border-l border-border bg-background p-0 text-foreground shadow-2xl ring-1 ring-black/10 transition-[width] duration-250 ease-out",
-              // Canvas is a document rather than a dashboard: a narrower pane keeps the
-              // sessions table visible behind it and suits the reading measure.
               mode === "repository" && composerLayout === "canvas" ? "!w-[62%]" : "!w-[70%]",
             )}
           >
@@ -1133,8 +1011,6 @@ export default function Home() {
           </SheetContent>
       </Sheet>
 
-      {/* The destination picker belongs to the repository model alone: only
-          `requestSend` opens it, and only in that mode. */}
       <SendToCampaignSheet
         open={sendSheetSessionId !== null || bulkBatch !== null}
         onOpenChange={(open) => {
@@ -1145,9 +1021,6 @@ export default function Home() {
         campaigns={campaigns}
         session={sessions.find((s) => s.id === sendSheetSessionId) ?? null}
         sessions={bulkBatch ?? undefined}
-        // Which campaigns it is already in, so the sheet can mark them as sent rather
-        // than offering them again as a fresh destination. For a batch that is the
-        // intersection: a campaign only counts if every post in it is already there.
         alreadySentTo={
           bulkBatch
             ? campaigns
@@ -1168,8 +1041,6 @@ export default function Home() {
               plural: true,
               campaignIds,
             });
-            // The batch is spent: leaving the rows ticked invites a second send
-            // of the same posts to the same places.
             setSelectedIds([]);
             setBulkSendIds(null);
             return;
@@ -1177,9 +1048,6 @@ export default function Home() {
           if (!sendSheetSessionId) return;
           const shared = sessions.find((s) => s.id === sendSheetSessionId);
           shareSessionToCampaigns(sendSheetSessionId, campaignIds);
-          // Held in local state rather than read back off the session:
-          // the summary must describe this send, not everywhere the post
-          // has ever been sent.
           setSendResult({
             title: shared?.title ?? "",
             campaignIds,
@@ -1189,8 +1057,6 @@ export default function Home() {
         onCreateCampaign={createCampaign}
       />
 
-      {/* ⌘K. Lives at the page, because it needs everything the page owns:
-          the sessions, the campaigns, and the actions that open them. */}
       <CommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
@@ -1200,14 +1066,11 @@ export default function Home() {
           onOpenSession: openSession,
           onNewContent: handleNewContent,
           onInvite: () => setShowInviteModal(true),
-          // Opening it IS reading it.
           onOpenChangelog: () => {
             setShowChangelog(true);
             markChangelogSeen();
           },
           changelogUnread,
-          // Jumping to a campaign closes whatever post was open, or you land on
-          // a campaign with last campaign's post still covering it.
           onOpenCampaign: (id) => {
             setSelectedSessionId(null);
             setSelectedCampaignId(id);
@@ -1235,7 +1098,6 @@ export default function Home() {
         contextName={selectedCampaign.name}
       />
 
-      {/* No trigger in the chrome: ⌘K is the door. */}
       <ChangelogModal
         open={showChangelog}
         onOpenChange={setShowChangelog}
@@ -1243,8 +1105,6 @@ export default function Home() {
         onFilterChange={setChangelogFilter}
       />
 
-      {/* One question, two dialects: the repository's floating canvas sheet,
-          or Classic's bordered card. */}
       {mode === "classic" ? (
         <ClassicPostTypeModal
           open={showPostType}
@@ -1259,8 +1119,6 @@ export default function Home() {
         />
       )}
 
-      {/* Asked once, on first load. `mounted` gates it so the dialog cannot
-          flash before the saved choice has been read back off localStorage. */}
       <VersionChooserModal
         open={mounted && mode === null}
         onChoose={(v) => changeVersion(v)}
@@ -1272,8 +1130,6 @@ export default function Home() {
           if (!next) setPendingVersion(null);
         }}
         onConfirm={() => {
-          // Any post open in the old version would be sitting in the other
-          // version's pane a frame later, so it closes with the switch.
           setSelectedSessionId(null);
           if (pendingVersion) changeVersion(pendingVersion);
           setPendingVersion(null);

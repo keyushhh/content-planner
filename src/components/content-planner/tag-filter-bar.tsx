@@ -10,15 +10,8 @@ export interface TagCount {
   count: number;
 }
 
-/** Roughly the width the trigger can spend on names before it starts pushing
- *  the controls beside it around. Past it, we fall back to a count. */
 const LABEL_BUDGET = 22;
 
-/**
- * Tags as one dropdown rather than a row of chips. The chip row was a third
- * interaction model beside Status and Sort, and it changed width as tags came
- * and went, shifting the table under it.
- */
 export function TagFilterBar({
   tags,
   active,
@@ -35,17 +28,12 @@ export function TagFilterBar({
 
   if (tags.length === 0) return null;
 
-  // Alphabetical, and alphabetical always: ordering by selection would make
-  // rows jump out from under the cursor mid-multi-select.
   const panelTags = [...tags].sort((a, b) => a.name.localeCompare(b.name));
   const searchable = panelTags.length > 12;
   const listed = query
     ? panelTags.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
     : panelTags;
 
-  // Names while they fit, a count when they do not. One name is always worth
-  // showing: "Design" and "1 tag" cost the same room and one of them answers the
-  // question.
   const joined = active.join(", ");
   const label =
     active.length === 0
@@ -75,8 +63,6 @@ export function TagFilterBar({
                 ? `Filter by tag, ${active.length} selected: ${joined}`
                 : "Filter by tag"
             }
-            // Same shape and the same violet "a filter is on" signal as Status,
-            // because it is the same kind of control.
             className={cn(
               "flex h-8 max-w-[240px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
               active.length > 0
@@ -93,7 +79,6 @@ export function TagFilterBar({
         <ChevronDown className="size-3.5 shrink-0 opacity-60" />
       </PopoverTrigger>
 
-      {/* Canvas idiom: specular top edge, hairline-divided sections */}
       <PopoverContent
         align="start"
         sideOffset={8}
@@ -134,8 +119,6 @@ export function TagFilterBar({
           </div>
         )}
 
-        {/* Rows, not a chip cloud: you arrive here looking for a word you
-            already have in mind, and a vertical list is what you can scan. */}
         <div className="max-h-[288px] overflow-y-auto border-t border-(--ink)/[0.06] p-1.5">
           {listed.length === 0 ? (
             <p className="py-6 text-center text-[13px] text-muted-foreground">
@@ -158,7 +141,6 @@ export function TagFilterBar({
   );
 }
 
-/** One tag in the panel. Stays open on click, since picking tags is plural. */
 function TagOption({
   label,
   count,
@@ -194,8 +176,6 @@ function TagOption({
           style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
         />
       </span>
-      {/* The tag's own hue, so the colour you tick here is the colour you
-          then scan for in the table. */}
       <span
         aria-hidden
         className={cn("size-1.5 shrink-0 rounded-(--r-round)", tagDot(label), !active && "opacity-70")}

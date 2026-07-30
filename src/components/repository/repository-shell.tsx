@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
-/** Custom-column state is owned by the page, so it travels as one bundle. */
 export interface CustomColumnProps {
   customColumns: CustomColumn[];
   customCellValues: CustomCellValues;
@@ -41,7 +40,6 @@ export interface CustomColumnProps {
 
 interface RepositoryShellProps extends CustomColumnProps {
   sessions: Session[];
-  /** So the table can name the campaigns a post has been sent to. */
   campaigns?: Campaign[];
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
@@ -50,12 +48,9 @@ interface RepositoryShellProps extends CustomColumnProps {
   onUnlockSession: (id: string) => void;
   onDuplicateSession: (id: string) => void;
   onNewContent: () => void;
-  /** Repository only: multi-select in the table, and what to do with a batch. */
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
-  /** Called with the posts in the batch that are actually sendable. */
   onBulkSend?: (ids: string[]) => void;
-  /** Dev-controls override: show the table's skeleton instead of its rows. */
   tableLoading?: boolean;
   tableStyle: ComposerLayout;
 }
@@ -64,23 +59,14 @@ type SortKey = "edited" | "created" | "name";
 
 const SORT_MENU: SortKey[] = ["edited", "created", "name"];
 
-/**
- * Cycle order for clicking the Status column header: off, then each status in
- * workflow order.
- */
 const STATUS_CYCLE: (Session["status"] | null)[] = [null, "approved", "wip", "draft"];
 
-/** Filterable statuses, in workflow order. */
 const STATUSES: { id: Session["status"]; label: string }[] = [
   { id: "approved", label: "Approved" },
   { id: "wip", label: "WIP" },
   { id: "draft", label: "Draft" },
 ];
 
-/**
- * Status is a filter, not a sort. "Sort by status" only answers which bucket
- * is on top, where what people want is the approved ones and nothing else.
- */
 const SORTS: Record<SortKey, { label: string; compare: (a: Session, b: Session) => number }> = {
   edited: {
     label: "Recently edited",
@@ -117,12 +103,9 @@ export function RepositoryShell({
   const [showInvite, setShowInvite] = useState(false);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("edited");
-  // Each SORTS compare defines its own natural order; `reversed` flips it, which
-  // is what a second click on an already-active column header means.
   const [reversed, setReversed] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Session["status"][]>([]);
 
-  /** What the Status control currently reads as. */
   const statusLabel =
     statusFilter.length === 0
       ? "Status"
@@ -130,7 +113,6 @@ export function RepositoryShell({
       ? STATUSES.find((s) => s.id === statusFilter[0])!.label
       : `${statusFilter.length} statuses`;
 
-  /** Clicking the Status column header steps through the cycle above. */
   function cycleStatus() {
     const current = statusFilter.length === 1 ? statusFilter[0] : null;
     const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
@@ -153,9 +135,6 @@ export function RepositoryShell({
 
   const allTags = Array.from(new Set(sessions.flatMap((s) => s.tags))).sort();
 
-  // Canvas shows only the first few tags inline, so which few matters: rank by
-  // how much content carries the tag, and break ties alphabetically so the row
-  // does not reshuffle as content is edited.
   const rankedTags = allTags
     .map((name) => ({
       name,
@@ -186,10 +165,6 @@ export function RepositoryShell({
   const sorted = [...searched].sort(
     reversed ? (a, b) => SORTS[sort].compare(b, a) : SORTS[sort].compare,
   );
-  /**
-   * A batch is only as sendable as its members: approved, and not already sent
-   * and untouched since.
-   */
   const picked = (selectedIds ?? []).length;
   const sendable = useMemo(
     () =>
@@ -204,7 +179,6 @@ export function RepositoryShell({
 
   const isFiltered = q.length > 0 || activeTags.length > 0 || statusFilter.length > 0;
 
-  /** One way out of every filter at once, from the line that reports them. */
   function clearFilters() {
     setSearch("");
     setActiveTags([]);
@@ -224,9 +198,6 @@ export function RepositoryShell({
     />
   );
 
-  // ---- Canvas layout ----
-  // One quiet toolbar; the large title, filters and table all share the
-  // content column's left edge.
   if (isCanvas) {
     return (
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -236,8 +207,6 @@ export function RepositoryShell({
               <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                 {title}
               </h1>
-              {/* The sync signal used to sit under the table, where the pager
-                  now reports the counts. */}
               <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
                 {subtitle}
                 <span className="text-muted-foreground/30">&middot;</span>
@@ -248,13 +217,8 @@ export function RepositoryShell({
               </p>
             </div>
 
-            {/* Two halves, not one run: everything that NARROWS the table on
-                the left, everything that ACTS on the right. */}
             <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2.5">
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2.5">
-                {/* Grows into whatever the filters leave, between a floor
-                    that still fits a phrase and a ceiling past which a search
-                    field stops looking like one. */}
                 <div className="relative min-w-[240px] max-w-[260px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -262,10 +226,6 @@ export function RepositoryShell({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search content…"
                     aria-label="Search content"
-                    // A shade lighter at rest than the control pills beside it.
-                    // It is the one thing in this row you type into, and a field
-                    // should look like a recess you can put something in rather
-                    // than another button.
                     className="h-8 w-full rounded-(--r-pill) bg-(--ink)/[0.06] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.10] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.085] focus:inset-ring-violet-400/50"
                   />
                   {search && (
@@ -279,17 +239,11 @@ export function RepositoryShell({
                   )}
                 </div>
 
-                {/* Status filter: multi-select, so "Approved + WIP" is one
-                    step. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
                       <button
                         title="Filter by status"
-                        // Fixed width, sized to "2 statuses": the trigger must not
-                        // resize as you pick, and the menu is anchored to its width,
-                        // so a narrow trigger and a wider menu are one bug seen from
-                        // two ends.
                         className={cn(
                           "flex h-8 w-[148px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
                           statusFilter.length > 0
@@ -303,14 +257,7 @@ export function RepositoryShell({
                     <span className="flex-1 truncate text-left">{statusLabel}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuTrigger>
-                  {/* These triggers now sit at the left of the row, so the
-                      menu drops from their left edge rather than reaching
-                      back. */}
                   <DropdownMenuContent align="start" className="min-w-[148px]">
-                    {/* "All" is the no-filter state stated out loud. Without
-                        it the only way back was unticking whatever you had
-                        ticked, which is not something you should have to
-                        reason about. */}
                     <DropdownMenuItem onClick={() => setStatusFilter([])}>
                       <span className="flex-1 whitespace-nowrap">All</span>
                       {statusFilter.length === 0 && (
@@ -320,7 +267,6 @@ export function RepositoryShell({
                     {STATUSES.map(({ id, label }) => (
                       <DropdownMenuItem
                         key={id}
-                        // keep the menu open: picking statuses is usually plural
                         closeOnClick={false}
                         onClick={() => toggleStatus(id)}
                       >
@@ -338,10 +284,6 @@ export function RepositoryShell({
                     render={
                       <button
                         title="Sort content"
-                        // Fixed width, sized to the longest option. The control must
-                        // not resize as you pick, since it would shove the tag filter
-                        // sideways, and the menu inherits the trigger's width, so a
-                        // shrunken trigger wraps its own options.
                         className="flex h-8 w-[184px] items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-(--press)"
                       />
                     }
@@ -350,11 +292,6 @@ export function RepositoryShell({
                     <span className="flex-1 truncate text-left">{SORTS[sort].label}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuTrigger>
-                  {/* These triggers now sit at the left of the row, so the
-                      menu drops from their left edge rather than reaching
-                      back. */}
-                  {/* Belt and braces: the trigger is already wide enough, but
-                      a sort option is a fixed phrase and must never wrap. */}
                   <DropdownMenuContent align="start" className="min-w-[184px]">
                     {SORT_MENU.map((key) => (
                       <DropdownMenuItem key={key} onClick={() => requestSort(key)}>
@@ -365,9 +302,6 @@ export function RepositoryShell({
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Tags last, so the three controls read left to right in the
-                    order you reach for them: what state, what order, what
-                    topic. */}
                 <TagFilterBar
                   tags={rankedTags}
                   active={activeTags}
@@ -380,9 +314,6 @@ export function RepositoryShell({
                 />
               </div>
 
-              {/* Actions: outlined rather than filled. A white fill here
-                  would carry more luminance weight than the violet primary
-                  and the row would have two CTAs fighting. */}
               <div className="flex shrink-0 items-center gap-1.5">
                 <button onClick={() => setShowInvite(true)} className={SECONDARY_ACTION}>
                   <UserPlus className="size-4" />
@@ -398,13 +329,6 @@ export function RepositoryShell({
               </div>
             </div>
 
-            {/* Says out loud that you are looking at a subset. The controls
-                each know their own state, but nothing told you the TABLE was
-                short because of them, which is the moment people start
-                doubting the data rather than checking the filters. */}
-            {/* One strip, two jobs, never both at once: while rows are ticked
-                it reports the batch, because "3 of 450 items, filtered" is
-                not what you are thinking about with three rows ticked. */}
             {picked > 0 ? (
               <div className="mb-2.5 flex min-h-8 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pl-0.5">
                 <span className="text-[12px] text-foreground/85">
@@ -459,7 +383,6 @@ export function RepositoryShell({
             ) : null}
 
             <SessionsTable
-              // remount on filter change so the row window restarts at page 1
               key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}|${sort}|${reversed}`}
               variant="canvas"
               pageSize={15}
@@ -580,7 +503,6 @@ export function RepositoryShell({
 
         <div className="min-h-0 flex-1">
           <SessionsTable
-            // remount on filter change so the row window restarts at page 1
             key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}`}
             sessions={sorted}
             campaigns={campaigns}

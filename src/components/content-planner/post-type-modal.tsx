@@ -21,18 +21,11 @@ import type { PostType } from "@/lib/types";
 
 const EASE = "cubic-bezier(0.2,0,0,1)";
 
-/**
- * Each type states what it needs from you, not what it is. "Image" says
- * nothing; "one image" says what the next screen will ask for, which is the
- * actual decision being made here.
- */
 const TYPES: {
   id: PostType;
   label: string;
   hint: string;
   icon: LucideIcon;
-  /** Each type owns a hue, so the three read as distinct kinds of thing rather
-      than three identical grey circles. */
   well: string;
   glow: string;
 }[] = [
@@ -70,10 +63,6 @@ const TYPES: {
   },
 ];
 
-/**
- * Asked once, before the composer opens: the type decides which fields the
- * composer shows, so it cannot be a field inside it.
- */
 export function PostTypeModal({
   open,
   onOpenChange,
@@ -84,7 +73,6 @@ export function PostTypeModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (type: PostType) => void;
-  /** "change" is the same decision revisited from inside the composer. */
   mode?: "create" | "change";
   current?: PostType;
 }) {
@@ -113,15 +101,12 @@ export function PostTypeModal({
           </div>
         </DialogHeader>
 
-        {/* Rows, not a grid of tiles: the hints are the point, and they need
-            the width to be read. */}
         <div className="flex flex-col gap-1.5 border-t border-(--ink)/[0.06] p-3">
           {TYPES.map(({ id, label, hint, icon: Icon, well, glow }, i) => {
             const isCurrent = isChange && current === id;
             return (
             <button
               key={id}
-              // picking what you already have is a no-op, so it just closes
               onClick={() => (isCurrent ? onOpenChange(false) : onSelect(id))}
               aria-current={isCurrent ? "true" : undefined}
               style={{ animation: `post-type-in 400ms ${EASE} ${i * 55}ms both` }}
@@ -152,8 +137,6 @@ export function PostTypeModal({
                 </span>
               </span>
 
-              {/* the current type is marked, so you can see what you are
-                  changing FROM; everything else offers a way forward */}
               {isCurrent ? (
                 <Check className="size-4 shrink-0 text-violet-300" />
               ) : (
@@ -167,8 +150,6 @@ export function PostTypeModal({
           })}
         </div>
 
-        {/* Hairline only, no filled band: Cancel is the least important thing
-            here and a black slab gave it the visual weight of a decision. */}
         <div className="flex items-center justify-between gap-3 border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
             {isChange ? "Your copy is never touched" : "Set once, at the start"}

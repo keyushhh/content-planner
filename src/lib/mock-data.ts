@@ -19,11 +19,6 @@ export const users: User[] = [
   { id: "u-john", name: "John M." },
 ];
 
-/**
- * Seats that already exist under the admin's Wozku account. Inviting somebody
- * is picking one of these rather than typing an address: the account decides
- * who exists, so an email field could only be a way to get it wrong.
- */
 export const subAccounts: SubAccount[] = [
   {
     id: "sa-sarah",
@@ -111,8 +106,6 @@ export const mediaAssets: MediaAsset[] = [
     url: "",
     type: "pdf",
   },
-  // A PDF post type filters the library to PDFs only, so there needs to be more
-  // than one of them for the picker to look like a library rather than an error.
   {
     id: "asset-post-pdf-2",
     folderId: "folder-post",
