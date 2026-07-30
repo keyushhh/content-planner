@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Loader2, Plus, Settings2, Sparkles, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Loader2,
+  Minus,
+  Pencil,
+  Plus,
+  Settings2,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -11,6 +21,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MentionPopover, useMentionTarget } from "./mention-list";
 
 export const OPTIMIZATIONS = [
   "Engagement",
@@ -270,8 +281,11 @@ export function GeneratePanel({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "generating">("idle");
   const [drafts, setDrafts] = useState<string[] | null>(null);
+  const [picked, setPicked] = useState<number[]>([]);
+  const [editing, setEditing] = useState<number | null>(null);
 
   const canGenerate = !disabled && status === "idle" && source.trim().length > 0;
+  const allPicked = Boolean(drafts) && picked.length === drafts?.length;
 
   const settingsSummary = useMemo(() => {
     const parts = [`${settings.count} ${settings.count === 1 ? "draft" : "drafts"}`];
@@ -295,8 +309,39 @@ export function GeneratePanel({
     const next = generateVariations(source, brief, settings);
     window.setTimeout(() => {
       setDrafts(next);
+      setPicked([]);
+      setEditing(null);
       setStatus("idle");
     }, 800);
+  }
+
+  function discard() {
+    setDrafts(null);
+    setPicked([]);
+    setEditing(null);
+  }
+
+  function togglePick(index: number) {
+    setPicked((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+    );
+  }
+
+  function toggleAll() {
+    setPicked(allPicked || !drafts ? [] : drafts.map((_, i) => i));
+  }
+
+  function saveEdit(index: number, copy: string) {
+    setDrafts((prev) => prev?.map((d, i) => (i === index ? copy : d)) ?? prev);
+    setEditing(null);
+  }
+
+  function addPicked() {
+    if (!drafts) return;
+    const copies = picked.length
+      ? [...picked].sort((a, b) => a - b).map((i) => drafts[i])
+      : drafts;
+    onAddAlternates(copies);
   }
 
   return (
@@ -443,45 +488,189 @@ export function GeneratePanel({
 
       {drafts && (
         <div className="flex flex-col gap-1.5">
+          {drafts.length > 1 && (
+            <div className="flex items-center justify-between gap-3 pl-0.5">
+              <button
+                role="checkbox"
+                aria-checked={allPicked ? true : picked.length ? "mixed" : false}
+                onClick={toggleAll}
+                className="group/box flex items-center gap-2 text-[11.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
+              >
+                <CheckBox
+                  checked={allPicked}
+                  indeterminate={!allPicked && picked.length > 0}
+                />
+                Select all drafts
+              </button>
+              <span className="text-[11px] tabular-nums text-muted-foreground/70">
+                {picked.length
+                  ? `${picked.length} of ${drafts.length} selected`
+                  : `${drafts.length} drafts`}
+              </span>
+            </div>
+          )}
+
           {drafts.map((copy, i) => (
             <div
-              key={`${i}-${copy.length}`}
-              className="group rounded-(--r-inner) bg-(--ink)/[0.022] p-3 inset-ring-1 inset-ring-(--ink)/[0.07] transition-[background-color,box-shadow] duration-150 hover:inset-ring-violet-400/30"
+              key={i}
+              className={cn(
+                "group rounded-(--r-inner) bg-(--ink)/[0.022] p-3 inset-ring-1 transition-[background-color,box-shadow] duration-150",
+                picked.includes(i)
+                  ? "bg-violet-500/[0.05] inset-ring-violet-400/35"
+                  : "inset-ring-(--ink)/[0.07] hover:inset-ring-violet-400/30",
+              )}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] font-medium">
-                  Draft <span className="tabular-nums">{i + 1}</span>
-                  <span className="ml-1.5 font-normal tabular-nums text-muted-foreground/70">
-                    {copy.length} characters
+                <span className="flex min-w-0 items-center gap-2">
+                  <button
+                    role="checkbox"
+                    aria-checked={picked.includes(i)}
+                    aria-label={`Select draft ${i + 1}`}
+                    onClick={() => togglePick(i)}
+                    className="group/box -m-1 flex shrink-0 items-center p-1"
+                  >
+                    <CheckBox checked={picked.includes(i)} />
+                  </button>
+                  <span className="truncate text-[11px] font-medium">
+                    Draft <span className="tabular-nums">{i + 1}</span>
+                    <span className="ml-1.5 font-normal tabular-nums text-muted-foreground/70">
+                      {copy.length} characters
+                    </span>
                   </span>
                 </span>
-                <span className="flex shrink-0 items-center gap-1">
-                  <DraftAction
-                    label="Add as alternate"
-                    icon={Plus}
-                    onClick={() => onAddAlternates([copy])}
-                  />
-                  <DraftAction label="Use" onClick={() => onUse(copy)} accent />
-                </span>
+                {editing !== i && (
+                  <span className="flex shrink-0 items-center gap-1">
+                    <DraftAction
+                      label="Edit"
+                      icon={Pencil}
+                      onClick={() => setEditing(i)}
+                    />
+                    <DraftAction
+                      label="Add as alternate"
+                      icon={Plus}
+                      onClick={() => onAddAlternates([copy])}
+                    />
+                    <DraftAction label="Use" onClick={() => onUse(copy)} accent />
+                  </span>
+                )}
               </div>
-              <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[12.5px] leading-snug text-muted-foreground">
-                {copy}
-              </p>
+
+              {editing === i ? (
+                <DraftEditor
+                  initial={copy}
+                  onCancel={() => setEditing(null)}
+                  onSave={(next) => saveEdit(i, next)}
+                />
+              ) : (
+                <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[12.5px] leading-snug text-muted-foreground">
+                  {copy}
+                </p>
+              )}
             </div>
           ))}
 
           <div className="flex flex-wrap items-center justify-end gap-1.5 pt-0.5">
-            <DraftAction label="Discard" onClick={() => setDrafts(null)} />
+            <DraftAction label="Discard" onClick={discard} />
             {drafts.length > 1 && (
               <DraftAction
-                label={`Add all ${drafts.length} as alternates`}
+                label={
+                  picked.length
+                    ? `Add ${picked.length} as ${picked.length === 1 ? "alternate" : "alternates"}`
+                    : `Add all ${drafts.length} as alternates`
+                }
                 icon={Plus}
-                onClick={() => onAddAlternates(drafts)}
+                onClick={addPicked}
               />
             )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CheckBox({
+  checked,
+  indeterminate,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+}) {
+  const on = checked || Boolean(indeterminate);
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex size-[15px] shrink-0 items-center justify-center rounded-[4px] transition-[background-color,box-shadow,scale] duration-150",
+        on
+          ? "bg-violet-500 text-white inset-ring-1 inset-ring-violet-400"
+          : "inset-ring-1 inset-ring-(--ink)/[0.18] group-hover/box:inset-ring-(--ink)/40",
+      )}
+    >
+      {indeterminate ? (
+        <Minus className="size-2.5" strokeWidth={3} />
+      ) : (
+        <Check
+          className={cn(
+            "size-2.5 transition-[scale,opacity] duration-150",
+            checked ? "scale-100 opacity-100" : "scale-50 opacity-0",
+          )}
+          strokeWidth={3}
+        />
+      )}
+    </span>
+  );
+}
+
+function DraftEditor({
+  initial,
+  onCancel,
+  onSave,
+}: {
+  initial: string;
+  onCancel: () => void;
+  onSave: (copy: string) => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const [area, mention] = useMentionTarget(value, setValue);
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <textarea
+        ref={area}
+        autoFocus
+        value={value}
+        onChange={mention.onChange}
+        onSelect={mention.onSelect}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            onCancel();
+          } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            onSave(value);
+          }
+        }}
+        aria-label="Edit this draft"
+        className="block min-h-[132px] w-full resize-y rounded-(--r-inner) bg-(--ink)/[0.04] px-3 py-2.5 text-[12.5px] leading-[1.6] caret-violet-400 inset-ring-1 inset-ring-violet-400/40 outline-none"
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <MentionPopover
+          value={value}
+          onInsert={mention.insert}
+          side="top"
+          align="start"
+        />
+
+        <span className="flex items-center gap-1">
+          <span className="mr-1 text-[11px] tabular-nums text-muted-foreground/70">
+            {value.length} characters
+          </span>
+          <DraftAction label="Cancel" onClick={onCancel} />
+          <DraftAction label="Save" onClick={() => onSave(value)} accent />
+        </span>
+      </div>
     </div>
   );
 }

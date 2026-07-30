@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn, tagTint } from "@/lib/utils";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
+import { MentionPopover, useMentionTarget } from "./mention-list";
 import {
   Banner,
   Chip,
@@ -70,6 +71,7 @@ export function SessionCanvas({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [copyArea, mention] = useMentionTarget(copyDraft, onCopyChange);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
   const { flashedTag, flashTag } = useTagFlash();
@@ -296,15 +298,21 @@ export function SessionCanvas({
                       </span>
                     )}
                   </GhostAction>
-                  <GhostAction icon={AtSign}>Add Mentions</GhostAction>
+                  <MentionPopover
+                    value={copyDraft}
+                    onInsert={mention.insert}
+                    disabled={isCampaignLocked}
+                  />
                   <AiAssistButton className="ml-1" />
                 </div>
               </div>
               <div className="relative">
                 <textarea
                   id="canvas-copy"
+                  ref={copyArea}
                   value={copyDraft}
-                  onChange={(e) => onCopyChange(e.target.value)}
+                  onChange={mention.onChange}
+                  onSelect={mention.onSelect}
                   onBlur={() => savePendingChanges("blur")}
                   placeholder="Write your post…"
                   disabled={isCampaignLocked}

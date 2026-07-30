@@ -21,6 +21,7 @@ import type { MediaAsset, MediaFolder, PostVariation } from "@/lib/types";
 import { MediaThumb } from "./media-thumb";
 import { SaveChip, Stagger } from "./session-composer";
 import { GeneratePanel } from "./variation-generator";
+import { MentionPopover, useMentionTarget } from "./mention-list";
 
 const MAX_ASSETS = 3;
 
@@ -569,6 +570,7 @@ function VariationEditor({
   onOpenMediaLibrary?: () => void;
 }) {
   const [copyDraft, setCopyDraft] = useState(variation.copy);
+  const [copyArea, mention] = useMentionTarget(copyDraft, setCopyDraft);
   const [labelDraft, setLabelDraft] = useState(variation.label);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [generating, setGenerating] = useState(false);
@@ -709,6 +711,12 @@ function VariationEditor({
                 >
                   Alternate copy
                 </label>
+                <span className="flex shrink-0 items-center gap-1">
+                <MentionPopover
+                  value={copyDraft}
+                  onInsert={mention.insert}
+                  disabled={disabled}
+                />
                 {!disabled && !generating && (
                   <button
                     onClick={() => setGenerating(true)}
@@ -718,11 +726,14 @@ function VariationEditor({
                     Generate with AI
                   </button>
                 )}
+                </span>
               </div>
               <textarea
                 id="variation-copy"
+                ref={copyArea}
                 value={copyDraft}
-                onChange={(e) => setCopyDraft(e.target.value)}
+                onChange={mention.onChange}
+                onSelect={mention.onSelect}
                 onBlur={flush}
                 disabled={disabled}
                 placeholder="Write the alternate version…"

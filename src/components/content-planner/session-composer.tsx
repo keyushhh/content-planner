@@ -27,6 +27,8 @@ import { cn, tagTint } from "@/lib/utils";
 import { SECONDARY_ACTION_SM } from "@/lib/button-styles";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
+import { MentionList, useMentionTarget } from "./mention-list";
+import { mentionsIn, stripMention, type MentionAccount } from "@/lib/mentions";
 import type { Feedback, MediaAsset, PostType, Session } from "@/lib/types";
 
 export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
@@ -229,8 +231,18 @@ export function SessionComposer({
   unlockDialog,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [mentionsOpen, setMentionsOpen] = useState(false);
+  const [copyArea, mention] = useMentionTarget(copyDraft, onCopyChange);
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
+
+  const activeMentions = mentionsIn(copyDraft);
+
+  function removeMention(handle: string) {
+    const stripped = stripMention(copyDraft, handle);
+    onCopyChange(stripped);
+    mention.clamp(stripped);
+  }
 
   const feedbackFor = (sectionLabel: string) =>
     session.feedback.filter((f) => f.sectionLabel === sectionLabel);
@@ -388,15 +400,28 @@ export function SessionComposer({
                             </span>
                           )}
                         </GhostAction>
-                        <GhostAction icon={AtSign}>Add Mentions</GhostAction>
+                        <GhostAction
+                          icon={AtSign}
+                          active={mentionsOpen}
+                          onClick={() => setMentionsOpen((v) => !v)}
+                        >
+                          Add Mentions
+                          {activeMentions.length > 0 && (
+                            <span className="ml-1 rounded-(--r-pill) bg-blue-400/20 px-1.5 text-[10px] font-semibold tabular-nums text-blue-200">
+                              {activeMentions.length}
+                            </span>
+                          )}
+                        </GhostAction>
                         <AiAssistButton className="ml-1" />
                       </div>
                     }
                   />
                   <div className="relative">
                     <textarea
+                      ref={copyArea}
                       value={copyDraft}
-                      onChange={(e) => onCopyChange(e.target.value)}
+                      onChange={mention.onChange}
+                      onSelect={mention.onSelect}
                       onBlur={() => savePendingChanges("blur")}
                       placeholder="Write your post…"
                       disabled={isCampaignLocked}
@@ -516,6 +541,15 @@ export function SessionComposer({
           </main>
 
           <aside className="min-w-0 border-(--ink)/[0.06] @[880px]:min-h-0 @[880px]:overflow-y-auto @[880px]:border-l @[880px]:bg-(--sink)/[0.14]">
+            {mentionsOpen ? (
+              <MentionsPane
+                accounts={activeMentions}
+                disabled={isCampaignLocked}
+                onAdd={mention.insert}
+                onRemove={removeMention}
+                onClose={() => setMentionsOpen(false)}
+              />
+            ) : (
             <div className="mx-auto w-full max-w-[860px] space-y-4 px-8 pb-16 pt-2 @[880px]:max-w-none @[880px]:px-5 @[880px]:pt-7">
               {!isCampaignLocked && (
                 <Stagger index={1}>
@@ -666,6 +700,7 @@ export function SessionComposer({
                 </RailCard>
               </Stagger>
             </div>
+            )}
           </aside>
         </div>
       </div>
@@ -865,21 +900,114 @@ export function Byline({ session }: { session: Session }) {
 export function GhostAction({
   icon: Icon,
   onClick,
+  active,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   onClick?: () => void;
+  active?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-blue-400 transition-[background-color,color,scale] duration-150 hover:bg-blue-400/10 hover:text-blue-300 active:scale-(--press)"
+      aria-pressed={active}
+      className={cn(
+        "flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-blue-400 transition-[background-color,color,scale] duration-150 hover:bg-blue-400/10 hover:text-blue-300 active:scale-(--press)",
+        active && "bg-blue-400/12 text-blue-200",
+      )}
     >
       <Icon className="size-3.5" />
       {children}
     </button>
+  );
+}
+
+function MentionsPane({
+  accounts,
+  disabled,
+  onAdd,
+  onRemove,
+  onClose,
+}: {
+  accounts: MentionAccount[];
+  disabled?: boolean;
+  onAdd: (handle: string) => void;
+  onRemove: (handle: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col @container">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-(--ink)/[0.06] px-5 py-3">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <AtSign className="size-3.5 shrink-0 text-blue-300" />
+          <span className="truncate text-[13px] font-semibold tracking-tight">
+            Mentions
+          </span>
+          {accounts.length > 0 && (
+            <span className="shrink-0 rounded-(--r-pill) bg-blue-400/15 px-1.5 text-[10px] font-semibold tabular-nums text-blue-200">
+              {accounts.length}
+            </span>
+          )}
+        </span>
+        <button
+          onClick={onClose}
+          aria-label="Close mentions"
+          title="Close mentions"
+          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+
+      {accounts.length > 0 && (
+        <div className="shrink-0 border-b border-(--ink)/[0.06] px-5 py-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            In this post
+          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {accounts.map((account) => (
+              <span
+                key={account.id}
+                title={account.name}
+                className="inline-flex h-7 min-w-0 items-center gap-1 rounded-(--r-pill) bg-blue-400/[0.12] px-2.5 text-[11.5px] font-medium text-blue-100 inset-ring-1 inset-ring-blue-400/25"
+              >
+                <span className="truncate">@{account.handle}</span>
+                {!disabled && (
+                  <button
+                    onClick={() => onRemove(account.handle)}
+                    aria-label={`Remove @${account.handle}`}
+                    className="-mr-0.5 flex size-4 shrink-0 items-center justify-center rounded-(--r-pill) text-blue-200/70 transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1 flex-col px-5 py-3">
+        {disabled ? (
+          <p className="text-[12px] text-muted-foreground text-pretty">
+            This post is locked, so mentions cannot be changed.
+          </p>
+        ) : (
+          <MentionList
+            active={accounts.map((a) => a.handle)}
+            onPick={onAdd}
+            className="min-h-0 flex-1"
+            listClassName="flex-1"
+          />
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-(--ink)/[0.06] px-5 py-2.5 text-[11px] text-muted-foreground/70">
+        Inserted at the cursor in your copy
+      </div>
+    </div>
   );
 }
 
