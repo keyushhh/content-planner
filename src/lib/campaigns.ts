@@ -47,6 +47,7 @@ export function blankCampaign(): NewCampaign {
     description: "",
     thankYou: "",
     redirectUrl: "",
+    linkedInCompanyId: "",
     settings: { ...BLANK_SETTINGS },
   };
 }

@@ -32,6 +32,7 @@ export interface Campaign {
   description: string;
   thankYou: string;
   redirectUrl: string;
+  linkedInCompanyId?: string;
   settings: CampaignSettings;
 }
 

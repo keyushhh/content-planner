@@ -169,6 +169,7 @@
 }
 
 .wozku {
+  color-scheme: dark;
   --focus-ring: #34d399;
   --color-violet-50: #ecfdf5;
   --color-violet-100: #d1fae5;

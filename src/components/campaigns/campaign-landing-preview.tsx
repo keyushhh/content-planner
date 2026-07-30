@@ -95,26 +95,11 @@ export function CampaignLandingPreview({
           />
         )}
 
-        <button
-          type="button"
-          disabled
-          className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[12.5px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15"
-        >
-          <Share2 className="size-3.5" />
-          {shareLabel}
-        </button>
-
-        {draft.platforms.length > 1 && (
-          <p className="mt-2.5 text-[11px] text-muted-foreground/60">
-            and {draft.platforms.length - 1} more{" "}
-            {draft.platforms.length === 2 ? "platform" : "platforms"}
-          </p>
-        )}
       </div>
 
       <div className="border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-6 py-3.5">
         <span className="block text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/55">
-          After they share
+          Post-share behavior
         </span>
         <p className="mt-1.5 text-[12px] leading-snug text-foreground/75 text-pretty">
           {draft.thankYou.trim() || (

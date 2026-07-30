@@ -1,15 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
   Check,
   ChevronDown,
   FileEdit,
+  LayoutGrid,
+  List,
   Megaphone,
   PlusCircle,
   Search,
+  TableProperties,
+  Image as ImageIcon,
   X,
 } from "lucide-react";
 import {
@@ -19,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Stagger } from "@/components/content-planner/session-composer";
+import { CampaignContextMenu } from "./campaign-context-menu";
 import {
   CAMPAIGN_STATE,
   campaignDrafts,
@@ -30,6 +35,9 @@ import {
 import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
 import type { Campaign, CampaignState, Session } from "@/lib/types";
+import { CampaignGalleryCard } from "./campaign-gallery-card";
+import { CampaignListItem } from "./campaign-list-item";
+import { CampaignTable } from "./campaign-table";
 
 const FILTERS: { id: CampaignState | "all"; label: string }[] = [
   { id: "all", label: "All campaigns" },
@@ -51,7 +59,21 @@ export function CampaignsView({
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<CampaignState | "all">("all");
+  const [viewType, setViewType] = useState<"cards" | "gallery" | "list" | "table">("table");
   const [now] = useState(() => Date.now());
+
+  // Load saved view preference
+  useEffect(() => {
+    const saved = localStorage.getItem("wozku:campaigns-view");
+    if (saved && ["cards", "gallery", "list", "table"].includes(saved)) {
+      setViewType(saved as any);
+    }
+  }, []);
+
+  function handleViewChange(type: typeof viewType) {
+    setViewType(type);
+    localStorage.setItem("wozku:campaigns-view", type);
+  }
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -156,13 +178,22 @@ export function CampaignsView({
             </DropdownMenu>
           </div>
 
-          <button
-            onClick={onNewCampaign}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
-          >
-            <PlusCircle className="size-4" />
-            New campaign
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="flex items-center gap-1">
+              <ViewToggle active={viewType === "table"} onClick={() => handleViewChange("table")} icon={TableProperties} title="Table" />
+              <ViewToggle active={viewType === "cards"} onClick={() => handleViewChange("cards")} icon={LayoutGrid} title="Cards" />
+              <ViewToggle active={viewType === "gallery"} onClick={() => handleViewChange("gallery")} icon={ImageIcon} title="Gallery" />
+              <ViewToggle active={viewType === "list"} onClick={() => handleViewChange("list")} icon={List} title="List" />
+            </div>
+
+            <button
+              onClick={onNewCampaign}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+            >
+              <PlusCircle className="size-4" />
+              New campaign
+            </button>
+          </div>
         </div>
 
         {rows.length === 0 ? (
@@ -201,6 +232,34 @@ export function CampaignsView({
               </button>
             )}
           </Stagger>
+        ) : viewType === "table" ? (
+          <Stagger index={0} className="w-full">
+            <CampaignTable rows={rows} now={now} onOpen={onOpenCampaign} />
+          </Stagger>
+        ) : viewType === "list" ? (
+          <div className="flex flex-col gap-2">
+            {rows.map((row, i) => (
+              <Stagger key={row.campaign.id} index={Math.min(i, 7)}>
+                <CampaignListItem
+                  {...row}
+                  now={now}
+                  onOpen={() => onOpenCampaign(row.campaign.id)}
+                />
+              </Stagger>
+            ))}
+          </div>
+        ) : viewType === "gallery" ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {rows.map((row, i) => (
+              <Stagger key={row.campaign.id} index={Math.min(i, 7)}>
+                <CampaignGalleryCard
+                  {...row}
+                  now={now}
+                  onOpen={() => onOpenCampaign(row.campaign.id)}
+                />
+              </Stagger>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {rows.map((row, i) => (
@@ -281,49 +340,70 @@ function CampaignCard({
             {tone.label}
           </span>
         </span>
+      </span>
 
-        <span className="mt-4 flex flex-wrap items-center gap-1.5">
+      <span className="flex shrink-0 items-center justify-between border-t border-(--ink)/[0.06] bg-(--ink)/[0.02] px-4 py-2.5">
+        <span className="flex flex-1 items-center gap-1">
           {platformsOf(campaign).map((id) => {
             const meta = platformMeta(id);
             return (
               <span
                 key={id}
                 className={cn(
-                  "flex h-[22px] items-center gap-1.5 rounded-(--r-pill) px-2 text-[10.5px] font-medium inset-ring-1",
+                  "flex size-[18px] items-center justify-center rounded-full inset-ring-1",
                   meta.tint,
                 )}
+                title={meta.label}
               >
-                <span aria-hidden className={cn("size-1 rounded-(--r-round)", meta.dot)} />
-                {meta.label}
+                <span aria-hidden className={cn("size-1 rounded-full", meta.dot)} />
               </span>
             );
           })}
         </span>
-      </span>
 
-      <span className="flex items-center justify-between gap-3 border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-4 py-2.5">
-        <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px]">
-          <span className="text-muted-foreground">
-            <span className="font-medium tabular-nums text-foreground/85">
-              {submitted}
-            </span>{" "}
-            {submitted === 1 ? "post" : "posts"}
-          </span>
-          {drafts > 0 && (
-            <span className="flex items-center gap-1 text-amber-300/90">
-              <FileEdit className="size-3 shrink-0" />
-              <span className="tabular-nums">{drafts}</span> waiting
+        <span className="flex items-center justify-end gap-3">
+          <span className="flex items-center gap-2">
+            {drafts > 0 && (
+              <span className="flex items-center gap-1 text-[10.5px] font-medium text-amber-300/90">
+                <FileEdit className="size-3 shrink-0" />
+                <span className="tabular-nums">{drafts}</span> waiting
+              </span>
+            )}
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <span className="text-[11.5px] font-medium tabular-nums text-foreground/80">{submitted}</span>
+              <span className="text-[10.5px]">posts</span>
             </span>
-          )}
-          {needsPost && drafts === 0 && (
-            <span className="text-muted-foreground/70">Needs a post</span>
-          )}
-        </span>
-
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[color,translate] duration-200 group-hover:translate-x-0.5 group-hover:text-foreground/80">
-          <ArrowRight className="size-3.5" />
+          </span>
+          <CampaignContextMenu onOpen={onOpen} />
         </span>
       </span>
+    </button>
+  );
+};
+
+function ViewToggle({
+  active,
+  onClick,
+  icon: Icon,
+  title,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+  title: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={cn(
+        "flex h-7 w-8 items-center justify-center rounded-[calc(var(--r-pill)-2px)] transition-all duration-200 active:scale-95",
+        active
+          ? "bg-background text-foreground shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.08]"
+          : "text-muted-foreground hover:bg-(--ink)/[0.04] hover:text-foreground",
+      )}
+    >
+      <Icon className="size-3.5" />
     </button>
   );
 }

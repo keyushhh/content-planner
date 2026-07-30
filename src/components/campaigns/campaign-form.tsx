@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import {
   AlertCircle,
+  CheckCircle2,
   ChevronDown,
   ImageIcon,
   Trash2,
@@ -55,6 +56,7 @@ export function CampaignForm({
   error,
   onError,
   onDismissError,
+  footer,
 }: {
   draft: NewCampaign;
   missing: { key: keyof NewCampaign; label: string }[];
@@ -64,6 +66,7 @@ export function CampaignForm({
   error: string | null;
   onError: (msg: string | null) => void;
   onDismissError: () => void;
+  footer?: React.ReactNode;
 }) {
   const [showExtra, setShowExtra] = useState(false);
 
@@ -72,9 +75,9 @@ export function CampaignForm({
 
   return (
     <>
-      <div className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] @container">
-        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-8 px-6 pb-16 pt-6 @[1000px]:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="flex min-w-0 flex-col gap-7">
+      <div className="min-h-0 flex-1 overflow-y-auto [background-image:var(--wash-page)] @container flex flex-col">
+        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-12 px-6 pb-24 pt-10 @[1000px]:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex min-w-0 flex-col gap-8 lg:pr-8">
             <Section label="Identity">
               <FieldRow
                 label="Logo"
@@ -121,12 +124,27 @@ export function CampaignForm({
                         key={suggestion}
                         type="button"
                         onClick={() => onChange({ tag: suggestion })}
-                        className="flex h-6 items-center rounded-(--r-pill) bg-(--ink)/[0.035] px-2 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,color,box-shadow] duration-150 hover:bg-violet-500/12 hover:text-violet-200 hover:inset-ring-violet-400/35"
+                        className="flex h-7 items-center rounded-full bg-(--ink)/[0.03] px-3 text-[10.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/80 inset-ring-1 inset-ring-(--ink)/[0.08] transition-all duration-200 hover:bg-violet-500/10 hover:text-violet-500 hover:inset-ring-violet-500/30 active:scale-95"
                       >
                         {suggestion}
                       </button>
                     ))}
                 </div>
+              </FieldRow>
+
+              <FieldRow
+                label="Linkedin Company ID"
+                hint={
+                  <>
+                    Please follow this <a href="https://www.linkedin.com/help/linkedin/answer/a511394/find-your-linkedin-page-id" target="_blank" rel="noopener noreferrer" className="text-violet-400 transition-colors hover:text-violet-300 hover:underline">link</a> to get find Linkedin Company ID
+                  </>
+                }
+              >
+                <input
+                  value={draft.linkedInCompanyId || ""}
+                  onChange={(e) => onChange({ linkedInCompanyId: e.target.value })}
+                  className={inputClass(false)}
+                />
               </FieldRow>
             </Section>
 
@@ -160,12 +178,12 @@ export function CampaignForm({
               </FieldRow>
             </Section>
 
-            <Section label="After they share">
+            <Section label="Post-share behavior">
               <FieldRow
                 label="Thank you message"
                 required
                 issue={showIssue("thankYou")}
-                hint="Shown the moment someone finishes sharing."
+                hint="Shown after a user successfully shares a post."
               >
                 <input
                   value={draft.thankYou}
@@ -177,7 +195,7 @@ export function CampaignForm({
 
               <FieldRow
                 label="Redirection URL"
-                hint="Where to send them afterwards. Leave empty to keep them on the page."
+                hint="Where to route users afterwards. Leave empty to keep them on the page."
               >
                 <input
                   value={draft.redirectUrl}
@@ -207,30 +225,36 @@ export function CampaignForm({
               </FieldRow>
             </Section>
 
-            <section className="rounded-(--r-float) bg-(--ink)/[0.02] inset-ring-1 inset-ring-(--ink)/[0.06]">
+            <section className="flex flex-col overflow-hidden rounded-[20px] bg-(--surface-panel) shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06]">
               <button
                 onClick={() => setShowExtra((v) => !v)}
                 aria-expanded={showExtra}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left"
+                className="flex w-full items-center gap-3 bg-(--ink)/[0.015] px-6 py-4 text-left transition-colors hover:bg-(--ink)/[0.03]"
               >
+                <div className="flex flex-1 flex-col">
+                  <span className="text-[15px] font-semibold tracking-tight text-foreground/90">
+                    Additional settings
+                  </span>
+                  <span className="mt-0.5 truncate text-[12px] text-muted-foreground/80">
+                    {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
+                    {(() => {
+                      const active = TOGGLES.filter(({ key }) => draft.settings[key]);
+                      return active.length > 0
+                        ? active.map((t) => t.label).join(", ")
+                        : "None enabled";
+                    })()}
+                  </span>
+                </div>
                 <ChevronDown
                   className={cn(
-                    "size-3.5 shrink-0 text-muted-foreground/60 transition-transform duration-200",
+                    "size-4 shrink-0 text-muted-foreground/50 transition-transform duration-300",
                     showExtra && "rotate-180",
                   )}
                 />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-medium">
-                    Additional settings
-                  </span>
-                  <span className="block truncate text-[11px] text-muted-foreground">
-                    {summarize(draft.settings)}
-                  </span>
-                </span>
               </button>
 
               {showExtra && (
-                <div className="flex flex-col gap-1 border-t border-(--ink)/[0.06] px-4 py-3">
+                <div className="flex flex-col gap-2 border-t border-(--ink)/[0.04] px-6 py-5">
                   {TOGGLES.map(({ key, label, hint }) => (
                     <SettingToggle
                       key={key}
@@ -241,7 +265,7 @@ export function CampaignForm({
                     />
                   ))}
 
-                  <span aria-hidden className="my-1.5 h-px bg-(--ink)/[0.06]" />
+                  <span aria-hidden className="my-3 h-px bg-(--ink)/[0.06]" />
 
                   <SettingToggle
                     icon={Users}
@@ -254,12 +278,12 @@ export function CampaignForm({
                   />
 
                   {draft.settings.communityInvitation && (
-                    <div className="ml-1 mt-1 border-l border-(--ink)/[0.08] pl-3.5">
-                      <span className="block text-[12px] font-medium">Job roles</span>
-                      <span className="mt-0.5 block text-[11px] text-muted-foreground text-pretty">
+                    <div className="ml-[34px] mt-2 border-l-2 border-violet-500/20 pl-4">
+                      <span className="block text-[13px] font-semibold text-foreground/80">Job roles</span>
+                      <span className="mt-1 block text-[12px] text-muted-foreground text-pretty">
                         Which roles this campaign&rsquo;s invite applies to.
                       </span>
-                      <span className="mt-1.5 block text-[11px] text-muted-foreground/70">
+                      <span className="mt-2 block text-[12px] text-muted-foreground/60 italic">
                         No job roles defined yet. They come from Community settings.
                       </span>
                     </div>
@@ -270,36 +294,37 @@ export function CampaignForm({
           </div>
 
           <aside className="min-w-0">
-            <div className="@[1000px]:sticky @[1000px]:top-0">
-              <span className="mb-2.5 flex items-center gap-2 text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
-                Public page
+            <div className="@[1000px]:sticky @[1000px]:top-10">
+              <span className="mb-3.5 flex shrink-0 items-center gap-2 text-[12px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Public page preview
               </span>
-              <CampaignLandingPreview draft={draft} />
-
-              {missing.length > 0 && (
-                <div className="mt-3 rounded-(--r-float) bg-(--ink)/[0.025] px-3.5 py-3 inset-ring-1 inset-ring-(--ink)/[0.06]">
-                  <span className="text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
-                    Still needed
-                  </span>
-                  <ul className="mt-2 flex flex-col gap-1.5">
-                    {missing.map((field) => (
-                      <li
-                        key={String(field.key)}
-                        className="flex items-center gap-2 text-[12px] text-muted-foreground"
-                      >
-                        <span
-                          aria-hidden
-                          className="size-1.5 shrink-0 rounded-(--r-round) bg-amber-400/70"
-                        />
-                        {field.label}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <CampaignLandingPreview draft={draft} className="shadow-xl shadow-black/5 ring-1 ring-(--ink)/[0.08]" />
             </div>
           </aside>
         </div>
+
+        {footer && (
+          <div className="sticky bottom-0 z-10 mt-auto border-t border-(--ink)/[0.06] bg-background/80 p-4 backdrop-blur-xl">
+            <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-8">
+              <div className="min-w-0 flex-1 pr-8">
+                {missing.length > 0 ? (
+                  <div className="flex items-center gap-2 text-[13px] text-amber-500 animate-in fade-in">
+                    <span className="shrink-0 font-semibold">Required to launch:</span>
+                    <span className="truncate opacity-90">
+                      {missing.map((field) => field.label).join(", ")}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-[13px] text-emerald-500 animate-out fade-out fill-mode-forwards duration-1000 delay-1000">
+                    <CheckCircle2 className="size-4 shrink-0" />
+                    <span className="truncate font-semibold">Ready to launch</span>
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0">{footer}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -320,10 +345,10 @@ export function CampaignForm({
 
 function inputClass(issue: boolean) {
   return cn(
-    "h-9 w-full rounded-(--r-inner) bg-(--ink)/[0.03] px-3 text-[13.5px] caret-violet-400 outline-none transition-[box-shadow,background-color] duration-200 inset-ring-1 placeholder:text-muted-foreground/50 focus:bg-(--ink)/[0.05]",
+    "h-10 w-full rounded-xl bg-(--ink)/[0.02] px-3.5 text-[14px] caret-violet-500 outline-none transition-[box-shadow,background-color] duration-200 inset-ring-1 placeholder:text-muted-foreground/40 focus:bg-(--ink)/[0.04]",
     issue
-      ? "inset-ring-amber-400/50 focus:inset-ring-amber-400/70"
-      : "inset-ring-(--ink)/[0.09] focus:inset-ring-violet-400/50",
+      ? "inset-ring-amber-500/50 focus:inset-ring-amber-500/80"
+      : "inset-ring-(--ink)/[0.08] hover:inset-ring-(--ink)/[0.15] focus:inset-ring-violet-500/50 focus:hover:inset-ring-violet-500/50",
   );
 }
 
@@ -335,11 +360,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex min-w-0 flex-col">
-      <span className="mb-3 text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
-        {label}
-      </span>
-      <div className="flex flex-col gap-5">{children}</div>
+    <section className="flex min-w-0 flex-col overflow-hidden rounded-[20px] bg-(--surface-panel) shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06]">
+      <div className="border-b border-(--ink)/[0.04] bg-(--ink)/[0.015] px-6 py-4">
+        <h2 className="text-[15px] font-semibold tracking-tight text-foreground/90">
+          {label}
+        </h2>
+      </div>
+      <div className="flex flex-col gap-6 px-6 py-6">{children}</div>
     </section>
   );
 }
@@ -352,30 +379,30 @@ function FieldRow({
   children,
 }: {
   label: string;
-  hint?: string;
+  hint?: React.ReactNode;
   required?: boolean;
   issue?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col">
-      <span className="flex items-center gap-1 text-[12.5px] font-medium">
+      <span className="flex items-center gap-1.5 text-[13.5px] font-medium text-foreground/80">
         {label}
         {required && (
           <span
             aria-label="required"
-            className={cn(issue ? "text-amber-400" : "text-violet-400/80")}
+            className={cn(issue ? "text-amber-500" : "text-violet-500/70")}
           >
             *
           </span>
         )}
       </span>
       {hint && (
-        <span className="mb-2 mt-0.5 text-[11.5px] text-muted-foreground/75 text-pretty">
+        <span className="mb-2.5 mt-0.5 text-[12px] text-muted-foreground/70 text-pretty">
           {hint}
         </span>
       )}
-      <div className={cn("min-w-0", !hint && "mt-2")}>{children}</div>
+      <div className={cn("min-w-0", !hint && "mt-2.5")}>{children}</div>
     </div>
   );
 }
@@ -481,25 +508,25 @@ function ImageField({
           accept(e.dataTransfer.files?.[0]);
         }}
         className={cn(
-          "group flex w-full items-center gap-3 rounded-(--r-inner) px-3.5 py-3 text-left transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.995] inset-ring-1",
+          "group flex w-full items-center justify-start gap-4 rounded-xl border border-dashed px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.995]",
           over
-            ? "bg-violet-500/[0.09] inset-ring-violet-400/50"
-            : "bg-(--ink)/[0.03] inset-ring-(--ink)/[0.09] hover:bg-violet-500/[0.05] hover:inset-ring-violet-400/35",
+            ? "border-violet-500/50 bg-violet-500/[0.04]"
+            : "border-(--ink)/[0.15] bg-(--ink)/[0.015] hover:border-violet-500/30 hover:bg-(--ink)/[0.03]",
         )}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-(--r-pill) bg-violet-500/10 text-violet-300 inset-ring-1 inset-ring-violet-400/25 transition-transform duration-200 group-hover:scale-[1.06]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:shadow-md">
           {busy ? (
-            <ImageIcon className="size-4 animate-pulse" />
+            <ImageIcon className="size-4 animate-pulse text-violet-500/70" />
           ) : (
-            <UploadCloud className="size-4" />
+            <UploadCloud className="size-4 text-muted-foreground/60 transition-colors group-hover:text-violet-500/80" />
           )}
         </span>
-        <span className="min-w-0">
-          <span className="block text-[13px] font-medium">
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-[13px] font-medium text-foreground/80">
             {busy ? "Reading image…" : cta}
           </span>
-          <span className="block truncate text-[11px] text-muted-foreground">
-            Click to pick, or drop a file here
+          <span className="mt-0.5 truncate text-[11.5px] text-muted-foreground/60">
+            Click to pick, or drop a file
           </span>
         </span>
       </button>
