@@ -21,6 +21,16 @@ export const CHANGELOG: ChangelogDay[] = [
     summary: "Motion, accessibility, and this list",
     entries: [
       {
+        kind: "fixed",
+        title: "Ensure native date pickers respect dark mode",
+        commit: "1b26fd0",
+      },
+      {
+        kind: "new",
+        title: "Turned campaign creation into a 3-step wizard with shared components and lifted state.",
+        commit: "83958b9",
+      },
+      {
         kind: "new",
         title: "Build the page people land on, and watch it as you type",
         commit: "e6fdb72",
