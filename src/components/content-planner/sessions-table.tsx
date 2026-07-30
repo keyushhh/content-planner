@@ -198,22 +198,23 @@ function CampaignCell({
   const approved = session.status === "approved";
   const staged = session.draftCampaignIds.length > 0;
 
+  if (staged) {
+    return (
+      <button
+        onClick={() => onOpenSend(session.id)}
+        disabled={!approved}
+        title={`Waiting as a draft in ${session.draftCampaignIds.length} ${
+          session.draftCampaignIds.length === 1 ? "campaign" : "campaigns"
+        }${approved ? " · send it to another" : ""}`}
+        className="group/send inline-flex h-7 max-w-full items-center gap-1.5 rounded-(--r-pill) bg-amber-500/[0.12] px-2.5 text-xs font-medium text-amber-200 inset-ring-1 inset-ring-amber-400/25 transition-[background-color,scale] duration-150 hover:bg-amber-500/20 active:scale-(--press) disabled:pointer-events-none"
+      >
+        <FileEdit className="size-3 shrink-0" />
+        <span className="truncate">In draft</span>
+      </button>
+    );
+  }
+
   if (!sent) {
-    if (staged) {
-      return (
-        <button
-          onClick={() => onOpenSend(session.id)}
-          disabled={!approved}
-          title={`Waiting as a draft in ${session.draftCampaignIds.length} ${
-            session.draftCampaignIds.length === 1 ? "campaign" : "campaigns"
-          }${approved ? " · send it to another" : ""}`}
-          className="group/send inline-flex h-7 max-w-full items-center gap-1.5 rounded-(--r-pill) bg-amber-500/[0.12] px-2.5 text-xs font-medium text-amber-200 inset-ring-1 inset-ring-amber-400/25 transition-[background-color,scale] duration-150 hover:bg-amber-500/20 active:scale-(--press) disabled:pointer-events-none"
-        >
-          <FileEdit className="size-3 shrink-0" />
-          <span className="truncate">In draft</span>
-        </button>
-      );
-    }
     return approved ? (
       <button
         onClick={() => onOpenSend(session.id)}

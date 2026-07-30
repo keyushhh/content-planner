@@ -39,18 +39,18 @@ export function campaignMembers(
 export function campaignNamesFor(session: Session, campaigns: Campaign[]) {
   const seen = new Set<string>();
   const named: { name: string; draft: boolean }[] = [];
-  for (const id of session.sentToCampaignIds) {
-    const campaign = campaigns.find((c) => c.id === id);
-    if (campaign && !seen.has(id)) {
-      seen.add(id);
-      named.push({ name: campaign.name, draft: false });
-    }
-  }
   for (const id of session.draftCampaignIds) {
     const campaign = campaigns.find((c) => c.id === id);
     if (campaign && !seen.has(id)) {
       seen.add(id);
       named.push({ name: campaign.name, draft: true });
+    }
+  }
+  for (const id of session.sentToCampaignIds) {
+    const campaign = campaigns.find((c) => c.id === id);
+    if (campaign && !seen.has(id)) {
+      seen.add(id);
+      named.push({ name: campaign.name, draft: false });
     }
   }
   return named;

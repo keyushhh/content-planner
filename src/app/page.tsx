@@ -56,7 +56,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, sessionNeedsResend } from "@/lib/utils";
 import { flyTitleWhenReady } from "@/lib/title-flight";
 import {
   campaigns as initialCampaigns,
@@ -319,6 +319,8 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedSessionId]);
 
+  const sendSheetSession =
+    sessions.find((s) => s.id === sendSheetSessionId) ?? null;
   const bulkBatch =
     bulkSendIds && bulkSendIds.length > 0
       ? sessions.filter((s) => bulkSendIds.includes(s.id))
@@ -478,14 +480,10 @@ export default function Home() {
     setSessions((prev) =>
       prev.map((session) => {
         if (!sessionIds.includes(session.id)) return session;
-        const pending = campaignIds.filter(
-          (id) => !session.sentToCampaignIds.includes(id),
-        );
-        if (pending.length === 0) return session;
         return {
           ...session,
           draftCampaignIds: Array.from(
-            new Set([...session.draftCampaignIds, ...pending]),
+            new Set([...session.draftCampaignIds, ...campaignIds]),
           ),
         };
       }),
@@ -1126,7 +1124,9 @@ export default function Home() {
                   bulkBatch.every((s) => s.sentToCampaignIds.includes(c.id)),
                 )
                 .map((c) => c.id)
-            : sessions.find((s) => s.id === sendSheetSessionId)?.sentToCampaignIds ?? []
+            : sendSheetSession && !sessionNeedsResend(sendSheetSession)
+              ? sendSheetSession.sentToCampaignIds
+              : []
         }
         onShare={(campaignIds) => {
           if (bulkBatch) {
