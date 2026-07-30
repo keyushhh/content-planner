@@ -22,6 +22,11 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         kind: "new",
+        title: "Build the page people land on, and watch it as you type",
+        commit: "e6fdb72",
+      },
+      {
+        kind: "new",
         title: "Campaigns are a place now, not just a destination",
         commit: "aff965d",
       },
