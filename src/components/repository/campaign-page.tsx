@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -99,8 +99,8 @@ export function CampaignPage({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col px-6 pb-16">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 flex-col px-6 pb-6">
         <div className="shrink-0 pt-6">
           <button
             onClick={onBack}
@@ -233,7 +233,7 @@ export function CampaignPage({
         </div>
 
         {drafts.length > 0 && (
-          <section className="mb-8 shrink-0">
+          <section className="mb-6 flex min-h-0 shrink-0 flex-col">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <button
@@ -261,7 +261,8 @@ export function CampaignPage({
               </span>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <ScrollFade className="max-h-[min(40vh,460px)]">
+              <div className="flex flex-col gap-2 pb-0.5">
               {drafts.map((draft) => (
                 <DraftCard
                   key={draft.id}
@@ -283,7 +284,8 @@ export function CampaignPage({
                   onWithdraw={() => onWithdraw(draft.id)}
                 />
               ))}
-            </div>
+              </div>
+            </ScrollFade>
           </section>
         )}
 
@@ -318,6 +320,60 @@ export function CampaignPage({
           }}
         />
       </div>
+    </div>
+  );
+}
+
+function ScrollFade({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const [atTop, setAtTop] = useState(true);
+  const [atEnd, setAtEnd] = useState(true);
+
+  const read = useCallback((el: HTMLElement) => {
+    setAtTop(el.scrollTop <= 2);
+    setAtEnd(el.scrollHeight - el.scrollTop - el.clientHeight <= 1);
+  }, []);
+
+  const attach = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (!el) return;
+      read(el);
+      const observer = new ResizeObserver(() => read(el));
+      observer.observe(el);
+      for (const child of Array.from(el.children)) observer.observe(child);
+      return () => observer.disconnect();
+    },
+    [read],
+  );
+
+  return (
+    <div className="relative min-h-0">
+      <div
+        ref={attach}
+        onScroll={(e) => read(e.currentTarget)}
+        className={cn("overflow-y-auto overscroll-contain", className)}
+      >
+        {children}
+      </div>
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-(--surface-canvas) via-(--surface-canvas)/60 to-transparent transition-opacity duration-300",
+          atTop ? "opacity-0" : "opacity-100",
+        )}
+      />
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-(--surface-canvas) via-(--surface-canvas)/60 to-transparent transition-opacity duration-300",
+          atEnd ? "opacity-0" : "opacity-100",
+        )}
+      />
     </div>
   );
 }
