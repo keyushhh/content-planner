@@ -19,7 +19,7 @@ interface SendToCampaignSheetProps {
   authorName: string;
   initialCampaignIds?: string[];
   onShare: (campaignIds: string[]) => void;
-  onNewCampaign?: () => void;
+  onNewCampaign?: (initialPostIds: string[]) => void;
 }
 
 function endsLabel(endDate: string, now: number) {
@@ -289,7 +289,7 @@ export function SendToCampaignSheet({
               <button
                 onClick={() => {
                   onOpenChange(false);
-                  onNewCampaign();
+                  onNewCampaign(previewSessions.map((s) => s.id));
                 }}
                 className="group flex h-12 w-full items-center gap-2 border-t border-(--ink)/[0.06] px-4 text-left text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-(--ink)/[0.035] hover:text-foreground"
               >

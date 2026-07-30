@@ -46,6 +46,7 @@ import { RepositoryShell } from "@/components/repository/repository-shell";
 import { CampaignPage } from "@/components/repository/campaign-page";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { CampaignEditor } from "@/components/campaigns/campaign-editor";
+import { CampaignCreateWizard, type CampaignWizardState } from "@/components/campaigns/campaign-create-wizard";
 import { BrandToggle, useBrandLayer } from "@/components/content-planner/brand-toggle";
 import {
   VERSIONS,
@@ -202,7 +203,7 @@ export default function Home() {
   const [repoCampaignId, setRepoCampaignId] = useState<string | null>(null);
   const [section, setSection] = useState<AppSection>("repository");
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
-  const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [campaignWizard, setCampaignWizard] = useState<CampaignWizardState | null>(null);
   const [sendResult, setSendResult] = useState<
     { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
@@ -722,6 +723,11 @@ export default function Home() {
         ),
       );
     }
+    if (campaignWizard) {
+      setCampaignWizard((prev) =>
+        prev ? { ...prev, postIds: [...prev.postIds, id] } : null,
+      );
+    }
     setSelectedSessionId(id);
     setShowPostType(false);
   }
@@ -829,7 +835,7 @@ export default function Home() {
                       aria-selected={active}
                       onClick={() => {
                         setSection(id);
-                        setCreatingCampaign(false);
+                        setCampaignWizard(null);
                         setEditingCampaignId(null);
                         if (id === "campaigns") setRepoCampaignId(null);
                       }}
@@ -1097,25 +1103,36 @@ export default function Home() {
             </div>
           </>
         ) : section === "campaigns" ? (
-          creatingCampaign || editingCampaign ? (
-            <CampaignEditor
-              key={editingCampaign?.id ?? "new"}
-              mode={editingCampaign ? "edit" : "create"}
-              initial={editingCampaign ? toDraft(editingCampaign) : blankCampaign()}
-              onCancel={() => {
-                setCreatingCampaign(false);
-                setEditingCampaignId(null);
+          campaignWizard ? (
+            <CampaignCreateWizard
+              state={campaignWizard}
+              initialDraft={blankCampaign()}
+              sessions={sessions}
+              campaigns={campaigns}
+              onStateChange={setCampaignWizard}
+              onCancel={() => setCampaignWizard(null)}
+              onCreateCampaign={createCampaign}
+              onStageDrafts={(campaignId, postIds) => stageDrafts(postIds, [campaignId])}
+              onWriteNewPost={handleNewContent}
+              onGoToCampaign={(id) => {
+                setCampaignWizard(null);
+                setRepoCampaignId(id);
               }}
+              onBackToRepository={() => {
+                setCampaignWizard(null);
+                setSection("repository");
+              }}
+            />
+          ) : editingCampaign ? (
+            <CampaignEditor
+              key={editingCampaign.id}
+              mode="edit"
+              initial={toDraft(editingCampaign)}
+              onCancel={() => setEditingCampaignId(null)}
               onSave={(draft) => {
-                if (editingCampaign) {
-                  saveCampaign(editingCampaign.id, draft);
-                  setEditingCampaignId(null);
-                  setRepoCampaignId(editingCampaign.id);
-                } else {
-                  const id = createCampaign(draft);
-                  setCreatingCampaign(false);
-                  setRepoCampaignId(id);
-                }
+                saveCampaign(editingCampaign.id, draft);
+                setEditingCampaignId(null);
+                setRepoCampaignId(editingCampaign.id);
               }}
             />
           ) : repoCampaign ? (
@@ -1143,7 +1160,7 @@ export default function Home() {
               campaigns={campaigns}
               sessions={sessions}
               onOpenCampaign={(id) => setRepoCampaignId(id)}
-              onNewCampaign={() => setCreatingCampaign(true)}
+              onNewCampaign={() => setCampaignWizard({ step: 1, campaignId: null, postIds: [] })}
             />
           )
         ) : (
@@ -1278,10 +1295,10 @@ export default function Home() {
             campaignIds,
           });
         }}
-        onNewCampaign={() => {
+        onNewCampaign={(initialPostIds) => {
           setSection("campaigns");
           setRepoCampaignId(null);
-          setCreatingCampaign(true);
+          setCampaignWizard({ step: 1, campaignId: null, postIds: initialPostIds });
         }}
       />
 
