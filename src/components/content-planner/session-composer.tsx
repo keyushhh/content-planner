@@ -328,7 +328,7 @@ export function SessionComposer({
               savePendingChanges("blur");
               onClose();
             }}
-            aria-label="Save and collapse session"
+            aria-label="Save and collapse this post"
             title="Save and collapse"
             className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
@@ -377,8 +377,8 @@ export function SessionComposer({
                   onChange={(e) => onTitleChange(e.target.value)}
                   onBlur={() => savePendingChanges("blur")}
                   disabled={isCampaignLocked}
-                  aria-label="Session title"
-                  placeholder="Untitled session"
+                  aria-label="Post title"
+                  placeholder="Untitled post"
                   data-pane-title
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />

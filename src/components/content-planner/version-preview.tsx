@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { AppVersion } from "./version-chooser-modal";
+import type { AppVersion } from "@/lib/versions";
 
 function Lines({ widths, className }: { widths: string[]; className?: string }) {
   return (

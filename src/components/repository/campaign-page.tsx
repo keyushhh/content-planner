@@ -7,13 +7,21 @@ import {
   ChevronDown,
   FileEdit,
   Minus,
+  Rocket,
   Send,
   Trash2,
 } from "lucide-react";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { PostPreview } from "@/components/content-planner/post-preview";
 import { StatusBadge } from "@/components/content-planner/status-badge";
-import { campaignDrafts, campaignSubmitted } from "@/lib/campaigns";
+import {
+  CAMPAIGN_STATE,
+  campaignDrafts,
+  campaignState,
+  campaignSubmitted,
+  endsLabel,
+} from "@/lib/campaigns";
+import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
 import type { CustomColumnProps } from "./repository-shell";
 import type { Campaign, MediaAsset, Session } from "@/lib/types";
@@ -33,6 +41,7 @@ interface CampaignPageProps extends CustomColumnProps {
   onDuplicateSession: (id: string) => void;
   onSubmit: (sessionIds: string[]) => void;
   onWithdraw: (sessionId: string) => void;
+  onGoLive: () => void;
 }
 
 export function CampaignPage({
@@ -50,6 +59,7 @@ export function CampaignPage({
   onDuplicateSession,
   onSubmit,
   onWithdraw,
+  onGoLive,
   ...columnProps
 }: CampaignPageProps) {
   const drafts = useMemo(
@@ -63,6 +73,12 @@ export function CampaignPage({
 
   const [picked, setPicked] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
+  const [now] = useState(() => Date.now());
+
+  const state = campaignState(campaign, now);
+  const tone = CAMPAIGN_STATE[state];
+  const ends = endsLabel(campaign.endDate, now);
+  const readyToGoLive = state === "draft" && submitted.length > 0;
 
   const live = drafts.filter((d) => picked.includes(d.id));
   const allPicked = drafts.length > 0 && live.length === drafts.length;
@@ -90,53 +106,129 @@ export function CampaignPage({
             className="-ml-2 flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-[12px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <ArrowLeft className="size-3.5" />
-            Repository
+            Campaigns
           </button>
 
           <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-6">
             <div className="min-w-0">
               <h1 className="flex min-w-0 flex-wrap items-center gap-2.5 text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                 {campaign.name}
-                <span className="shrink-0 rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-0.5 text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
-                  {campaign.tag}
+                <span
+                  className={cn(
+                    "flex h-[22px] shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium inset-ring-1",
+                    tone.chip,
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn("size-1.5 rounded-(--r-round)", tone.dot)}
+                  />
+                  {tone.label}
                 </span>
               </h1>
-              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                <span className="rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
+                  {campaign.tag}
+                </span>
                 <span className="tabular-nums">
-                  {submitted.length} {submitted.length === 1 ? "post" : "posts"} in the
-                  campaign
+                  {submitted.length} {submitted.length === 1 ? "post" : "posts"}
                 </span>
                 <span className="text-muted-foreground/30">&middot;</span>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "size-1.5 rounded-(--r-round)",
-                      campaign.inWozku ? "bg-emerald-500" : "bg-amber-400",
-                    )}
-                  />
-                  {campaign.inWozku ? "Live in Wozku" : "Not yet in Wozku"}
-                </span>
-                {campaign.endDate && campaign.endDate !== "TBD" && (
+                <span>{ends.date}</span>
+                {ends.soon && (
                   <>
                     <span className="text-muted-foreground/30">&middot;</span>
-                    <span>Ends {campaign.endDate}</span>
+                    <span className="text-amber-300/80">{ends.soon}</span>
                   </>
                 )}
               </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                {campaign.platforms.map((id) => {
+                  const meta = platformMeta(id);
+                  return (
+                    <span
+                      key={id}
+                      className={cn(
+                        "flex h-[22px] items-center gap-1.5 rounded-(--r-pill) px-2 text-[10.5px] font-medium inset-ring-1",
+                        meta.tint,
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn("size-1 rounded-(--r-round)", meta.dot)}
+                      />
+                      {meta.label}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
 
-            {drafts.length > 0 && (
-              <button
-                onClick={submit}
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
-              >
-                <Send className="size-3.5" />
-                {live.length
-                  ? `Submit ${live.length} to campaign`
-                  : `Submit all ${drafts.length} to campaign`}
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {drafts.length > 0 && (
+                <button
+                  onClick={submit}
+                  className={cn(
+                    "flex h-9 items-center gap-1.5 rounded-(--r-pill) px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
+                    readyToGoLive
+                      ? "bg-(--ink)/[0.04] text-foreground inset-ring-1 inset-ring-(--ink)/[0.12] hover:bg-(--ink)/[0.07]"
+                      : "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500",
+                  )}
+                >
+                  <Send className="size-3.5" />
+                  {live.length
+                    ? `Submit ${live.length}`
+                    : `Submit all ${drafts.length}`}
+                </button>
+              )}
+              {state === "draft" && (
+                <button
+                  onClick={onGoLive}
+                  disabled={!readyToGoLive}
+                  title={
+                    readyToGoLive
+                      ? "Put this campaign live on Wozku"
+                      : "Submit a post first, a campaign cannot go live empty"
+                  }
+                  className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+                >
+                  <Rocket className="size-3.5" />
+                  Take it live
+                </button>
+              )}
+            </div>
           </div>
+
+          {state === "draft" && (
+            <div
+              className={cn(
+                "mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) px-4 py-3 text-[12.5px] inset-ring-1",
+                readyToGoLive
+                  ? "bg-emerald-500/[0.06] text-emerald-100/90 inset-ring-emerald-400/25"
+                  : "bg-amber-500/[0.05] text-amber-100/85 inset-ring-amber-400/20",
+              )}
+            >
+              {readyToGoLive ? (
+                <>
+                  <Rocket className="size-3.5 shrink-0 text-emerald-300" />
+                  <span className="min-w-0 flex-1 text-pretty">
+                    This campaign has everything it needs. Take it live and its posts can
+                    go out to{" "}
+                    {campaign.platforms.map((id) => platformMeta(id).label).join(", ")}.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <FileEdit className="size-3.5 shrink-0 text-amber-300" />
+                  <span className="min-w-0 flex-1 text-pretty">
+                    {drafts.length > 0
+                      ? "Approve a draft below and this campaign is ready to go live."
+                      : "No posts yet. Send one from the repository, approve it here, then take the campaign live."}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {drafts.length > 0 && (

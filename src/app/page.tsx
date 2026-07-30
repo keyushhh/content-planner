@@ -13,6 +13,8 @@ import {
   ChevronDown,
   Check,
   Send,
+  Database,
+  Megaphone,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import {
@@ -42,13 +44,12 @@ import {
 import type { ChangeKind } from "@/lib/changelog";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { CampaignPage } from "@/components/repository/campaign-page";
+import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { BrandToggle, useBrandLayer } from "@/components/content-planner/brand-toggle";
 import {
-  VersionChooserModal,
-  versionMeta,
   VERSIONS,
   type AppVersion,
-} from "@/components/content-planner/version-chooser-modal";
+} from "@/lib/versions";
 import { VersionSwitchDialog } from "@/components/content-planner/version-switch-dialog";
 import {
   DropdownMenu,
@@ -71,6 +72,7 @@ import type {
   Feedback,
   FeedbackStatus,
   MediaAsset,
+  NewCampaign,
   PostType,
   Session,
 } from "@/lib/types";
@@ -79,6 +81,14 @@ import { campaignDrafts, campaignMembers } from "@/lib/campaigns";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
+const VERSION_STORAGE_KEY = "cp_version";
+
+type AppSection = "repository" | "campaigns";
+
+const SECTIONS: { id: AppSection; label: string; icon: typeof Database }[] = [
+  { id: "repository", label: "Repository", icon: Database },
+  { id: "campaigns", label: "Campaigns", icon: Megaphone },
+];
 
 type DemoState = "live" | "empty" | "loading";
 const DEMO_STATES: { id: DemoState; label: string }[] = [
@@ -138,7 +148,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
   const now = new Date().toISOString();
   return {
     id,
-    title: "Untitled Session",
+    title: "Untitled post",
     createdAt: now,
     updatedAt: now,
     lastEditedBy: null,
@@ -161,7 +171,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
 export default function Home() {
   const toast = useToast();
   const { open: paletteOpen, setOpen: setPaletteOpen } = useCommandPalette();
-  const [mode, setMode] = useState<AppVersion | null>(null);
+  const [mode, setMode] = useState<AppVersion>("repository");
   const [pendingVersion, setPendingVersion] = useState<AppVersion | null>(null);
   const [campaigns, setCampaigns] = useState<typeof initialCampaigns>(initialCampaigns);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
@@ -178,6 +188,7 @@ export default function Home() {
   const [bulkSendIds, setBulkSendIds] = useState<string[] | null>(null);
   const [sendPreset, setSendPreset] = useState<string[] | null>(null);
   const [repoCampaignId, setRepoCampaignId] = useState<string | null>(null);
+  const [section, setSection] = useState<AppSection>("repository");
   const [sendResult, setSendResult] = useState<
     { title: string; campaignIds: string[]; plural?: boolean } | null
   >(null);
@@ -250,6 +261,10 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    const savedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
+    if (savedVersion === "classic" || savedVersion === "repository") {
+      setMode(savedVersion);
+    }
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
@@ -281,6 +296,12 @@ export default function Home() {
       } catch (e) {}
     }
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(VERSION_STORAGE_KEY, mode);
+    }
+  }, [mode, mounted]);
 
   useEffect(() => {
     if (mounted) {
@@ -335,6 +356,10 @@ export default function Home() {
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
   const classicDrafts = campaignDrafts(sessions, selectedCampaignId);
+  const draftsWaiting = campaigns.reduce(
+    (total, c) => total + campaignDrafts(sessions, c.id).length,
+    0,
+  );
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) ?? null;
 
   function updateSession(id: string, patch: Partial<Session>) {
@@ -561,13 +586,27 @@ export default function Home() {
     updateSession(id, { status: "wip" });
   }
 
-  function createCampaign(name: string): string {
+  function createCampaign(draft: NewCampaign): string {
     const id = `camp-${Date.now()}`;
     setCampaigns((prev) => [
       ...prev,
-      { id, name, tag: "NEW", inWozku: false, endDate: "TBD", sessionIds: [] },
+      {
+        id,
+        name: draft.name,
+        tag: draft.tag || "NEW",
+        inWozku: false,
+        endDate: draft.endDate || "TBD",
+        platforms: draft.platforms.length ? draft.platforms : ["linkedin"],
+        sessionIds: [],
+      },
     ]);
     return id;
+  }
+
+  function takeCampaignLive(campaignId: string) {
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === campaignId ? { ...c, inWozku: true } : c)),
+    );
   }
 
   function uploadAssets(files: File[], folderId: string): string[] {
@@ -750,47 +789,53 @@ export default function Home() {
       >
         <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  title="Switch version"
-                  className={cn(
-                    "group -ml-1.5 relative flex h-7 items-center gap-1.5 rounded-(--r-pill) px-1.5 text-xs font-medium transition-[background-color,color] duration-150 after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
-                    isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/40",
-                  )}
-                />
-              }
-            >
-              <span className="text-muted-foreground">Content Planner</span>
-              {mode && (
-                <>
-                  <span className={cn("text-muted-foreground/40")}>/</span>
-                  <span className="text-foreground">{versionMeta(mode).label}</span>
-                  <ChevronDown className="size-3 text-muted-foreground/60 transition-transform duration-150 group-data-[popup-open]:rotate-180" />
-                </>
-              )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[190px]">
-              {VERSIONS.map(({ id, label }) => (
-                <DropdownMenuItem
-                  key={id}
-                  onClick={() => {
-                    if (id !== mode) setPendingVersion(id);
-                  }}
-                  className="gap-2"
-                >
-                  <Check
-                    className={cn(
-                      "size-3.5 shrink-0",
-                      id === mode ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  {label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <span className="text-xs font-medium text-muted-foreground">
+            Content Planner
+          </span>
+
+          {mode === "repository" && (
+            <>
+              <span
+                aria-hidden
+                className="h-4 w-px shrink-0 bg-(--ink)/[0.10]"
+              />
+              <div
+                role="tablist"
+                aria-label="Section"
+                className="flex items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.035] p-0.5 inset-ring-1 inset-ring-(--ink)/[0.07]"
+              >
+                {SECTIONS.map(({ id, label, icon: Icon }) => {
+                  const active = section === id;
+                  return (
+                    <button
+                      key={id}
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => {
+                        setSection(id);
+                        if (id === "campaigns") setRepoCampaignId(null);
+                      }}
+                      className={cn(
+                        "relative flex h-6 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium transition-[background-color,color,box-shadow,scale] duration-200 active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
+                        active
+                          ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      style={{ transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}
+                    >
+                      <Icon className="size-3 shrink-0" />
+                      {label}
+                      {id === "campaigns" && draftsWaiting > 0 && (
+                        <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-(--r-pill) bg-amber-500/20 px-1 text-[9.5px] font-semibold tabular-nums text-amber-300">
+                          {draftsWaiting}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
           <button
             onClick={() => setPaletteOpen(true)}
             title="Search everything (⌘K)"
@@ -809,8 +854,6 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center gap-1.5">
-        {mode !== null && (
-          <>
         <button
           onClick={seedDemoContent}
           title="Dev: add 450 sample items"
@@ -849,20 +892,52 @@ export default function Home() {
             </button>
           ))}
         </div>
-          </>
-        )}
 
         {mode === "repository" && (
           <BrandToggle mode={brandMode} onChange={setBrandMode} />
         )}
+
+        <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  title="Dev: switch version"
+                  aria-label="Switch version"
+                  className={cn(
+                    "relative flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:text-foreground active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
+                    isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/40",
+                  )}
+                />
+              }
+            >
+              <Settings2 className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[190px]">
+              {VERSIONS.map(({ id, label }) => (
+                <DropdownMenuItem
+                  key={id}
+                  onClick={() => {
+                    if (id !== mode) setPendingVersion(id);
+                  }}
+                  className="gap-2"
+                >
+                  <Check
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      id === mode ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
         </div>
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {mode === null ? (
-          <div className="flex-1" />
-        ) : mode === "classic" ? (
+        {mode === "classic" ? (
           <>
             <CampaignSidebar
               campaigns={campaigns}
@@ -914,7 +989,7 @@ export default function Home() {
                     onClick={handleNewContent}
                   >
                     <PlusCircle className="size-4" />
-                    New Session
+                    New post
                   </Button>
                   <Button variant="ghost" size="sm" className="gap-1.5 text-sm">
                     <LayoutGrid className="size-4" />
@@ -992,7 +1067,10 @@ export default function Home() {
                     : "h-8 border-t border-border px-4 text-xs",
                 )}
               >
-                <span className="tabular-nums">{campaignSessions.length} sessions</span>
+                <span className="tabular-nums">
+                  {campaignSessions.length}{" "}
+                  {campaignSessions.length === 1 ? "post" : "posts"}
+                </span>
                 <span className="flex items-center gap-1.5">
                   <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
                   Synced to Wozku
@@ -1000,7 +1078,8 @@ export default function Home() {
               </footer>
             </div>
           </>
-        ) : repoCampaign ? (
+        ) : section === "campaigns" ? (
+          repoCampaign ? (
           <CampaignPage
             campaign={repoCampaign}
             campaigns={campaigns}
@@ -1016,8 +1095,17 @@ export default function Home() {
             onDuplicateSession={duplicateSession}
             onSubmit={(ids) => submitDrafts(repoCampaign.id, ids)}
             onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
+            onGoLive={() => takeCampaignLive(repoCampaign.id)}
             {...customColumnProps}
           />
+          ) : (
+            <CampaignsView
+              campaigns={campaigns}
+              sessions={sessions}
+              onOpenCampaign={(id) => setRepoCampaignId(id)}
+              onCreateCampaign={createCampaign}
+            />
+          )
         ) : (
           <RepositoryShell
             sessions={demoState === "empty" ? [] : sessions}
@@ -1033,7 +1121,6 @@ export default function Home() {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             onBulkSend={(ids) => setBulkSendIds(ids)}
-            onOpenCampaign={(id) => setRepoCampaignId(id)}
             tableStyle={composerLayout}
             {...customColumnProps}
           />
@@ -1152,7 +1239,9 @@ export default function Home() {
           });
         }}
         allowCreateCampaign
-        onCreateCampaign={createCampaign}
+        onCreateCampaign={(name) =>
+          createCampaign({ name, tag: "NEW", endDate: "", platforms: ["linkedin"] })
+        }
       />
 
       <CommandPalette
@@ -1172,7 +1261,10 @@ export default function Home() {
           onOpenCampaign: (id) => {
             setSelectedSessionId(null);
             setSelectedCampaignId(id);
-            if (mode === "repository") setRepoCampaignId(id);
+            if (mode === "repository") {
+              setSection("campaigns");
+              setRepoCampaignId(id);
+            }
           },
         }}
       />
@@ -1189,7 +1281,10 @@ export default function Home() {
         onViewCampaign={(campaignId) => {
           setSendResult(null);
           setSelectedCampaignId(campaignId);
-          if (mode === "repository") setRepoCampaignId(campaignId);
+          if (mode === "repository") {
+            setSection("campaigns");
+            setRepoCampaignId(campaignId);
+          }
         }}
       />
 
@@ -1219,11 +1314,6 @@ export default function Home() {
           onSelect={createContent}
         />
       )}
-
-      <VersionChooserModal
-        open={mounted && mode === null}
-        onChoose={(v) => changeVersion(v)}
-      />
 
       <VersionSwitchDialog
         target={pendingVersion}

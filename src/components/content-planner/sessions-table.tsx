@@ -356,8 +356,8 @@ export function SessionsTable({
   onUnlockSession,
   onDuplicateSession,
   emptyState = {
-    title: "No sessions yet",
-    description: 'Click "New Session" to create your first post.',
+    title: "No posts yet",
+    description: 'Click "New post" to create your first one.',
   },
   loading = false,
   variant = "classic",
@@ -1116,7 +1116,7 @@ export function SessionsTable({
           style={gridStyle}
           className="grid min-w-max items-center px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/80 gap-3"
         >
-          <span>Session Name</span>
+          <span>Post Name</span>
           <span>Campaign</span>
           <span>Last Edited By</span>
           <span>Status</span>
@@ -1267,7 +1267,7 @@ export function SessionsTable({
                   {onDuplicateSession && (
                     <button
                       onClick={() => onDuplicateSession(session.id)}
-                      aria-label="Duplicate session"
+                      aria-label="Duplicate this post"
                       title="Duplicate content item"
                       className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
                     >
@@ -1276,8 +1276,8 @@ export function SessionsTable({
                   )}
                   <button
                     onClick={() => setConfirmDeleteId(session.id)}
-                    aria-label="Delete session"
-                    title="Delete session"
+                    aria-label="Delete this post"
+                    title="Delete this post"
                     className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                   >
                     <Trash2 className="size-3.5" />

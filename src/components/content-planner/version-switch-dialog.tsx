@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { versionMeta, type AppVersion } from "./version-chooser-modal";
+import { versionMeta, type AppVersion } from "@/lib/versions";
 import { VersionPreview } from "./version-preview";
 
 const MESH: Record<AppVersion, string> = {

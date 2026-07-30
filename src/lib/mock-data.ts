@@ -129,14 +129,16 @@ export const campaigns: Campaign[] = [
     tag: "CONTEST",
     inWozku: true,
     endDate: "2026-08-04",
+    platforms: ["linkedin"],
     sessionIds: ["session-1", "session-2", "session-3", "session-4"],
   },
   {
     id: "camp-summer-launch",
     name: "summer-launch",
     tag: "LAUNCH",
-    inWozku: true,
+    inWozku: false,
     endDate: "2026-09-15",
+    platforms: ["linkedin"],
     sessionIds: [],
   },
 ];
@@ -144,7 +146,7 @@ export const campaigns: Campaign[] = [
 export const sessions: Session[] = [
   {
     id: "session-1",
-    title: "Untitled Session",
+    title: "Untitled post",
     createdAt: "2026-07-23T10:00:00Z",
     updatedAt: "2026-07-23T10:20:00Z",
     lastEditedBy: null,
@@ -164,7 +166,7 @@ export const sessions: Session[] = [
   },
   {
     id: "session-2",
-    title: "Untitled Session",
+    title: "Untitled post",
     createdAt: "2026-07-23T10:00:00Z",
     updatedAt: "2026-07-23T10:00:00Z",
     lastEditedBy: null,
@@ -184,7 +186,7 @@ export const sessions: Session[] = [
   },
   {
     id: "session-3",
-    title: "Untitled Session",
+    title: "Untitled post",
     createdAt: "2026-07-23T10:00:00Z",
     updatedAt: "2026-07-23T10:00:00Z",
     lastEditedBy: null,

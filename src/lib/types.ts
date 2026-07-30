@@ -1,6 +1,6 @@
 export type SessionStatus = "draft" | "wip" | "approved";
 
-export type Platform = "linkedin" | "instagram" | "facebook" | "x";
+export type Platform = "linkedin" | "x" | "slack" | "facebook" | "instagram";
 
 export type PostType = "Image" | "Frames" | "Reshare" | "PDF";
 
@@ -17,7 +17,17 @@ export interface Campaign {
   tag: string;
   inWozku: boolean;
   endDate: string;
+  platforms: Platform[];
   sessionIds: string[];
+}
+
+export type CampaignState = "draft" | "live" | "ended";
+
+export interface NewCampaign {
+  name: string;
+  tag: string;
+  endDate: string;
+  platforms: Platform[];
 }
 
 export interface PostVariation {

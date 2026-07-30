@@ -114,13 +114,6 @@ export const MENTION_KIND_LABEL: Record<MentionAccount["kind"], string> = {
   community: "Community",
 };
 
-export const PLATFORM_LABEL: Record<Platform, string> = {
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
-  facebook: "Facebook",
-  x: "X",
-};
-
 export function formatFollowers(count: number) {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${Math.round(count / 1000)}K`;
