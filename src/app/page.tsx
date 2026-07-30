@@ -67,6 +67,7 @@ import {
   sessions as initialSessions,
 } from "@/lib/mock-data";
 import type {
+  Campaign,
   CustomCellValues,
   CustomColumn,
   Feedback,
@@ -77,7 +78,7 @@ import type {
   Session,
 } from "@/lib/types";
 import { feedbackStatusMeta } from "@/lib/feedback";
-import { campaignDrafts, campaignMembers } from "@/lib/campaigns";
+import { campaignDrafts, campaignMembers, migrateCampaign } from "@/lib/campaigns";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
@@ -268,7 +269,7 @@ export default function Home() {
     const savedCampaigns = localStorage.getItem("cp_campaigns");
     if (savedCampaigns) {
       try {
-        setCampaigns(JSON.parse(savedCampaigns));
+        setCampaigns((JSON.parse(savedCampaigns) as Campaign[]).map(migrateCampaign));
       } catch (e) {}
     }
     const savedSessions = localStorage.getItem("cp_sessions");

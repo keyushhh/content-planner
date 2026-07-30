@@ -20,6 +20,7 @@ import {
   campaignState,
   campaignSubmitted,
   endsLabel,
+  platformsOf,
 } from "@/lib/campaigns";
 import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
@@ -143,7 +144,7 @@ export function CampaignPage({
                 )}
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                {campaign.platforms.map((id) => {
+                {platformsOf(campaign).map((id) => {
                   const meta = platformMeta(id);
                   return (
                     <span
@@ -214,7 +215,7 @@ export function CampaignPage({
                   <span className="min-w-0 flex-1 text-pretty">
                     This campaign has everything it needs. Take it live and its posts can
                     go out to{" "}
-                    {campaign.platforms.map((id) => platformMeta(id).label).join(", ")}.
+                    {platformsOf(campaign).map((id) => platformMeta(id).label).join(", ")}.
                   </span>
                 </>
               ) : (

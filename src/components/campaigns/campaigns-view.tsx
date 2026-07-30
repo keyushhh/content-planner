@@ -26,6 +26,7 @@ import {
   campaignState,
   campaignSubmitted,
   endsLabel,
+  platformsOf,
 } from "@/lib/campaigns";
 import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
@@ -293,7 +294,7 @@ function CampaignCard({
         </span>
 
         <span className="mt-4 flex flex-wrap items-center gap-1.5">
-          {campaign.platforms.map((id) => {
+          {platformsOf(campaign).map((id) => {
             const meta = platformMeta(id);
             return (
               <span

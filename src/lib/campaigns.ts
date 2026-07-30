@@ -21,6 +21,20 @@ export const CAMPAIGN_STATE: Record<
   },
 };
 
+export function migrateCampaign(c: Campaign): Campaign {
+  return {
+    ...c,
+    platforms: Array.isArray(c.platforms) ? c.platforms : ["linkedin"],
+    sessionIds: Array.isArray(c.sessionIds) ? c.sessionIds : [],
+    tag: c.tag || "NEW",
+    endDate: c.endDate ?? "",
+  };
+}
+
+export function platformsOf(campaign: Campaign) {
+  return Array.isArray(campaign.platforms) ? campaign.platforms : [];
+}
+
 export function hasEnded(campaign: Campaign, now = Date.now()) {
   if (!campaign.endDate || campaign.endDate === "TBD") return false;
   const parsed = new Date(campaign.endDate);
@@ -70,7 +84,7 @@ export function isSubmittedIn(
 ) {
   return (
     session.sentToCampaignIds.includes(campaign.id) ||
-    campaign.sessionIds.includes(session.id)
+    (campaign.sessionIds ?? []).includes(session.id)
   );
 }
 
