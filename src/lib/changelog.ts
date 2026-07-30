@@ -54,6 +54,12 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         kind: "new",
+        title: "Add automated changelog tracking script and enforce audit via npm scripts",
+        commit: "6ffdfa5",
+        draft: true,
+      },
+      {
+        kind: "new",
         title: "What's new, from ⌘K",
         detail:
           "Every change since the first commit, grouped by the day it shipped, reachable only from the search bar. A dot appears on the row when something in here postdates the last time you opened it. `npm run changelog` lists any commit that has not been written up yet, so the list cannot quietly fall behind the code.",
