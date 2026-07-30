@@ -11,6 +11,9 @@ import {
   Users,
 } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parseISO } from "date-fns";
 import { CampaignLandingPreview } from "./campaign-landing-preview";
 import {
   ACCEPTED_IMAGES,
@@ -212,16 +215,29 @@ export function CampaignForm({
                 required
                 issue={showIssue("endDate")}
                 hint="When this campaign stops collecting shares."
+                layout="horizontal"
               >
-                <input
-                  type="date"
-                  value={draft.endDate}
-                  onChange={(e) => onChange({ endDate: e.target.value })}
-                  className={cn(
-                    inputClass(showIssue("endDate")),
-                    "tabular-nums [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-90",
-                  )}
-                />
+                <Popover>
+                  <PopoverTrigger
+                    className={cn(
+                      inputClass(showIssue("endDate")),
+                      "flex items-center justify-between text-left",
+                      !draft.endDate && "text-muted-foreground/50",
+                    )}
+                  >
+                    {draft.endDate ? format(parseISO(draft.endDate), "PPP") : "Select a date..."}
+                    <ChevronDown className="size-4 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[220px] p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={draft.endDate ? parseISO(draft.endDate) : undefined}
+                      onSelect={(date) => {
+                        onChange({ endDate: date ? format(date, "yyyy-MM-dd") : "" });
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </FieldRow>
             </Section>
 
@@ -377,13 +393,41 @@ function FieldRow({
   required,
   issue,
   children,
+  layout = "vertical",
 }: {
   label: string;
   hint?: React.ReactNode;
   required?: boolean;
   issue?: boolean;
   children: React.ReactNode;
+  layout?: "vertical" | "horizontal";
 }) {
+  if (layout === "horizontal") {
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+        <div className="flex flex-col min-w-0 pr-4">
+          <span className="flex items-center gap-1.5 text-[13.5px] font-medium text-foreground/80">
+            {label}
+            {required && (
+              <span
+                aria-label="required"
+                className={cn(issue ? "text-amber-500" : "text-violet-500/70")}
+              >
+                *
+              </span>
+            )}
+          </span>
+          {hint && (
+            <span className="mt-0.5 text-[12px] text-muted-foreground/70 text-pretty">
+              {hint}
+            </span>
+          )}
+        </div>
+        <div className="min-w-[220px] shrink-0">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-col">
       <span className="flex items-center gap-1.5 text-[13.5px] font-medium text-foreground/80">
