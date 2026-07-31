@@ -114,6 +114,48 @@ export const MENTION_KIND_LABEL: Record<MentionAccount["kind"], string> = {
   community: "Community",
 };
 
+export const MENTION_GROUP_LABEL: Record<MentionAccount["kind"], string> = {
+  brand: "Organizations",
+  person: "People",
+  community: "Communities",
+};
+
+export type MentionTab = "all" | "orgs" | "people" | "communities";
+
+export const MENTION_TABS: { id: MentionTab; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "orgs", label: "Orgs" },
+  { id: "people", label: "People" },
+  { id: "communities", label: "Communities" },
+];
+
+const TAB_KINDS: Record<MentionTab, MentionAccount["kind"][]> = {
+  all: ["brand", "person", "community"],
+  orgs: ["brand"],
+  people: ["person"],
+  communities: ["community"],
+};
+
+const KIND_ORDER: MentionAccount["kind"][] = ["brand", "community", "person"];
+
+export function accountsForTab(tab: MentionTab, accounts: MentionAccount[]) {
+  const kinds = TAB_KINDS[tab];
+  return accounts.filter((a) => kinds.includes(a.kind));
+}
+
+export function groupByKind(accounts: MentionAccount[]) {
+  return KIND_ORDER.map((kind) => ({
+    kind,
+    label: MENTION_GROUP_LABEL[kind],
+    accounts: accounts.filter((a) => a.kind === kind),
+  })).filter((group) => group.accounts.length > 0);
+}
+
+export function accountsByIds(ids: string[], accounts = mentionAccounts) {
+  const set = new Set(ids);
+  return accounts.filter((a) => set.has(a.id));
+}
+
 export function formatFollowers(count: number) {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${Math.round(count / 1000)}K`;

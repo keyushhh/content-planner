@@ -21,7 +21,9 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/toast";
 import { MentionPopover, useMentionTarget } from "./mention-list";
+import { mentionsIn, stripMention, type MentionAccount } from "@/lib/mentions";
 
 export const OPTIMIZATIONS = [
   "Engagement",
@@ -276,6 +278,7 @@ export function GeneratePanel({
   onAddAlternates: (copies: string[]) => void;
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [brief, setBrief] = useState("");
   const [settings, setSettings] = useState<GeneratorSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -342,6 +345,13 @@ export function GeneratePanel({
       ? [...picked].sort((a, b) => a - b).map((i) => drafts[i])
       : drafts;
     onAddAlternates(copies);
+    toast({
+      title: `${copies.length} ${copies.length === 1 ? "alternate" : "alternates"} added`,
+      description: "Find them in the variations list.",
+      tone: "success",
+    });
+    discard();
+    onClose();
   }
 
   return (
@@ -548,9 +558,18 @@ export function GeneratePanel({
                     <DraftAction
                       label="Add as alternate"
                       icon={Plus}
-                      onClick={() => onAddAlternates([copy])}
+                      onClick={() => {
+                        onAddAlternates([copy]);
+                        toast({
+                          title: "Alternate added",
+                          description: "Find it in the variations list.",
+                          tone: "success",
+                        });
+                      }}
                     />
-                    <DraftAction label="Use" onClick={() => onUse(copy)} accent />
+                    {!(allPicked && drafts.length > 1) && (
+                      <DraftAction label="Use" onClick={() => onUse(copy)} accent />
+                    )}
                   </span>
                 )}
               </div>
@@ -572,16 +591,110 @@ export function GeneratePanel({
           <div className="flex flex-wrap items-center justify-end gap-1.5 pt-0.5">
             <DraftAction label="Discard" onClick={discard} />
             {drafts.length > 1 && (
-              <DraftAction
-                label={
-                  picked.length
-                    ? `Add ${picked.length} as ${picked.length === 1 ? "alternate" : "alternates"}`
-                    : `Add all ${drafts.length} as alternates`
-                }
-                icon={Plus}
+              <button
                 onClick={addPicked}
-              />
+                className="flex h-7 items-center gap-1 rounded-(--r-pill) bg-violet-600 px-3 text-[11.5px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+              >
+                <Plus className="size-3" />
+                {picked.length
+                  ? `Add ${picked.length} as ${picked.length === 1 ? "alternate" : "alternates"}`
+                  : `Add all ${drafts.length} as alternates`}
+              </button>
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function PostAiAssist({
+  source,
+  disabled,
+  onUse,
+  onClose,
+}: {
+  source: string;
+  disabled?: boolean;
+  onUse: (copy: string) => void;
+  onClose: () => void;
+}) {
+  const [brief, setBrief] = useState("");
+  const [status, setStatus] = useState<"idle" | "generating">("idle");
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const canGenerate = !disabled && status === "idle" && source.trim().length > 0;
+
+  function generate() {
+    if (!canGenerate) return;
+    setStatus("generating");
+    const [next] = generateVariations(source, brief, { ...DEFAULT_SETTINGS, count: 1 });
+    window.setTimeout(() => {
+      setDraft(next);
+      setStatus("idle");
+    }, 800);
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-9 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-[12px] font-medium text-violet-200/90">
+          <Sparkles className="size-3.5" />
+          AI Assist
+        </span>
+        <button
+          onClick={onClose}
+          aria-label="Close AI Assist"
+          className="flex size-6 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.07] hover:text-foreground active:scale-(--press)"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+
+      <input
+        value={brief}
+        onChange={(e) => setBrief(e.target.value)}
+        disabled={disabled}
+        placeholder="Optional: shorter, funnier, more technical…"
+        className="h-9 w-full rounded-(--r-inner) bg-(--ink)/[0.03] px-3 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:bg-(--ink)/[0.05] focus:inset-ring-violet-400/45 disabled:cursor-not-allowed disabled:opacity-70"
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] text-muted-foreground/70">
+          Rewrites this post&rsquo;s copy · AI can make mistakes
+        </span>
+        <button
+          onClick={generate}
+          disabled={!canGenerate}
+          className={cn(
+            "flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) px-3.5 text-[12.5px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale,opacity] duration-150",
+            canGenerate
+              ? "bg-violet-600 hover:bg-violet-500 active:scale-(--press)"
+              : "cursor-not-allowed bg-violet-600/40 opacity-70",
+          )}
+        >
+          {status === "generating" ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-3.5" />
+              {draft ? "Regenerate" : "Generate"}
+            </>
+          )}
+        </button>
+      </div>
+
+      {draft && (
+        <div className="rounded-(--r-inner) bg-(--ink)/[0.022] p-3 inset-ring-1 inset-ring-(--ink)/[0.07]">
+          <p className="whitespace-pre-line text-[12.5px] leading-snug text-muted-foreground">
+            {draft}
+          </p>
+          <div className="mt-2 flex justify-end gap-1.5">
+            <DraftAction label="Discard" onClick={() => setDraft(null)} />
+            <DraftAction label="Use" onClick={() => onUse(draft)} accent />
           </div>
         </div>
       )}
@@ -633,6 +746,17 @@ function DraftEditor({
 }) {
   const [value, setValue] = useState(initial);
   const [area, mention] = useMentionTarget(value, setValue);
+  const taggedIds = mentionsIn(value).map((a) => a.id);
+
+  function toggleMention(account: MentionAccount) {
+    if (taggedIds.includes(account.id)) {
+      const stripped = stripMention(value, account.handle);
+      setValue(stripped);
+      mention.clamp(stripped);
+    } else {
+      mention.insert(account.handle);
+    }
+  }
 
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -657,8 +781,8 @@ function DraftEditor({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MentionPopover
-          value={value}
-          onInsert={mention.insert}
+          taggedIds={taggedIds}
+          onToggle={toggleMention}
           side="top"
           align="start"
         />

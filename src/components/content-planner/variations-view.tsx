@@ -22,6 +22,7 @@ import { MediaThumb } from "./media-thumb";
 import { SaveChip, Stagger } from "./session-composer";
 import { GeneratePanel } from "./variation-generator";
 import { MentionPopover, useMentionTarget } from "./mention-list";
+import { mentionsIn, stripMention, type MentionAccount } from "@/lib/mentions";
 
 const MAX_ASSETS = 3;
 
@@ -95,6 +96,7 @@ export function VariationsView({
         label: `Variation ${variations.length + 1}`,
         copy: seedCopy,
         assetIds: [],
+        mentionedAccountIds: mentionsIn(seedCopy).map((a) => a.id),
       },
     ]);
     setSearchQuery("");
@@ -111,6 +113,7 @@ export function VariationsView({
         label: `Variation ${variations.length + i + 1}`,
         copy,
         assetIds: [],
+        mentionedAccountIds: mentionsIn(copy).map((a) => a.id),
       })),
     ]);
     setSearchQuery("");
@@ -191,7 +194,7 @@ export function VariationsView({
           )}
           {!disabled && (
             <button
-              onClick={() => addVariation()}
+              onClick={() => addVariation(primaryCopy)}
               className="flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3 text-[12.5px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500/12 hover:text-violet-100 hover:inset-ring-violet-400/40 active:scale-(--press)"
             >
               <Plus className="size-3.5" />
@@ -297,7 +300,7 @@ export function VariationsView({
               {variations.length === 0 && !disabled && (
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   <button
-                    onClick={() => addVariation()}
+                    onClick={() => addVariation(primaryCopy)}
                     className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
                   >
                     <Plus className="size-4" />
@@ -305,11 +308,11 @@ export function VariationsView({
                   </button>
                   {primaryCopy.trim() && (
                     <button
-                      onClick={() => addVariation(primaryCopy)}
+                      onClick={() => addVariation()}
                       className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3.5 text-[13px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,box-shadow,scale] duration-150 hover:bg-(--ink)/[0.07] active:scale-(--press)"
                     >
-                      <CopyIcon className="size-3.5" />
-                      Start from the primary
+                      <FileText className="size-3.5" />
+                      Start blank
                     </button>
                   )}
                 </div>
@@ -389,7 +392,7 @@ export function VariationsView({
 
           {filtered.length > 0 && !disabled && !q && (
             <button
-              onClick={() => addVariation()}
+              onClick={() => addVariation(primaryCopy)}
               className="group flex items-center gap-2 px-5 py-3 text-left text-[12.5px] text-muted-foreground transition-colors duration-150 hover:bg-(--ink)/[0.03] hover:text-foreground"
             >
               <span className="flex size-5 items-center justify-center rounded-(--r-pill) bg-(--ink)/[0.05] transition-[background-color,color] duration-150 group-hover:bg-violet-500/20 group-hover:text-violet-200">
@@ -620,6 +623,20 @@ function VariationEditor({
   const hasAssets = variation.assetIds.length > 0;
   const canAddAsset = variation.assetIds.length < MAX_ASSETS;
 
+  function toggleMention(account: MentionAccount) {
+    if (variation.mentionedAccountIds.includes(account.id)) {
+      const stripped = stripMention(copyDraft, account.handle);
+      setCopyDraft(stripped);
+      mention.clamp(stripped);
+      onPatch({
+        mentionedAccountIds: variation.mentionedAccountIds.filter((id) => id !== account.id),
+      });
+    } else {
+      mention.insert(account.handle);
+      onPatch({ mentionedAccountIds: [...variation.mentionedAccountIds, account.id] });
+    }
+  }
+
   function back() {
     flush();
     onBack();
@@ -713,8 +730,8 @@ function VariationEditor({
                 </label>
                 <span className="flex shrink-0 items-center gap-1">
                 <MentionPopover
-                  value={copyDraft}
-                  onInsert={mention.insert}
+                  taggedIds={variation.mentionedAccountIds}
+                  onToggle={toggleMention}
                   disabled={disabled}
                 />
                 {!disabled && !generating && (

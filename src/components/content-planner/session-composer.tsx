@@ -28,7 +28,8 @@ import { SECONDARY_ACTION_SM } from "@/lib/button-styles";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
 import { MentionList, useMentionTarget } from "./mention-list";
-import { mentionsIn, stripMention, type MentionAccount } from "@/lib/mentions";
+import { accountsByIds, stripMention, type MentionAccount } from "@/lib/mentions";
+import { PostAiAssist } from "./variation-generator";
 import type { Feedback, MediaAsset, PostType, Session } from "@/lib/types";
 
 export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
@@ -215,6 +216,7 @@ export function SessionComposer({
   isDirty,
   savePendingChanges,
   onUpdate,
+  onUpdateWithPendingSave,
   onClose,
   onOpenFeedback,
   isFeedbackOpen,
@@ -233,15 +235,24 @@ export function SessionComposer({
   const [scrolled, setScrolled] = useState(false);
   const [mentionsOpen, setMentionsOpen] = useState(false);
   const [copyArea, mention] = useMentionTarget(copyDraft, onCopyChange);
+  const aiAssist = usePostAiAssist();
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
 
-  const activeMentions = mentionsIn(copyDraft);
+  const activeMentions = accountsByIds(session.mentionedAccountIds);
 
-  function removeMention(handle: string) {
-    const stripped = stripMention(copyDraft, handle);
-    onCopyChange(stripped);
-    mention.clamp(stripped);
+  function toggleMention(account: MentionAccount) {
+    if (session.mentionedAccountIds.includes(account.id)) {
+      const stripped = stripMention(copyDraft, account.handle);
+      onCopyChange(stripped);
+      mention.clamp(stripped);
+      onUpdate({
+        mentionedAccountIds: session.mentionedAccountIds.filter((id) => id !== account.id),
+      });
+    } else {
+      mention.insert(account.handle);
+      onUpdate({ mentionedAccountIds: [...session.mentionedAccountIds, account.id] });
+    }
   }
 
   const feedbackFor = (sectionLabel: string) =>
@@ -412,7 +423,12 @@ export function SessionComposer({
                             </span>
                           )}
                         </GhostAction>
-                        <AiAssistButton className="ml-1" />
+                        <AiAssistButton
+                          className="ml-1"
+                          active={aiAssist.open}
+                          disabled={isCampaignLocked}
+                          onClick={() => aiAssist.setOpen((v) => !v)}
+                        />
                       </div>
                     }
                   />
@@ -435,6 +451,17 @@ export function SessionComposer({
                       />
                     )}
                   </div>
+                  {aiAssist.open && (
+                    <PostAiAssist
+                      source={copyDraft}
+                      disabled={isCampaignLocked}
+                      onUse={(copy) => {
+                        onCopyChange(copy);
+                        onUpdateWithPendingSave({ copy });
+                      }}
+                      onClose={() => aiAssist.setOpen(false)}
+                    />
+                  )}
                   <div className="border-t border-(--ink)/[0.06] px-4 py-2.5">
                     <CopyMeta words={wordCount} count={copyDraft.length} />
                   </div>
@@ -544,9 +571,9 @@ export function SessionComposer({
             {mentionsOpen ? (
               <MentionsPane
                 accounts={activeMentions}
+                taggedIds={session.mentionedAccountIds}
                 disabled={isCampaignLocked}
-                onAdd={mention.insert}
-                onRemove={removeMention}
+                onToggle={toggleMention}
                 onClose={() => setMentionsOpen(false)}
               />
             ) : (
@@ -926,15 +953,15 @@ export function GhostAction({
 
 function MentionsPane({
   accounts,
+  taggedIds,
   disabled,
-  onAdd,
-  onRemove,
+  onToggle,
   onClose,
 }: {
   accounts: MentionAccount[];
+  taggedIds: string[];
   disabled?: boolean;
-  onAdd: (handle: string) => void;
-  onRemove: (handle: string) => void;
+  onToggle: (account: MentionAccount) => void;
   onClose: () => void;
 }) {
   return (
@@ -943,13 +970,8 @@ function MentionsPane({
         <span className="flex min-w-0 items-center gap-1.5">
           <AtSign className="size-3.5 shrink-0 text-blue-300" />
           <span className="truncate text-[13px] font-semibold tracking-tight">
-            Mentions
+            Tag community members
           </span>
-          {accounts.length > 0 && (
-            <span className="shrink-0 rounded-(--r-pill) bg-blue-400/15 px-1.5 text-[10px] font-semibold tabular-nums text-blue-200">
-              {accounts.length}
-            </span>
-          )}
         </span>
         <button
           onClick={onClose}
@@ -964,7 +986,7 @@ function MentionsPane({
       {accounts.length > 0 && (
         <div className="shrink-0 border-b border-(--ink)/[0.06] px-5 py-3">
           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            In this post
+            Tagged on this post
           </span>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {accounts.map((account) => (
@@ -976,7 +998,7 @@ function MentionsPane({
                 <span className="truncate">@{account.handle}</span>
                 {!disabled && (
                   <button
-                    onClick={() => onRemove(account.handle)}
+                    onClick={() => onToggle(account)}
                     aria-label={`Remove @${account.handle}`}
                     className="-mr-0.5 flex size-4 shrink-0 items-center justify-center rounded-(--r-pill) text-blue-200/70 transition-[color,background-color] duration-150 hover:bg-destructive/20 hover:text-destructive"
                   >
@@ -996,8 +1018,8 @@ function MentionsPane({
           </p>
         ) : (
           <MentionList
-            active={accounts.map((a) => a.handle)}
-            onPick={onAdd}
+            taggedIds={taggedIds}
+            onPick={onToggle}
             className="min-h-0 flex-1"
             listClassName="flex-1"
           />
@@ -1005,7 +1027,7 @@ function MentionsPane({
       </div>
 
       <div className="shrink-0 border-t border-(--ink)/[0.06] px-5 py-2.5 text-[11px] text-muted-foreground/70">
-        Inserted at the cursor in your copy
+        Tagged accounts are also inserted at the cursor in your copy
       </div>
     </div>
   );
@@ -1097,13 +1119,40 @@ export function CopyMeta({ words, count }: { words: number; count: number }) {
   );
 }
 
-export function AiAssistButton({ className }: { className?: string }) {
+export function AiAssistButton({
+  className,
+  active,
+  disabled,
+  onClick,
+}: {
+  className?: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <button title="AI Assist" className={cn(SECONDARY_ACTION_SM, className)}>
+    <button
+      type="button"
+      title="AI Assist"
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        SECONDARY_ACTION_SM,
+        active && "bg-violet-500/12 text-violet-200 inset-ring-violet-400/30",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+    >
       <Sparkles className="size-3.5" />
       AI Assist
     </button>
   );
+}
+
+export function usePostAiAssist() {
+  const [open, setOpen] = useState(false);
+  return { open, setOpen };
 }
 
 export function ChipRow({

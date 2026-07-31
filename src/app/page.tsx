@@ -128,6 +128,18 @@ function migrateSession(
     next.draftCampaignIds = [];
   }
 
+  if (!Array.isArray(next.mentionedAccountIds)) {
+    next.mentionedAccountIds = [];
+  }
+
+  if (!Array.isArray(next.variations)) {
+    next.variations = [];
+  } else {
+    next.variations = next.variations.map((v) =>
+      Array.isArray(v.mentionedAccountIds) ? v : { ...v, mentionedAccountIds: [] },
+    );
+  }
+
   if (!Array.isArray(next.feedback)) {
     const flat: Feedback[] = [];
     const visit = (c: LegacyComment, section?: string) => {
@@ -171,6 +183,7 @@ function createBlankSession(id: string, postType: PostType = "Image"): Session {
     visualAssetIds: [],
     copy: "",
     variations: [],
+    mentionedAccountIds: [],
     hashtags: "",
     draftCampaignIds: [],
     sentToCampaignIds: [],
@@ -765,6 +778,7 @@ export default function Home() {
             ? ""
             : `${topic} copy for item ${i + 1}. Sharing what we shipped and why it matters.`,
         variations: [],
+        mentionedAccountIds: [],
         hashtags: i % 4 === 0 ? "#product #launch" : "",
         draftCampaignIds: [],
         sentToCampaignIds: [],

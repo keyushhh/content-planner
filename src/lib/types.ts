@@ -45,6 +45,7 @@ export interface PostVariation {
   label: string;
   copy: string;
   assetIds: string[];
+  mentionedAccountIds: string[];
 }
 
 export type FeedbackStatus = "open" | "in_progress" | "done" | "discarded";
@@ -84,6 +85,7 @@ export interface Session {
   visualAssetIds: string[];
   copy: string;
   variations: PostVariation[];
+  mentionedAccountIds: string[];
   hashtags: string;
   draftCampaignIds: string[];
   sentToCampaignIds: string[];

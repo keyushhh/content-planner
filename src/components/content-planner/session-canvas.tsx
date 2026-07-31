@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   AlertCircle,
-  AtSign,
   ChevronsRight,
   Layers,
   Repeat2,
@@ -18,6 +17,8 @@ import { cn, tagTint } from "@/lib/utils";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
 import { MentionPopover, useMentionTarget } from "./mention-list";
+import { stripMention, type MentionAccount } from "@/lib/mentions";
+import { PostAiAssist } from "./variation-generator";
 import {
   Banner,
   Chip,
@@ -35,6 +36,7 @@ import {
   TAG_SUGGESTIONS,
   formatDate,
   useComposerShortcuts,
+  usePostAiAssist,
   useTagFlash,
   type ComposerLayoutProps,
 } from "./session-composer";
@@ -72,6 +74,21 @@ export function SessionCanvas({
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
   const [copyArea, mention] = useMentionTarget(copyDraft, onCopyChange);
+  const aiAssist = usePostAiAssist();
+
+  function toggleMention(account: MentionAccount) {
+    if (session.mentionedAccountIds.includes(account.id)) {
+      const stripped = stripMention(copyDraft, account.handle);
+      onCopyChange(stripped);
+      mention.clamp(stripped);
+      onUpdate({
+        mentionedAccountIds: session.mentionedAccountIds.filter((id) => id !== account.id),
+      });
+    } else {
+      mention.insert(account.handle);
+      onUpdate({ mentionedAccountIds: [...session.mentionedAccountIds, account.id] });
+    }
+  }
 
   useComposerShortcuts({ savePendingChanges, readyToSend, onOpenSend });
   const { flashedTag, flashTag } = useTagFlash();
@@ -299,11 +316,16 @@ export function SessionCanvas({
                     )}
                   </GhostAction>
                   <MentionPopover
-                    value={copyDraft}
-                    onInsert={mention.insert}
+                    taggedIds={session.mentionedAccountIds}
+                    onToggle={toggleMention}
                     disabled={isCampaignLocked}
                   />
-                  <AiAssistButton className="ml-1" />
+                  <AiAssistButton
+                    className="ml-1"
+                    active={aiAssist.open}
+                    disabled={isCampaignLocked}
+                    onClick={() => aiAssist.setOpen((v) => !v)}
+                  />
                 </div>
               </div>
               <div className="relative">
@@ -326,6 +348,17 @@ export function SessionCanvas({
                   />
                 )}
               </div>
+              {aiAssist.open && (
+                <PostAiAssist
+                  source={copyDraft}
+                  disabled={isCampaignLocked}
+                  onUse={(copy) => {
+                    onCopyChange(copy);
+                    onUpdateWithPendingSave({ copy });
+                  }}
+                  onClose={() => aiAssist.setOpen(false)}
+                />
+              )}
               <div className="px-9 pb-4">
                 <CopyMeta words={wordCount} count={copyDraft.length} />
               </div>
