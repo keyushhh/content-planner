@@ -17,9 +17,33 @@ export type ChangelogDay = {
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-07-31",
+    summary: "Structured mentions, and a required header image",
+    entries: [
+      {
+        kind: "new",
+        title: "Mentions are now a real, structured list instead of text parsed out of the copy",
+        detail: "Tagging inserts the @handle and adds the account to a stored list at the same time, so the post and each variation carry their own independent set. The picker gained a Communities tab and stays anchored to whatever field it's tagging instead of floating as one global modal. AI Assist now works on the main post with a simpler one-draft flow, new variations start from the primary post's copy, and picking every draft surfaces one clear \"add as alternates\" action instead of leaving per-draft Use buttons around to be ambiguous.",
+        commit: "5ce8eb0",
+      },
+      {
+        kind: "new",
+        title: "Redesigned the campaign wizard's step header and made header image a required field",
+        detail: "The three steps now stay visible with their names rather than collapsing into a bare progress bar, and brand guideline mode correctly forces sharp corners on the form. Header image is now validated and flagged like every other required field, and the campaigns list state filter no longer truncates \"All campaigns\".",
+        commit: "26cfe66",
+      },
+    ],
+  },
+  {
     date: "2026-07-30",
     summary: "Motion, accessibility, and this list",
     entries: [
+      {
+        kind: "improved",
+        title: "The campaign end date is a calendar popover, not a native input",
+        detail: "Built on react-day-picker, so it matches the app's own styling instead of the browser's default date control.",
+        commit: "0c9dafb",
+      },
       {
         kind: "fixed",
         title: "Ensure native date pickers respect dark mode",
