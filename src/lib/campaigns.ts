@@ -76,6 +76,11 @@ export const CAMPAIGN_REQUIRED: {
   { key: "logoUrl", label: "Logo", filled: (c) => c.logoUrl.trim().length > 0 },
   { key: "name", label: "Campaign name", filled: (c) => c.name.trim().length > 0 },
   {
+    key: "headerUrl",
+    label: "Header image",
+    filled: (c) => c.headerUrl.trim().length > 0,
+  },
+  {
     key: "description",
     label: "Page description",
     filled: (c) => !isRichTextEmpty(c.description),

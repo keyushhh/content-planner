@@ -95,6 +95,12 @@ export function CampaignLandingPreview({
           />
         )}
 
+        <div className="mt-5 flex justify-center">
+          <span className="pointer-events-none flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[12.5px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15">
+            <Share2 className="size-3.5" />
+            {shareLabel}
+          </span>
+        </div>
       </div>
 
       <div className="border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-6 py-3.5">

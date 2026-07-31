@@ -25,9 +25,17 @@ export function CampaignListItem({
   const needsPost = state === "draft" && submitted === 0;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="group flex w-full items-center gap-4 overflow-hidden rounded-(--r-surface) bg-(--surface-raised) p-3 pr-4 text-left shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06] transition-[box-shadow,background-color,scale] duration-200 hover:shadow-(--lift-sm) hover:inset-ring-(--ink)/[0.12] active:scale-[0.995]"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group flex w-full cursor-pointer items-center gap-4 overflow-hidden rounded-(--r-surface) bg-(--surface-raised) p-3 pr-4 text-left shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06] transition-[box-shadow,background-color,scale] duration-200 hover:shadow-(--lift-sm) hover:inset-ring-(--ink)/[0.12] active:scale-[0.995]"
     >
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08]">
         {campaign.logoUrl ? (
@@ -92,6 +100,7 @@ export function CampaignListItem({
               <>
                 <span className="text-muted-foreground/30">·</span>
                 <span className="flex items-center gap-1 text-amber-300/90">
+                  <FileEdit className="size-3 shrink-0" />
                   <span className="tabular-nums">{drafts}</span> waiting
                 </span>
               </>
@@ -112,6 +121,6 @@ export function CampaignListItem({
         </div>
         <CampaignContextMenu onOpen={onOpen} />
       </div>
-    </button>
+    </div>
   );
 }

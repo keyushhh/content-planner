@@ -3,7 +3,6 @@ import { CAMPAIGN_STATE, endsLabel, platformsOf } from "@/lib/campaigns";
 import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
 import type { Campaign, CampaignState } from "@/lib/types";
-import { CampaignContextMenu } from "./campaign-context-menu";
 
 export function CampaignGalleryCard({
   campaign,

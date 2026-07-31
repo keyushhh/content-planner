@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -46,6 +46,15 @@ const FILTERS: { id: CampaignState | "all"; label: string }[] = [
   { id: "ended", label: "Ended" },
 ];
 
+const VIEW_TYPES = ["cards", "gallery", "list", "table"] as const;
+type ViewType = (typeof VIEW_TYPES)[number];
+
+function readStoredViewType(): ViewType {
+  if (typeof window === "undefined") return "table";
+  const saved = localStorage.getItem("wozku:campaigns-view");
+  return (VIEW_TYPES as readonly string[]).includes(saved ?? "") ? (saved as ViewType) : "table";
+}
+
 export function CampaignsView({
   campaigns,
   sessions,
@@ -59,16 +68,8 @@ export function CampaignsView({
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<CampaignState | "all">("all");
-  const [viewType, setViewType] = useState<"cards" | "gallery" | "list" | "table">("table");
+  const [viewType, setViewType] = useState<ViewType>(readStoredViewType);
   const [now] = useState(() => Date.now());
-
-  // Load saved view preference
-  useEffect(() => {
-    const saved = localStorage.getItem("wozku:campaigns-view");
-    if (saved && ["cards", "gallery", "list", "table"].includes(saved)) {
-      setViewType(saved as any);
-    }
-  }, []);
 
   function handleViewChange(type: typeof viewType) {
     setViewType(type);
@@ -153,7 +154,7 @@ export function CampaignsView({
                   <button
                     title="Filter by state"
                     className={cn(
-                      "flex h-8 w-[148px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
+                      "flex h-8 w-[168px] items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium inset-ring-1 transition-[background-color,box-shadow,color,scale] duration-150 active:scale-(--press)",
                       filter !== "all"
                         ? "bg-violet-500/[0.16] text-violet-100 inset-ring-violet-400/45"
                         : "bg-(--ink)/[0.035] text-muted-foreground inset-ring-(--ink)/[0.08] hover:text-foreground",
@@ -167,7 +168,7 @@ export function CampaignsView({
                 </span>
                 <ChevronDown className="size-3.5 shrink-0 opacity-60" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[148px]">
+              <DropdownMenuContent align="start" className="min-w-[168px]">
                 {FILTERS.map(({ id, label }) => (
                   <DropdownMenuItem key={id} onClick={() => setFilter(id)}>
                     <span className="flex-1 whitespace-nowrap">{label}</span>
@@ -299,9 +300,17 @@ function CampaignCard({
   const needsPost = state === "draft" && submitted === 0;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="group flex h-full w-full flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) text-left shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.07] transition-[box-shadow,background-color,scale] duration-200 hover:shadow-(--lift-md) hover:inset-ring-(--ink)/[0.12] active:scale-[0.995]"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-raised) text-left shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.07] transition-[box-shadow,background-color,scale] duration-200 hover:shadow-(--lift-md) hover:inset-ring-(--ink)/[0.12] active:scale-[0.995]"
     >
       <span
         aria-hidden
@@ -373,13 +382,19 @@ function CampaignCard({
               <span className="text-[11.5px] font-medium tabular-nums text-foreground/80">{submitted}</span>
               <span className="text-[10.5px]">posts</span>
             </span>
+            {needsPost && drafts === 0 && (
+              <span className="text-[10.5px] text-muted-foreground/70">Needs post</span>
+            )}
+          </span>
+          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-(--r-round) text-muted-foreground/30 transition-colors group-hover:bg-(--ink)/[0.04] group-hover:text-foreground/80">
+            <ArrowRight className="size-4" />
           </span>
           <CampaignContextMenu onOpen={onOpen} />
         </span>
       </span>
-    </button>
+    </div>
   );
-};
+}
 
 function ViewToggle({
   active,

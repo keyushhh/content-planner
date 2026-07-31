@@ -154,6 +154,8 @@ export function CampaignForm({
             <Section label="The page">
               <FieldRow
                 label="Header image"
+                required
+                issue={showIssue("headerUrl")}
                 hint="1920 by 400 pixels reads best across the top."
               >
                 <ImageField
@@ -241,7 +243,7 @@ export function CampaignForm({
               </FieldRow>
             </Section>
 
-            <section className="flex flex-col overflow-hidden rounded-[20px] bg-(--surface-panel) shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06]">
+            <section className="flex flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-panel) shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06]">
               <button
                 onClick={() => setShowExtra((v) => !v)}
                 aria-expanded={showExtra}
@@ -252,7 +254,6 @@ export function CampaignForm({
                     Additional settings
                   </span>
                   <span className="mt-0.5 truncate text-[12px] text-muted-foreground/80">
-                    {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
                     {(() => {
                       const active = TOGGLES.filter(({ key }) => draft.settings[key]);
                       return active.length > 0
@@ -325,8 +326,9 @@ export function CampaignForm({
               <div className="min-w-0 flex-1 pr-8">
                 {missing.length > 0 ? (
                   <div className="flex items-center gap-2 text-[13px] text-amber-500 animate-in fade-in">
+                    <AlertCircle className="size-4 shrink-0" />
                     <span className="shrink-0 font-semibold">Required to launch:</span>
-                    <span className="truncate opacity-90">
+                    <span className="truncate text-amber-500/80">
                       {missing.map((field) => field.label).join(", ")}
                     </span>
                   </div>
@@ -361,7 +363,7 @@ export function CampaignForm({
 
 function inputClass(issue: boolean) {
   return cn(
-    "h-10 w-full rounded-xl bg-(--ink)/[0.02] px-3.5 text-[14px] caret-violet-500 outline-none transition-[box-shadow,background-color] duration-200 inset-ring-1 placeholder:text-muted-foreground/40 focus:bg-(--ink)/[0.04]",
+    "h-10 w-full rounded-(--r-inner) bg-(--ink)/[0.02] px-3.5 text-[14px] caret-violet-500 outline-none transition-[box-shadow,background-color] duration-200 inset-ring-1 placeholder:text-muted-foreground/40 focus:bg-(--ink)/[0.04]",
     issue
       ? "inset-ring-amber-500/50 focus:inset-ring-amber-500/80"
       : "inset-ring-(--ink)/[0.08] hover:inset-ring-(--ink)/[0.15] focus:inset-ring-violet-500/50 focus:hover:inset-ring-violet-500/50",
@@ -376,7 +378,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex min-w-0 flex-col overflow-hidden rounded-[20px] bg-(--surface-panel) shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06]">
+    <section className="flex min-w-0 flex-col overflow-hidden rounded-(--r-surface) bg-(--surface-panel) shadow-sm inset-ring-1 inset-ring-(--ink)/[0.06]">
       <div className="border-b border-(--ink)/[0.04] bg-(--ink)/[0.015] px-6 py-4">
         <h2 className="text-[15px] font-semibold tracking-tight text-foreground/90">
           {label}
@@ -552,7 +554,7 @@ function ImageField({
           accept(e.dataTransfer.files?.[0]);
         }}
         className={cn(
-          "group flex w-full items-center justify-start gap-4 rounded-xl border border-dashed px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.995]",
+          "group flex w-full items-center justify-start gap-4 rounded-(--r-inner) border border-dashed px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.995]",
           over
             ? "border-violet-500/50 bg-violet-500/[0.04]"
             : "border-(--ink)/[0.15] bg-(--ink)/[0.015] hover:border-violet-500/30 hover:bg-(--ink)/[0.03]",
@@ -640,14 +642,4 @@ function SettingToggle({
       </button>
     </div>
   );
-}
-
-function summarize(settings: CampaignSettings) {
-  const on = [
-    settings.multiPostIntervals && "multiple posts",
-    settings.holdAndFire && "hold and fire",
-    settings.sendToAdvocates && "advocates",
-    settings.communityInvitation && "community invite",
-  ].filter(Boolean) as string[];
-  return on.length ? on.join(" · ") : "Nothing changed from the defaults";
 }

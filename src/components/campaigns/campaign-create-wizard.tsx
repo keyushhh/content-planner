@@ -2,23 +2,18 @@
 
 import { useMemo, useState } from "react";
 import {
-  AlertCircle,
   ArrowLeft,
   Check,
-  ChevronDown,
-  ChevronRight,
   Copy,
-  FileEdit,
   PlusCircle,
   Search,
   X,
 } from "lucide-react";
 import { CampaignForm } from "./campaign-form";
-import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/content-planner/status-badge";
 import { missingFields } from "@/lib/campaigns";
 import { cn } from "@/lib/utils";
-import type { Campaign, MediaAsset, NewCampaign, Session } from "@/lib/types";
+import type { Campaign, NewCampaign, Session } from "@/lib/types";
 
 export type CampaignWizardState = {
   step: 1 | 2 | 3;
@@ -97,80 +92,97 @@ export function CampaignCreateWizard({
   );
 }
 
+const WIZARD_STEPS = ["Setup", "Posts", "Complete"];
+
 function WizardHeader({
   step,
-  title,
   onCancel,
   onBack,
   rightAction,
 }: {
   step: number;
-  title: string;
   onCancel?: () => void;
   onBack?: () => void;
   rightAction?: React.ReactNode;
 }) {
   return (
     <div className="flex shrink-0 border-b border-(--ink)/[0.06] bg-background">
-      <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4 px-6 py-3">
+      <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4 px-6 py-3.5">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {onBack ? (
             <button
               onClick={onBack}
+              aria-label="Back"
               className="flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-colors hover:bg-(--ink)/[0.06] hover:text-foreground"
             >
               <ArrowLeft className="size-4" />
             </button>
           ) : onCancel ? (
-            <Button
-              variant="ghost"
+            <button
               onClick={onCancel}
-              className="group rounded-full bg-(--ink)/[0.03] border border-(--ink)/[0.10] hover:bg-destructive/15 dark:hover:bg-destructive/15 hover:text-destructive dark:hover:text-destructive hover:border-destructive/30 dark:hover:border-destructive/30 transition-colors"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.03] py-1 pl-2.5 pr-3.5 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive hover:inset-ring-destructive/25"
             >
-              <X className="size-4" />
+              <X className="size-3.5" />
               Cancel
-            </Button>
+            </button>
           ) : null}
         </div>
 
-      <div className="flex flex-col items-center justify-center">
-        <div className="mt-1.5 flex items-center gap-2.5">
-          {["Setup", "Posts", "Complete"].map((stepName, i) => {
-            const stepNum = i + 1;
-            const isActive = step === stepNum;
-            const isPast = step > stepNum;
+        <ol
+          className="flex items-center"
+          aria-label={`Step ${step} of 3: ${WIZARD_STEPS[step - 1]}`}
+        >
+          {WIZARD_STEPS.map((label, i) => {
+            const s = i + 1;
+            const done = s < step;
+            const active = s === step;
             return (
-              <div key={stepName} className="flex items-center gap-2.5">
-                <span
-                  className={cn(
-                    "text-[10.5px] font-medium tracking-[0.06em] uppercase transition-colors",
-                    isActive
-                      ? "text-foreground font-semibold"
-                      : isPast
-                        ? "text-foreground/50"
-                        : "text-muted-foreground/40"
-                  )}
-                >
-                  {stepName}
-                </span>
-                {stepNum < 3 && (
-                  <ChevronRight
+              <li key={label} className="flex items-center">
+                {i > 0 && (
+                  <span
+                    aria-hidden
                     className={cn(
-                      "size-3",
-                      isPast ? "text-foreground/30" : "text-muted-foreground/20"
+                      "mx-2 h-px w-7 shrink-0 transition-colors duration-300",
+                      s <= step ? "bg-violet-500/40" : "bg-(--ink)/[0.10]",
                     )}
                   />
                 )}
-              </div>
+                <span className="flex items-center gap-1.5" aria-current={active ? "step" : undefined}>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center rounded-full text-[10.5px] font-semibold transition-[background-color,color,box-shadow] duration-300",
+                      done
+                        ? "bg-violet-500/90 text-white"
+                        : active
+                          ? "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15"
+                          : "bg-(--ink)/[0.05] text-muted-foreground/50 inset-ring-1 inset-ring-(--ink)/[0.10]",
+                    )}
+                  >
+                    {done ? <Check className="size-3" strokeWidth={3} /> : s}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[13px] font-medium tracking-tight transition-colors duration-300",
+                      active
+                        ? "text-foreground"
+                        : done
+                          ? "text-foreground/55"
+                          : "text-muted-foreground/45",
+                    )}
+                  >
+                    {label}
+                  </span>
+                </span>
+              </li>
             );
           })}
+        </ol>
+
+        <div className="flex min-w-0 flex-1 items-center justify-end">
+          {rightAction}
         </div>
       </div>
-
-      <div className="flex min-w-0 flex-1 items-center justify-end">
-        {rightAction}
-      </div>
-    </div>
     </div>
   );
 }
@@ -201,11 +213,7 @@ function Step1Setup({
 
   return (
     <>
-      <WizardHeader
-        step={1}
-        title="Campaign setup"
-        onCancel={onCancel}
-      />
+      <WizardHeader step={1} onCancel={onCancel} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden relative">
         <CampaignForm
           draft={draft}
@@ -219,27 +227,17 @@ function Step1Setup({
           onError={setError}
           onDismissError={() => setError(null)}
           footer={
-            <>
-              <div>
-                {touched && !ready && (
-                  <span className="flex items-center gap-1.5 text-[12.5px] font-medium text-amber-500">
-                    <AlertCircle className="size-4 shrink-0" />
-                    {missing.length} required {missing.length === 1 ? "field is" : "fields are"} missing
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={advance}
-                className={cn(
-                  "flex h-9 items-center gap-1.5 rounded-(--r-pill) px-6 text-[13.5px] font-medium transition-[background-color,box-shadow,opacity,scale] duration-200 active:scale-(--press)",
-                  ready
-                    ? "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500"
-                    : "bg-violet-600/40 text-white/80 opacity-80",
-                )}
-              >
-                Continue
-              </button>
-            </>
+            <button
+              onClick={advance}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-(--r-pill) px-6 text-[13.5px] font-medium transition-[background-color,box-shadow,opacity,scale] duration-200 active:scale-(--press)",
+                ready
+                  ? "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500"
+                  : "bg-violet-600/40 text-white/80 opacity-80",
+              )}
+            >
+              Continue
+            </button>
           }
         />
       </div>
@@ -275,11 +273,7 @@ function Step2AddPosts({
 
   return (
     <>
-      <WizardHeader
-        step={2}
-        title="Add posts"
-        onBack={onBack}
-      />
+      <WizardHeader step={2} onBack={onBack} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden [background-image:var(--wash-page)] relative">
         <div className="mx-auto flex w-full max-w-[800px] flex-1 flex-col overflow-hidden px-6 pb-16 pt-12">
           <div className="mb-8 text-center">
@@ -427,7 +421,6 @@ function Step3Completed({
     <>
       <WizardHeader
         step={3}
-        title="Completed"
         rightAction={
           <button
             onClick={onClose}

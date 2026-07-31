@@ -1,6 +1,5 @@
-import { ArrowRight, FileEdit, ArrowUpRight } from "lucide-react";
-import { CAMPAIGN_STATE, endsLabel, platformsOf } from "@/lib/campaigns";
-import { platformMeta } from "@/lib/platforms";
+import { ArrowRight, FileEdit } from "lucide-react";
+import { CAMPAIGN_STATE, endsLabel } from "@/lib/campaigns";
 import { cn } from "@/lib/utils";
 import type { Campaign, CampaignState } from "@/lib/types";
 import { CampaignContextMenu } from "./campaign-context-menu";
