@@ -15,6 +15,7 @@ import {
 import {
   Send,
   Check,
+  ExternalLink,
   Lock,
   LockOpen,
   Trash2,
@@ -54,6 +55,8 @@ interface SessionsTableProps {
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   onOpenSend: (id: string) => void;
+  onOpenCampaign?: (id: string) => void;
+  onViewPublic?: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
   onDuplicateSession?: (id: string) => void;
@@ -130,9 +133,11 @@ const CAMPAIGN_NAME_MAX = 18;
 function CampaignNames({
   session,
   campaigns,
+  onOpenCampaign,
 }: {
   session: Session;
   campaigns: Campaign[];
+  onOpenCampaign?: (id: string) => void;
 }) {
   const named = campaignNamesFor(session, campaigns);
 
@@ -152,26 +157,42 @@ function CampaignNames({
   const describe = named
     .map((n) => (n.draft ? `${n.name} (draft)` : n.name))
     .join(", ");
+  const title = named.length === 1 ? describe : `In ${describe}`;
+
+  const nameEl = onOpenCampaign ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenCampaign(first.id);
+      }}
+      className={cn(
+        "truncate rounded-sm text-left underline-offset-2 transition-colors duration-150 hover:text-violet-300 hover:underline",
+        first.draft ? "text-amber-100/80" : "text-foreground/80",
+      )}
+    >
+      {clipped}
+    </button>
+  ) : (
+    <span
+      className={cn(
+        "truncate",
+        first.draft ? "text-amber-100/80" : "text-foreground/80",
+      )}
+    >
+      {clipped}
+    </span>
+  );
 
   return (
-    <span
-      title={named.length === 1 ? describe : `In ${describe}`}
-      className="flex min-w-0 items-center gap-1.5"
-    >
+    <span title={title} className="flex min-w-0 items-center gap-1.5">
       {first.draft && (
         <FileEdit
           aria-label="Waiting as a draft"
           className="size-3 shrink-0 text-amber-300/85"
         />
       )}
-      <span
-        className={cn(
-          "truncate",
-          first.draft ? "text-amber-100/80" : "text-foreground/80",
-        )}
-      >
-        {clipped}
-      </span>
+      {nameEl}
       {named.length > 1 && (
         <span className="shrink-0 tabular-nums text-muted-foreground/70">
           +{named.length - 1}
@@ -203,13 +224,13 @@ function CampaignCell({
       <button
         onClick={() => onOpenSend(session.id)}
         disabled={!approved}
-        title={`Waiting as a draft in ${session.draftCampaignIds.length} ${
+        title={`Staged, not yet submitted, in ${session.draftCampaignIds.length} ${
           session.draftCampaignIds.length === 1 ? "campaign" : "campaigns"
         }${approved ? " · send it to another" : ""}`}
         className="group/send inline-flex h-7 max-w-full items-center gap-1.5 rounded-(--r-pill) bg-amber-500/[0.12] px-2.5 text-xs font-medium text-amber-200 inset-ring-1 inset-ring-amber-400/25 transition-[background-color,scale] duration-150 hover:bg-amber-500/20 active:scale-(--press) disabled:pointer-events-none"
       >
         <FileEdit className="size-3 shrink-0" />
-        <span className="truncate">In draft</span>
+        <span className="truncate">Staged</span>
       </button>
     );
   }
@@ -352,6 +373,8 @@ export function SessionsTable({
   selectedSessionId,
   onSelectSession,
   onOpenSend,
+  onOpenCampaign,
+  onViewPublic,
   onDeleteSession,
   onUnlockSession,
   onDuplicateSession,
@@ -540,10 +563,11 @@ export function SessionsTable({
   const pick = selectable ? "26px " : "";
   const campaignLeft = 20 + (selectable ? 26 + 12 : 0) + NAME_CAP + 12;
   const campaignWidth = EDITED_LEFT - 12 - campaignLeft;
+  const viewCol = onViewPublic ? "112px " : "";
   const canvasGrid = {
     "--cols-sm": `${pick}minmax(0,1fr) 104px`,
     "--cols-md": `${pick}minmax(0,1fr) 152px 184px 112px`,
-    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 184px 138px 138px ${headerColumns
+    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 184px 138px ${viewCol}138px ${headerColumns
       .map(() => "140px")
       .join(" ")}`,
   } as React.CSSProperties;
@@ -774,6 +798,7 @@ export function SessionsTable({
                   <span>Status</span>
                 )}
               </div>
+              {onViewPublic && <span className={wideOnly}>View</span>}
               <span className={wideOnly}>Actions</span>
 
               {headerColumns.map((col) => (
@@ -921,7 +946,11 @@ export function SessionsTable({
                     </div>
 
                     <div className={cn("min-w-0 text-[12.5px]", midOnly)}>
-                      <CampaignNames session={session} campaigns={campaigns} />
+                      <CampaignNames
+                        session={session}
+                        campaigns={campaigns}
+                        onOpenCampaign={onOpenCampaign}
+                      />
                     </div>
 
                     <div className="hidden min-w-0 items-center gap-2 text-[13px] text-muted-foreground @[640px]:flex">
@@ -952,6 +981,23 @@ export function SessionsTable({
                     <div className="min-w-0">
                       <StatusBadge status={session.status} variant="dot" />
                     </div>
+
+                    {onViewPublic && (
+                      <div className={wideOnly} onClick={(e) => e.stopPropagation()}>
+                        {session.sentToCampaignIds.length > 0 ? (
+                          <button
+                            onClick={() => onViewPublic(session.id)}
+                            title="Open this post's public link in a new tab"
+                            className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-2.5 text-[11.5px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                          >
+                            <ExternalLink className="size-3" />
+                            Open
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/40">—</span>
+                        )}
+                      </div>
+                    )}
 
                     <div className={wideOnly} onClick={(e) => e.stopPropagation()}>
                       <CampaignCell
@@ -1196,7 +1242,11 @@ export function SessionsTable({
                 </div>
 
                 <div className="min-w-0 text-sm">
-                  <CampaignNames session={session} campaigns={campaigns} />
+                  <CampaignNames
+                    session={session}
+                    campaigns={campaigns}
+                    onOpenCampaign={onOpenCampaign}
+                  />
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

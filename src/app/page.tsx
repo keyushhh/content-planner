@@ -607,6 +607,15 @@ export default function Home() {
     setSendSheetSessionId(sessionId);
   }
 
+  function openCampaign(campaignId: string) {
+    setSelectedSessionId(null);
+    setSelectedCampaignId(campaignId);
+    if (mode === "repository") {
+      setSection("campaigns");
+      setRepoCampaignId(campaignId);
+    }
+  }
+
   function changeVersion(next: AppVersion) {
     setMode(next);
     setSelectedIds([]);
@@ -634,9 +643,17 @@ export default function Home() {
   }
 
   function takeCampaignLive(campaignId: string) {
+    const campaign = campaigns.find((c) => c.id === campaignId);
     setCampaigns((prev) =>
       prev.map((c) => (c.id === campaignId ? { ...c, inWozku: true } : c)),
     );
+    toast({
+      title: "Campaign is live",
+      description: campaign
+        ? `${campaign.name} is public now. Its landing page link is ready to share.`
+        : "Its landing page link is ready to share.",
+      tone: "success",
+    });
   }
 
   function uploadAssets(files: File[], folderId: string): string[] {
@@ -1185,6 +1202,7 @@ export default function Home() {
             selectedSessionId={selectedSessionId}
             onSelectSession={openSession}
             onOpenSend={requestSend}
+            onOpenCampaign={openCampaign}
             onDeleteSession={deleteSession}
             onUnlockSession={unlockSession}
             onDuplicateSession={duplicateSession}
@@ -1330,14 +1348,7 @@ export default function Home() {
             markChangelogSeen();
           },
           changelogUnread,
-          onOpenCampaign: (id) => {
-            setSelectedSessionId(null);
-            setSelectedCampaignId(id);
-            if (mode === "repository") {
-              setSection("campaigns");
-              setRepoCampaignId(id);
-            }
-          },
+          onOpenCampaign: openCampaign,
         }}
       />
 

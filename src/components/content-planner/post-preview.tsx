@@ -85,7 +85,10 @@ export function PostPreview({
           </p>
           {long && (
             <button
-              onClick={() => setExpanded((v) => !v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
               className="mt-1 text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
             >
               {expanded ? "see less" : "see more"}

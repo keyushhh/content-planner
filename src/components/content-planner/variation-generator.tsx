@@ -636,7 +636,7 @@ export function PostAiAssist({
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-9 py-4">
+    <div className="flex flex-col gap-3 border-t border-(--ink)/[0.06] px-9 py-4">
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-1.5 text-[12px] font-medium text-violet-200/90">
           <Sparkles className="size-3.5" />

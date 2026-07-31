@@ -44,6 +44,7 @@ interface RepositoryShellProps extends CustomColumnProps {
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   onOpenSend: (id: string) => void;
+  onOpenCampaign?: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
   onDuplicateSession: (id: string) => void;
@@ -88,6 +89,7 @@ export function RepositoryShell({
   selectedSessionId,
   onSelectSession,
   onOpenSend,
+  onOpenCampaign,
   onDeleteSession,
   onUnlockSession,
   onDuplicateSession,
@@ -398,6 +400,7 @@ export function RepositoryShell({
               selectedSessionId={selectedSessionId}
               onSelectSession={onSelectSession}
               onOpenSend={onOpenSend}
+              onOpenCampaign={onOpenCampaign}
               onDeleteSession={onDeleteSession}
               onUnlockSession={onUnlockSession}
               onDuplicateSession={onDuplicateSession}
@@ -510,6 +513,7 @@ export function RepositoryShell({
             selectedSessionId={selectedSessionId}
             onSelectSession={onSelectSession}
             onOpenSend={onOpenSend}
+            onOpenCampaign={onOpenCampaign}
             onDeleteSession={onDeleteSession}
             onUnlockSession={onUnlockSession}
             onDuplicateSession={onDuplicateSession}

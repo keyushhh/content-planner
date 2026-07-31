@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Check,
   Copy,
+  ExternalLink,
   PlusCircle,
   Search,
   X,
@@ -409,7 +410,9 @@ function Step3Completed({
   onBackToRepository: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const url = `https://wozku.com/c/${campaign.id}`;
+  const path = `/c/${campaign.id}`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}${path}`;
 
   function handleCopy() {
     navigator.clipboard.writeText(url);
@@ -455,6 +458,15 @@ function Step3Completed({
                 value={url}
                 className="h-9 min-w-0 flex-1 rounded-(--r-inner) bg-(--ink)/[0.03] px-3 text-[13px] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] outline-none"
               />
+              <a
+                href={path}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3.5 text-[12px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,scale] hover:bg-(--ink)/[0.07] active:scale-(--press)"
+              >
+                <ExternalLink className="size-3.5" />
+                Open
+              </a>
               <button
                 onClick={handleCopy}
                 className="flex h-9 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-3.5 text-[12px] font-medium inset-ring-1 inset-ring-(--ink)/[0.09] transition-[background-color,scale] hover:bg-(--ink)/[0.07] active:scale-(--press)"

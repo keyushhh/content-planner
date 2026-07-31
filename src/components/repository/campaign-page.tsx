@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  Copy,
+  ExternalLink,
   FileEdit,
   Minus,
   Pencil,
@@ -14,7 +16,6 @@ import {
 } from "lucide-react";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { PostPreview } from "@/components/content-planner/post-preview";
-import { StatusBadge } from "@/components/content-planner/status-badge";
 import {
   CAMPAIGN_STATE,
   campaignDrafts,
@@ -113,7 +114,7 @@ export function CampaignPage({
             Campaigns
           </button>
 
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-6">
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 pb-6">
             <div className="min-w-0">
               <h1 className="flex min-w-0 flex-wrap items-center gap-2.5 text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                 {campaign.name}
@@ -168,46 +169,49 @@ export function CampaignPage({
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                onClick={onEdit}
-                title="Edit this campaign's public page"
-                className="flex h-9 items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
-              >
-                <Pencil className="size-3.5" />
-                Edit page
-              </button>
-              {drafts.length > 0 && (
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              {state === "live" && <LiveLinkChip campaign={campaign} />}
+              <div className="flex items-center gap-1.5">
                 <button
-                  onClick={submit}
-                  className={cn(
-                    "flex h-9 items-center gap-1.5 rounded-(--r-pill) px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
-                    readyToGoLive
-                      ? "bg-(--ink)/[0.04] text-foreground inset-ring-1 inset-ring-(--ink)/[0.12] hover:bg-(--ink)/[0.07]"
-                      : "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500",
-                  )}
+                  onClick={onEdit}
+                  title="Edit this campaign's public page"
+                  className="flex h-9 items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
                 >
-                  <Send className="size-3.5" />
-                  {live.length
-                    ? `Submit ${live.length}`
-                    : `Submit all ${drafts.length}`}
+                  <Pencil className="size-3.5" />
+                  Edit page
                 </button>
-              )}
-              {state === "draft" && (
-                <button
-                  onClick={onGoLive}
-                  disabled={!readyToGoLive}
-                  title={
-                    readyToGoLive
-                      ? "Put this campaign live on Wozku"
-                      : "Submit a post first, a campaign cannot go live empty"
-                  }
-                  className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
-                >
-                  <Rocket className="size-3.5" />
-                  Take it live
-                </button>
-              )}
+                {drafts.length > 0 && (
+                  <button
+                    onClick={submit}
+                    className={cn(
+                      "flex h-9 items-center gap-1.5 rounded-(--r-pill) px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
+                      readyToGoLive
+                        ? "bg-(--ink)/[0.04] text-foreground inset-ring-1 inset-ring-(--ink)/[0.12] hover:bg-(--ink)/[0.07]"
+                        : "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500",
+                    )}
+                  >
+                    <Send className="size-3.5" />
+                    {live.length
+                      ? `Submit ${live.length}`
+                      : `Submit all ${drafts.length}`}
+                  </button>
+                )}
+                {state === "draft" && (
+                  <button
+                    onClick={onGoLive}
+                    disabled={!readyToGoLive}
+                    title={
+                      readyToGoLive
+                        ? "Put this campaign live on Wozku"
+                        : "Submit a post first, a campaign cannot go live empty"
+                    }
+                    className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+                  >
+                    <Rocket className="size-3.5" />
+                    Take it live
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -234,8 +238,8 @@ export function CampaignPage({
                   <FileEdit className="size-3.5 shrink-0 text-amber-300" />
                   <span className="min-w-0 flex-1 text-pretty">
                     {drafts.length > 0
-                      ? "Approve a draft below and this campaign is ready to go live."
-                      : "No posts yet. Send one from the repository, approve it here, then take the campaign live."}
+                      ? "Submit a post below and this campaign is ready to go live."
+                      : "No posts yet. Send one from the repository, then submit it here to take the campaign live."}
                   </span>
                 </>
               )}
@@ -261,7 +265,7 @@ export function CampaignPage({
                 <span className="text-muted-foreground/30">&middot;</span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-amber-300/90">
                   <FileEdit className="size-3" />
-                  In draft
+                  Staged, not submitted
                   <span className="tabular-nums text-amber-300/60">
                     {drafts.length}
                   </span>
@@ -319,6 +323,7 @@ export function CampaignPage({
           selectedSessionId={selectedSessionId}
           onSelectSession={onSelectSession}
           onOpenSend={onOpenSend}
+          onViewPublic={(id) => window.open(`/p/${id}`, "_blank", "noopener,noreferrer")}
           onDeleteSession={onDeleteSession}
           onUnlockSession={onUnlockSession}
           onDuplicateSession={onDuplicateSession}
@@ -326,10 +331,56 @@ export function CampaignPage({
           emptyState={{
             title: "Nothing submitted yet",
             description: drafts.length
-              ? "Submit the drafts above and they will show up here."
+              ? "Submit the posts above and they will show up here."
               : "Posts you send to this campaign land here once they are submitted.",
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+function LiveLinkChip({ campaign }: { campaign: Campaign }) {
+  const [copied, setCopied] = useState(false);
+  const path = `/c/${campaign.id}`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}${path}`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="w-[300px] rounded-(--r-surface) bg-emerald-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-emerald-400/25">
+      <span className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-emerald-300/85">
+        <Rocket className="size-3" />
+        Campaign is live
+      </span>
+      <div className="flex items-center gap-1.5">
+        <span
+          title={url}
+          className="min-w-0 flex-1 truncate rounded-(--r-inner) bg-(--ink)/[0.15] px-2.5 py-1.5 text-[12px] text-emerald-100/85"
+        >
+          {url}
+        </span>
+        <a
+          href={path}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open the public page"
+          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-emerald-100/80 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-emerald-50"
+        >
+          <ExternalLink className="size-3.5" />
+        </a>
+        <button
+          onClick={handleCopy}
+          title="Copy link"
+          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-emerald-100/80 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-emerald-50"
+        >
+          {copied ? <Check className="size-3.5 text-emerald-300" /> : <Copy className="size-3.5" />}
+        </button>
       </div>
     </div>
   );
@@ -473,7 +524,6 @@ function DraftCard({
         </button>
 
         <span className="flex shrink-0 items-center gap-1.5">
-          <StatusBadge status={session.status} />
           <button
             onClick={onOpen}
             className="flex h-7 items-center rounded-(--r-pill) px-2.5 text-[11.5px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.07] hover:text-foreground active:scale-(--press)"
@@ -482,7 +532,7 @@ function DraftCard({
           </button>
           <button
             onClick={onWithdraw}
-            title="Take this draft back out of the campaign"
+            title="Take this post back out of the campaign"
             className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground/70 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
           >
             <Trash2 className="size-3.5" />
