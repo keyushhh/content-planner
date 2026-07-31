@@ -18,8 +18,15 @@ export type ChangelogDay = {
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-07-31",
-    summary: "Structured mentions, and a required header image",
+    summary: "Public campaign links, structured mentions, and a required header image",
     entries: [
+      {
+        kind: "new",
+        title: "Taking a campaign live now gives you a real link to share",
+        detail:
+          "A confirmation toast and a copyable landing page link appear on the campaign page, plus per-post \"view\" links in the repository table. New public pages render the campaign or an individual post the way a recipient would see it, with a participants panel alongside.",
+        commit: "5361e5a",
+      },
       {
         kind: "new",
         title: "Mentions are now a real, structured list instead of text parsed out of the copy",
@@ -434,6 +441,7 @@ export const CHANGELOG: ChangelogDay[] = [
 ];
 
 export const CHANGELOG_OMITTED: Record<string, string> = {
+  "c085c49": "docs commit, nothing visible changed.",
   "53558f4": "chore commit, nothing visible changed.",
   "e25e348": "Changelog copy only. Nothing in the product changed.",
   "58314f7": "Comment rewording only. No behaviour and nothing visible changed.",
