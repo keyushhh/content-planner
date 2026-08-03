@@ -36,10 +36,10 @@ export const CHANGELOG: ChangelogDay[] = [
         commit: "fdae347",
       },
       {
-        kind: "new",
-        title: "Post types can be changed after you have started",
+        kind: "improved",
+        title: "The post type picker says when to reach for each format",
         detail:
-          "The picker now says when to reach for each format instead of only what it is, and the footer no longer implies the choice is permanent, because it is not: a type chip under the post title reopens the picker. Your copy is kept, and anything attached that the new format cannot carry comes off.",
+          "Image, Frames, PDF and Reshare used to describe only what they are. They now say what each one is for, because the choice is fixed once you start \u2014 which the picker is also clearer about. The type you picked shows under the post title while you write.",
         commit: "fdae347",
       },
       {
@@ -58,9 +58,9 @@ export const CHANGELOG: ChangelogDay[] = [
       },
       {
         kind: "improved",
-        title: "\u201cNeeds copy, an asset, tags\u201d became clickable",
+        title: "The readiness line colours itself in as you go",
         detail:
-          "Each missing item under the post title now jumps to the field it is talking about and puts your cursor in it. Hints on the toolbar and the row actions are real tooltips now rather than the browser\u2019s, so they appear straight away and read like the rest of the app \u2014 including the reasons a disabled button is disabled, which used to be unreachable at the one moment they mattered.",
+          "Copy, asset and tags each sit under the post title in amber until they are there, then turn green with a tick \u2014 so you can see what is left at a glance instead of reading a sentence. Clicking one jumps to that field and puts your cursor in it. Hints on the toolbar and the row actions are real tooltips now rather than the browser\u2019s, so they appear straight away and read like the rest of the app \u2014 including the reasons a disabled button is disabled, which used to be unreachable at the one moment they mattered.",
         commit: "fdae347",
       },
       {
@@ -557,6 +557,7 @@ export const CHANGELOG: ChangelogDay[] = [
 ];
 
 export const CHANGELOG_OMITTED: Record<string, string> = {
+  "6e5a77e": "Corrects fdae347 before release; its entries describe the shipped behaviour.",
   "ad3c4f0": "Merge commit. The work is logged under fdae347.",
   "cb3103c": "docs commit, nothing visible changed.",
   "c085c49": "docs commit, nothing visible changed.",

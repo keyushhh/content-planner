@@ -193,7 +193,6 @@ export interface ComposerLayoutProps {
   onOpenSend: () => void;
   onOpenMediaLibrary: () => void;
   onOpenVariations: () => void;
-  onChangeType: () => void;
   onRequestUnlock: () => void;
   sendReadinessIssues: string[];
   readyToSend: boolean;
@@ -201,7 +200,6 @@ export interface ComposerLayoutProps {
   statusMenu: React.ReactNode;
   layoutToggle: React.ReactNode;
   unlockDialog: React.ReactNode;
-  typeModal: React.ReactNode;
 }
 
 export function SessionComposer({

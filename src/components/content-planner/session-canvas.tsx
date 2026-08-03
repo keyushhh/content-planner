@@ -3,8 +3,10 @@
 import { useState } from "react";
 import {
   AlertCircle,
-  ChevronDown,
+  Check,
+  CheckCircle2,
   ChevronsRight,
+  Circle,
   Layers,
   Repeat2,
   Lock,
@@ -77,7 +79,6 @@ export function SessionCanvas({
   onOpenSend,
   onOpenMediaLibrary,
   onOpenVariations,
-  onChangeType,
   onRequestUnlock,
   sendReadinessIssues,
   readyToSend,
@@ -85,7 +86,6 @@ export function SessionCanvas({
   statusMenu,
   layoutToggle,
   unlockDialog,
-  typeModal,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
   const [copyArea, mention] = useMentionTarget(copyDraft, onCopyChange);
@@ -287,15 +287,7 @@ export function SessionCanvas({
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-0.5 text-[13px] text-muted-foreground">
                   {!isCampaignLocked && (
                     <>
-                      <button
-                        type="button"
-                        onClick={onChangeType}
-                        aria-label={`Change post type, currently ${session.postType}`}
-                        className="-ml-1 flex h-6 items-center gap-1.5 rounded-(--r-pill) px-1.5 text-[13px] transition-colors duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
-                      >
-                        {session.postType}
-                        <ChevronDown className="size-3 shrink-0 opacity-50" />
-                      </button>
+                      <span className="text-[13px]">{session.postType}</span>
                       <span className="text-muted-foreground/30">&middot;</span>
                     </>
                   )}
@@ -308,24 +300,40 @@ export function SessionCanvas({
                   {!isCampaignLocked && (
                     <>
                       {missing.length === 0 ? (
-                        <span className="text-live-300/90">Ready to send</span>
+                        <span className="flex items-center gap-1.5 text-live-300/90">
+                          <CheckCircle2 className="size-3.5 shrink-0" />
+                          Ready to send
+                        </span>
                       ) : (
-                        <span className="flex flex-wrap items-center gap-x-1">
+                        <span className="flex flex-wrap items-center gap-x-1.5">
                           <span className="tabular-nums">
-                            {doneCount} of {checklist.length}
+                            {doneCount} of {checklist.length} ready
                           </span>
-                          <span>ready&nbsp;· needs</span>
-                          {missing.map((item, i) => (
-                            <span key={item.field} className="flex items-center">
-                              <button
-                                type="button"
-                                onClick={() => focusField(item.field)}
-                                className="rounded-(--r-pill) px-1 text-foreground/85 underline decoration-(--ink)/25 decoration-dotted underline-offset-[3px] transition-colors duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground hover:decoration-(--ink)/50"
-                              >
-                                {item.label}
-                              </button>
-                              {i < missing.length - 1 && <span>,</span>}
-                            </span>
+                          <span className="text-muted-foreground/30">&middot;</span>
+                          {checklist.map((item) => (
+                            <button
+                              key={item.field}
+                              type="button"
+                              onClick={() => focusField(item.field)}
+                              title={
+                                item.done
+                                  ? `${item.label} \u2014 done`
+                                  : `${item.label} \u2014 still needed`
+                              }
+                              className={cn(
+                                "flex items-center gap-1 rounded-(--r-pill) px-1.5 py-0.5 text-[12.5px] transition-colors duration-200",
+                                item.done
+                                  ? "text-live-300/90 hover:bg-live-500/10"
+                                  : "text-amber-300/90 hover:bg-amber-500/10",
+                              )}
+                            >
+                              {item.done ? (
+                                <Check className="size-3 shrink-0" />
+                              ) : (
+                                <Circle className="size-3 shrink-0" />
+                              )}
+                              {item.label}
+                            </button>
                           ))}
                         </span>
                       )}
@@ -610,7 +618,6 @@ export function SessionCanvas({
       </div>
 
       {unlockDialog}
-      {typeModal}
     </div>
   );
 }
