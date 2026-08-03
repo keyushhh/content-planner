@@ -23,6 +23,12 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         kind: "new",
+        title: "Type @ to tag someone, without leaving the keyboard",
+        detail: "A suggestion menu opens at your cursor as soon as you type \"@\" — arrow keys to move, Enter to insert. It works in the main copy, in variations, and in AI drafts. Handles you type or paste yourself now count as tags too, so the post's tagged list always matches what it actually says.",
+        commit: "8c6d55d",
+      },
+      {
+        kind: "new",
         title: "Communities are gone from the mention picker",
         detail: "The picker is down to All, Orgs and People. Community accounts are no longer suggested when you tag.",
         commit: "0a15072",
