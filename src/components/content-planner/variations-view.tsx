@@ -21,7 +21,7 @@ import type { MediaAsset, MediaFolder, PostVariation } from "@/lib/types";
 import { MediaThumb } from "./media-thumb";
 import { SaveChip, Stagger } from "./session-composer";
 import { GeneratePanel } from "./variation-generator";
-import { MentionPopover, useMentionTarget } from "./mention-list";
+import { MentionAutocomplete, MentionPopover, useMentionTarget } from "./mention-list";
 import { mentionsIn, stripMention, type MentionAccount } from "@/lib/mentions";
 
 const MAX_ASSETS = 3;
@@ -584,7 +584,11 @@ function VariationEditor({
 
   const flush = useCallback(() => {
     const next: Partial<PostVariation> = {};
-    if (copyDraft !== variation.copy) next.copy = copyDraft;
+    if (copyDraft !== variation.copy) {
+      next.copy = copyDraft;
+      // Keep the stored list matching what's actually written, however it got there.
+      next.mentionedAccountIds = mentionsIn(copyDraft).map((a) => a.id);
+    }
     if (labelDraft.trim() && labelDraft !== variation.label) next.label = labelDraft.trim();
     if (Object.keys(next).length === 0) return;
     onPatch(next);
@@ -751,11 +755,16 @@ function VariationEditor({
                 value={copyDraft}
                 onChange={mention.onChange}
                 onSelect={mention.onSelect}
-                onBlur={flush}
+                onKeyDown={mention.onKeyDown}
+                onBlur={() => {
+                  mention.onBlur();
+                  flush();
+                }}
                 disabled={disabled}
                 placeholder="Write the alternate version…"
                 className="block min-h-[220px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[15px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/75 disabled:cursor-not-allowed disabled:opacity-70"
               />
+              <MentionAutocomplete {...mention.autocomplete} />
               <div className="px-9 pb-4 text-[11px] tabular-nums text-muted-foreground">
                 {wordCount} {wordCount === 1 ? "word" : "words"}
                 <span className="mx-1.5 text-muted-foreground/40">·</span>

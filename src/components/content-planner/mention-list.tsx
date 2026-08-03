@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AtSign, Check, Search } from "lucide-react";
 import { cn, avatarTint } from "@/lib/utils";
+import { caretRect } from "@/lib/caret";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   MENTION_TABS,
   accountsForTab,
+  activeMentionToken,
   formatFollowers,
   groupByKind,
   insertMention,
@@ -15,38 +18,159 @@ import {
   type MentionTab,
 } from "@/lib/mentions";
 
+const AUTOCOMPLETE_LIMIT = 6;
+
 export function useMentionTarget(
   value: string,
   onValueChange: (next: string) => void,
 ) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const caret = useRef(value.length);
+  const [token, setToken] = useState<{ query: string; anchor: DOMRect } | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const matches = useMemo(
+    () => (token ? searchMentions(token.query).slice(0, AUTOCOMPLETE_LIMIT) : []),
+    [token],
+  );
+  const open = token !== null && matches.length > 0;
+  const active = matches[Math.min(activeIndex, matches.length - 1)];
+
+  function sync(nextValue: string, nextCaret: number) {
+    caret.current = nextCaret;
+    const found = activeMentionToken(nextValue, nextCaret);
+    const el = ref.current;
+    if (!found || !el) {
+      setToken(null);
+      return;
+    }
+    const anchor = caretRect(el);
+    if (!anchor) {
+      setToken(null);
+      return;
+    }
+    setToken({ query: found.query, anchor });
+    setActiveIndex(0);
+  }
+
+  function insert(handle: string) {
+    const next = insertMention(value, caret.current, handle);
+    onValueChange(next.text);
+    caret.current = next.caret;
+    setToken(null);
+    requestAnimationFrame(() => {
+      const el = ref.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(next.caret, next.caret);
+    });
+  }
 
   const api = {
     onSelect: () => {
-      caret.current = ref.current?.selectionStart ?? value.length;
+      const el = ref.current;
+      caret.current = el?.selectionStart ?? value.length;
+      // A caret move shouldn't reopen the menu, only keep an open one honest.
+      if (token && el) sync(el.value, caret.current);
     },
     onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onValueChange(e.target.value);
-      caret.current = e.target.selectionStart;
+      sync(e.target.value, e.target.selectionStart);
     },
-    insert: (handle: string) => {
-      const next = insertMention(value, caret.current, handle);
-      onValueChange(next.text);
-      caret.current = next.caret;
-      requestAnimationFrame(() => {
-        const el = ref.current;
-        if (!el) return;
-        el.focus();
-        el.setSelectionRange(next.caret, next.caret);
-      });
+    onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!open) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const delta = e.key === "ArrowDown" ? 1 : -1;
+        setActiveIndex((prev) => {
+          const next = Math.min(prev, matches.length - 1) + delta;
+          return (next + matches.length) % matches.length;
+        });
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        if (!active) return;
+        e.preventDefault();
+        insert(active.handle);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setToken(null);
+      }
     },
+    onBlur: () => setToken(null),
+    insert,
     clamp: (next: string) => {
       caret.current = Math.min(caret.current, next.length);
+    },
+    autocomplete: {
+      open,
+      matches,
+      activeIndex: Math.min(activeIndex, Math.max(0, matches.length - 1)),
+      anchor: token?.anchor ?? null,
+      query: token?.query ?? "",
+      onHover: setActiveIndex,
+      onPick: (account: MentionAccount) => insert(account.handle),
+      dismiss: () => setToken(null),
     },
   };
 
   return [ref, api] as const;
+}
+
+// The inline `@` menu — flat, at the caret, driven by the textarea's keydown.
+export function MentionAutocomplete({
+  open,
+  matches,
+  activeIndex,
+  anchor,
+  onHover,
+  onPick,
+}: {
+  open: boolean;
+  matches: MentionAccount[];
+  activeIndex: number;
+  anchor: DOMRect | null;
+  query: string;
+  onHover: (index: number) => void;
+  onPick: (account: MentionAccount) => void;
+  dismiss: () => void;
+}) {
+  // `anchor` only comes from a caret measurement, so this is client-side by definition.
+  if (!open || !anchor) return null;
+
+  const width = 288;
+  const estimated = matches.length * 44 + 8;
+  const below = anchor.bottom + 6;
+  const flip = below + estimated > window.innerHeight && anchor.top > estimated;
+
+  return createPortal(
+    <div
+      role="listbox"
+      aria-label="Mention suggestions"
+      style={{
+        position: "fixed",
+        left: Math.min(Math.max(8, anchor.left), window.innerWidth - width - 8),
+        top: flip ? undefined : below,
+        bottom: flip ? window.innerHeight - anchor.top + 6 : undefined,
+        width,
+      }}
+      className="z-50 overflow-hidden rounded-(--r-float) bg-(--surface-float) p-1 shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.10]"
+    >
+      {matches.map((account, i) => (
+        <MentionRow
+          key={account.id}
+          account={account}
+          picked={false}
+          active={i === activeIndex}
+          onMouseEnter={() => onHover(i)}
+          onPick={() => onPick(account)}
+        />
+      ))}
+    </div>,
+    document.body,
+  );
 }
 
 export function MentionPopover({
@@ -222,20 +346,33 @@ export function MentionList({
 function MentionRow({
   account,
   picked,
+  active,
   onPick,
+  onMouseEnter,
 }: {
   account: MentionAccount;
   picked: boolean;
+  active?: boolean;
   onPick: () => void;
+  onMouseEnter?: () => void;
 }) {
   return (
     <button
       type="button"
+      role={active === undefined ? undefined : "option"}
+      aria-selected={active}
+      // The inline menu keeps textarea focus, so the press must not steal it before insert.
+      onMouseDown={active === undefined ? undefined : (e) => e.preventDefault()}
+      onMouseEnter={onMouseEnter}
       onClick={onPick}
       title={picked ? `Remove @${account.handle}` : `Tag @${account.handle}`}
       className={cn(
         "group/mention flex w-full items-center gap-2.5 rounded-(--r-inner) px-2.5 py-2 text-left transition-[background-color,scale] duration-150 active:scale-[0.99]",
-        picked ? "bg-violet-500/[0.08]" : "hover:bg-(--ink)/[0.045]",
+        picked
+          ? "bg-violet-500/[0.08]"
+          : active
+            ? "bg-(--ink)/[0.07]"
+            : "hover:bg-(--ink)/[0.045]",
       )}
     >
       <span

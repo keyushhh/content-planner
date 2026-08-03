@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn, tagTint } from "@/lib/utils";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
-import { MentionPopover, useMentionTarget } from "./mention-list";
+import { MentionAutocomplete, MentionPopover, useMentionTarget } from "./mention-list";
 import { stripMention, type MentionAccount } from "@/lib/mentions";
 import { PostAiAssist } from "./variation-generator";
 import {
@@ -335,11 +335,16 @@ export function SessionCanvas({
                   value={copyDraft}
                   onChange={mention.onChange}
                   onSelect={mention.onSelect}
-                  onBlur={() => savePendingChanges("blur")}
+                  onKeyDown={mention.onKeyDown}
+                  onBlur={() => {
+                    mention.onBlur();
+                    savePendingChanges("blur");
+                  }}
                   placeholder="Write your post…"
                   disabled={isCampaignLocked}
                   className="peer block min-h-[260px] w-full resize-y bg-transparent px-9 pb-6 pt-1 text-[16px] leading-[1.7] caret-violet-400 outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-70"
                 />
+                <MentionAutocomplete {...mention.autocomplete} />
                 {!copyDraft && !isCampaignLocked && (
                   <span
                     aria-hidden

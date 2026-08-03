@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/toast";
-import { MentionPopover, useMentionTarget } from "./mention-list";
+import { MentionAutocomplete, MentionPopover, useMentionTarget } from "./mention-list";
 import { mentionsIn, stripMention, type MentionAccount } from "@/lib/mentions";
 
 export const OPTIMIZATIONS = [
@@ -766,7 +766,10 @@ function DraftEditor({
         value={value}
         onChange={mention.onChange}
         onSelect={mention.onSelect}
+        onBlur={mention.onBlur}
         onKeyDown={(e) => {
+          mention.onKeyDown(e);
+          if (e.defaultPrevented) return;
           if (e.key === "Escape") {
             e.stopPropagation();
             onCancel();
@@ -778,6 +781,7 @@ function DraftEditor({
         aria-label="Edit this draft"
         className="block min-h-[132px] w-full resize-y rounded-(--r-inner) bg-(--ink)/[0.04] px-3 py-2.5 text-[12.5px] leading-[1.6] caret-violet-400 inset-ring-1 inset-ring-violet-400/40 outline-none"
       />
+      <MentionAutocomplete {...mention.autocomplete} />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MentionPopover

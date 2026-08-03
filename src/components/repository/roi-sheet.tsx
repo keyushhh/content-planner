@@ -15,8 +15,7 @@ interface RoiSheetProps {
   campaign: Campaign;
 }
 
-// Chosen so a typical campaign opens showing a modest positive return rather than a loss —
-// the panel is a starting point to edit, not a verdict.
+// A typical campaign should open on a modest positive, not a loss.
 const DEFAULTS = { spend: "1200", perShare: "12", perClick: "0.85" };
 
 // Rejects "-" and "e" outright, so the parsed value can never be negative or exponential.
@@ -43,9 +42,8 @@ export function RoiSheet({ open, onOpenChange, campaign }: RoiSheetProps) {
     }
   }
 
-  // Same seeds as the stat tiles, so the figures here agree with what the campaign shows
-  // elsewhere. Clicks don't exist in the data model, so they're derived as a rate applied to
-  // reach — an independent range could exceed reach and read as broken.
+  // Same seeds as the stat tiles. Clicks aren't in the data model, so derive them as a rate
+  // applied to reach — an independent range could exceed reach and read as broken.
   const { shares, reach, clicks, clickRate } = useMemo(() => {
     const reachValue = mockCount(`reach-${campaign.id}`, 3000, 90000);
     const rate = mockCount(`clicks-${campaign.id}`, 20, 80) / 1000;
@@ -255,12 +253,9 @@ function Field({
             const next = e.target.value.replace(/,/g, "");
             if (MONEY.test(next)) onValue(next);
           }}
-          // `text` + inputMode, not `type="number"`: number inputs accept "e" and "-", and
-          // report an empty string for otherwise-invalid content.
           type="text"
           inputMode="decimal"
           placeholder="0"
-          // pl-9 clears the currency glyph that inputClass's own px-3.5 would sit under.
           className={cn(inputClass(false), "pl-9")}
         />
       </div>

@@ -134,6 +134,18 @@ export function searchMentions(query: string, accounts = mentionAccounts) {
   );
 }
 
+/**
+ * The `@token` the caret is currently sitting inside, or null. Requires whitespace (or the
+ * start of the text) before the `@` so an email address never opens the picker.
+ */
+export function activeMentionToken(text: string, caret: number) {
+  const at = Math.max(0, Math.min(caret, text.length));
+  const match = text.slice(0, at).match(/(^|\s)@([A-Za-z0-9._]*)$/);
+  if (!match) return null;
+  const query = match[2];
+  return { query, start: at - query.length - 1 };
+}
+
 export function mentionsIn(text: string) {
   const found = new Set<string>();
   for (const match of text.matchAll(/@([A-Za-z0-9._]+)/g)) {

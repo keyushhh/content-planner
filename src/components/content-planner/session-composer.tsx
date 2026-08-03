@@ -27,7 +27,7 @@ import { cn, tagTint } from "@/lib/utils";
 import { SECONDARY_ACTION_SM } from "@/lib/button-styles";
 import { openFeedback } from "@/lib/feedback";
 import { MediaThumb } from "./media-thumb";
-import { MentionList, useMentionTarget } from "./mention-list";
+import { MentionAutocomplete, MentionList, useMentionTarget } from "./mention-list";
 import { accountsByIds, stripMention, type MentionAccount } from "@/lib/mentions";
 import { PostAiAssist } from "./variation-generator";
 import type { Feedback, MediaAsset, PostType, Session } from "@/lib/types";
@@ -438,11 +438,16 @@ export function SessionComposer({
                       value={copyDraft}
                       onChange={mention.onChange}
                       onSelect={mention.onSelect}
-                      onBlur={() => savePendingChanges("blur")}
+                      onKeyDown={mention.onKeyDown}
+                      onBlur={() => {
+                        mention.onBlur();
+                        savePendingChanges("blur");
+                      }}
                       placeholder="Write your post…"
                       disabled={isCampaignLocked}
                       className="peer block min-h-[240px] w-full resize-y bg-transparent px-4 py-4 text-[15px] leading-[1.65] caret-violet-400 outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-70"
                     />
+                    <MentionAutocomplete {...mention.autocomplete} />
                     {!copyDraft && !isCampaignLocked && (
                       <span
                         aria-hidden

@@ -63,7 +63,6 @@ interface CampaignPageProps {
   onAddPost: () => void;
 }
 
-// Shared by the header's primary action, whichever one currently holds that role.
 const PRIMARY_ACTION =
   "flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
 
@@ -106,8 +105,7 @@ export function CampaignPage({
   const ends = endsLabel(campaign.endDate, now);
   const readyToGoLive = state === "draft" && submitted.length > 0;
 
-  // Exactly one violet button at a time: Add post takes that role only when nothing further
-  // along the campaign's life is actionable. Sharing needs a public page to point at.
+  // One violet button at a time; sharing needs a public page to point at.
   const addPostIsPrimary =
     drafts.length === 0 && state !== "ended" && !readyToGoLive;
   const shareable = state === "live" || state === "ended";

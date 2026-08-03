@@ -91,7 +91,7 @@ export function SendToCampaignSheet({
     .filter((c) => selectedIds.includes(c.id))
     .map((c) => c.name);
 
-  // The picked campaign that gets submitted outright; the rest still land as drafts.
+  // Submitted outright; the rest still land as drafts.
   const directId =
     directCampaignId && selectedIds.includes(directCampaignId) ? directCampaignId : null;
   const directName = campaigns.find((c) => c.id === directId)?.name ?? null;

@@ -13,7 +13,7 @@ export const SECONDARY_ACTION_SM = cn(
   "h-7 px-2.5 text-xs active:scale-(--press)",
 );
 
-// Header-row size: page headers run h-9, so SECONDARY_ACTION's h-8 misaligns there.
+// Page headers run h-9; SECONDARY_ACTION's h-8 misaligns there.
 export const SECONDARY_ACTION_MD = cn(
   SECONDARY_ACTION_BASE,
   "h-9 px-3.5 text-[13px] active:scale-(--press)",

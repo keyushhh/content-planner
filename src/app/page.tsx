@@ -383,7 +383,7 @@ export default function Home() {
   const editingCampaign =
     campaigns.find((c) => c.id === editingCampaignId) ?? null;
 
-  // Gated like CampaignPage's own render: repoCampaignId outlives a section switch.
+  // Gated like CampaignPage's render: repoCampaignId outlives a section switch.
   const campaignPageId =
     mode === "repository" &&
     section === "campaigns" &&
@@ -619,8 +619,8 @@ export default function Home() {
     setSendSheetSessionId(sessionId);
   }
 
-  // Inside a campaign, that campaign is submitted outright; others still stage as drafts.
-  // submitDrafts ignores unstaged posts, so stage first — the updaters run in order.
+  // The campaign you're inside is submitted outright; others stage as drafts.
+  // submitDrafts ignores unstaged posts, so stage first.
   function shareSessions(sessionIds: string[], campaignIds: string[]) {
     stageDrafts(sessionIds, campaignIds);
     if (campaignPageId && campaignIds.includes(campaignPageId)) {
@@ -779,8 +779,7 @@ export default function Home() {
         prev ? { ...prev, postIds: [...prev.postIds, id] } : null,
       );
     }
-    // Created from inside a campaign: stage it there so it lands in that campaign's drafts
-    // rather than unattached in the repository. Staged, not submitted — it isn't approved yet.
+    // Created inside a campaign: stage it there rather than leaving it unattached.
     if (campaignPageId) stageDrafts([id], [campaignPageId]);
     setSelectedSessionId(id);
     setShowPostType(false);

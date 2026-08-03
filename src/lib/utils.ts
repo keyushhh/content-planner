@@ -102,7 +102,7 @@ export function timeBucket(iso: string, now: number = Date.now()): string {
   return "Earlier";
 }
 
-// Fixed locale rather than the caller's: keeps the same figure identical across machines.
+// Fixed locale so the same figure renders identically across machines.
 export function formatCurrency(amount: number): string {
   if (!Number.isFinite(amount)) return "$0";
   return new Intl.NumberFormat("en-US", {

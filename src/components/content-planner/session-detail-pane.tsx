@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
+import { mentionsIn } from "@/lib/mentions";
 import { MediaLibraryView } from "./media-library-view";
 import { SessionComposer } from "./session-composer";
 import { SessionCanvas } from "./session-canvas";
@@ -91,7 +92,11 @@ export function SessionDetailPane({
     (source: "blur" | "timer" | "instant" = "blur") => {
       const patch: Partial<Session> = {};
       if (titleDraft !== session.title) patch.title = titleDraft;
-      if (copyDraft !== session.copy) patch.copy = copyDraft;
+      if (copyDraft !== session.copy) {
+        patch.copy = copyDraft;
+        // Keep the stored list matching what's actually written, however it got there.
+        patch.mentionedAccountIds = mentionsIn(copyDraft).map((a) => a.id);
+      }
       if (hashtagsDraft !== session.hashtags) patch.hashtags = hashtagsDraft;
 
       if (Object.keys(patch).length > 0) {
@@ -117,7 +122,10 @@ export function SessionDetailPane({
   const handleUpdateWithPendingSave = (patch: Partial<Session>) => {
     const draftPatch: Partial<Session> = {};
     if (titleDraft !== session.title) draftPatch.title = titleDraft;
-    if (copyDraft !== session.copy) draftPatch.copy = copyDraft;
+    if (copyDraft !== session.copy) {
+      draftPatch.copy = copyDraft;
+      draftPatch.mentionedAccountIds = mentionsIn(copyDraft).map((a) => a.id);
+    }
     if (hashtagsDraft !== session.hashtags) draftPatch.hashtags = hashtagsDraft;
 
     onUpdate({ ...draftPatch, ...patch });

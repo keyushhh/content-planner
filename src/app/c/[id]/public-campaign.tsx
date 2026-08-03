@@ -54,9 +54,7 @@ function initials(name: string) {
 
 const PAGE_SIZE = 10;
 
-// Decorative placeholder, not a scannable code — a real payload needs a QR encoder.
-// Laid out as a version-1 grid (three finder patterns + seeded modules) so it reads as a
-// QR at a glance instead of as an icon of one.
+// Decorative only — a scannable code needs a QR encoder. Version-1 grid so it reads as one.
 function QrGlyph({ seed, className }: { seed: string; className?: string }) {
   const size = 21;
   const finders = [
@@ -263,8 +261,6 @@ export default function PublicCampaignContent() {
             <ShareButton platformLabel={platformLabel} label="Share Campaign" className="mt-1" />
           </div>
 
-          {/* Two equal halves: the copy sizes to its own column rather than pushing the
-              white panel out to ~65% of the card. */}
           {posts.length > 0 && (
             <div className="relative grid h-full grid-cols-1 items-stretch overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.08] sm:grid-cols-2">
               <div className="flex min-w-0 flex-col justify-center px-6 py-6">

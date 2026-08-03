@@ -1,5 +1,4 @@
-// FNV-1a with a murmur3-style finalizer so near-identical seeds (e.g. "seed-0" vs "seed-1")
-// still produce well-scattered values instead of a visibly sequential pattern.
+// FNV-1a plus a murmur3 finalizer, so near-identical seeds still scatter.
 function hashSeed(seed: string): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < seed.length; i++) {
@@ -22,15 +21,9 @@ export function mockTrendPercent(seed: string, min = 8, max = 32): number {
   return mockCount(`trend-${seed}`, min, max);
 }
 
-// A seeded random walk, not independent samples per point: independent samples read as a
-// directionless sawtooth, which is what makes a fake sparkline look fake.
-// Two details that matter for it reading as real data:
-//   - the walk reflects off 0 and 1 rather than clamping, so it never sits on a flat
-//     plateau at the top or bottom of the plot;
-//   - the result is oriented so its back half averages above its front half. Over only
-//     ~24 steps a walk's variance swamps any per-step drift, so without this some seeds
-//     trend visibly downward while the tile's delta chip claims growth.
-// Values come back normalised to 0..1 so a sparkline always uses its full height.
+// A seeded random walk normalised to 0..1. It reflects off the bounds rather than clamping
+// (no flat plateaus), and is oriented so its back half averages above its front half —
+// over ~24 steps variance swamps any drift, and the shape must agree with the delta chip.
 export function mockSeries(seed: string, count = 24): number[] {
   const walk: number[] = [];
   let value = 0.5;

@@ -7,9 +7,7 @@ import { avatarTint, cn } from "@/lib/utils";
 
 export const CAMPAIGN_PARTICIPANTS = mentionAccounts.filter((a) => a.kind === "person");
 
-// Both tones resolve per theme through the palette remap in globals.css — sky-400 is
-// #38bdf8 on the dark surface and #0284c7 on white, violet-400 is #34d399 / #059669.
-// Each pair clears the 3:1 contrast floor against the surface it actually renders on.
+// Theme-remapped in globals.css; both pairs clear 3:1 against the surface they land on.
 const SPARK_COLOR = {
   sky: "var(--color-sky-400)",
   brand: "var(--color-violet-400)",
@@ -29,8 +27,7 @@ function initials(name: string) {
     .join("");
 }
 
-// Straight segments, not a smoothed curve: the angular corners are what make the shape
-// read as plotted data.
+// Straight segments, not a curve — the angular corners are what read as plotted data.
 function linePathFrom(coords: readonly (readonly [number, number])[]): string {
   const r = (n: number) => Math.round(n * 100) / 100;
   return coords.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${r(x)} ${r(y)}`).join(" ");
@@ -139,11 +136,8 @@ function AvatarPhoto({
   );
 }
 
-/**
- * Owns its seeds and its container so the public campaign page and the internal campaign
- * page cannot drift on either the numbers or the chrome. `className` is for outer spacing
- * only — the avatars' `ring-(--surface-raised)` depends on this component's own background.
- */
+// Owns its seeds and its container so the two pages can't drift. `className` is outer
+// spacing only — the avatars' ring colour depends on this component's own background.
 export function CampaignStatsRow({
   campaignId,
   className,
