@@ -22,6 +22,55 @@ export const CHANGELOG: ChangelogDay[] = [
       "A repository that explains itself \u2014 a walkthrough, a hands-on first post, and a campaign page you can work from",
     entries: [
       {
+        kind: "fixed",
+        title: "\u201cReady\u201d means one thing now, everywhere",
+        detail:
+          "Three parts of the app disagreed about what a finished post is. The composer tracked copy, a visual and tags and told you \u201cReady to send\u201d once all three were in; the actual gate only ever checked copy; and the greyed-out Approved option asked for an image it never really wanted. So you could tick all three and find no Send button, or approve and send a post with no visual at all. There is a single rule now \u2014 copy and a visual are required, tags are worth adding but never block you, and a Reshare needs no visual because it keeps the original\u2019s. The readiness line, the Approve gate and the reason it gives you all read from that one rule.",
+        commit: "55474d8",
+      },
+      {
+        kind: "fixed",
+        title: "The reason a button is greyed out is finally readable",
+        detail:
+          "Staged, \u201cUp to date\u201d, \u201cApprove to update\u201d, \u201cNot ready\u201d, Take it live, the send sheet and a locked post\u2019s status \u2014 every one of them explained itself through a tooltip that could not physically appear, because a disabled control does not register the hover. The explanations were written and unreachable. They show up now, and the greyed-out Approved option puts its reason on screen as plain text instead of hiding it behind a hover.",
+        commit: "55474d8",
+      },
+      {
+        kind: "improved",
+        title: "How a post gets from draft to live stays learnable",
+        detail:
+          "The Write \u2192 Approve \u2192 Send row was the clearest explanation of the whole model and it vanished the moment you made your first post. It is a strip under the header now \u2014 with the fourth beat, the campaign going live, spelled out \u2014 which you can dismiss, and which steps aside on its own once you have a few posts. Every status badge also tells you what its stage means and what unlocks the next one, so you can ask on row four hundred as easily as row one.",
+        commit: "55474d8",
+      },
+      {
+        kind: "improved",
+        title: "Selecting posts in bulk tells you what it left out",
+        detail:
+          "The bulk bar only mentioned how many were ready when that number happened to differ from your selection, so the idea that readiness mattered stayed hidden until the maths disagreed. It now always shows the split and names the reason \u2014 how many need approval, how many are already out and unchanged. The table footer also owns up when your selection runs past the page you are looking at.",
+        commit: "55474d8",
+      },
+      {
+        kind: "new",
+        title: "Keyboard shortcuts, written down at last",
+        detail:
+          "J and K to move between rows, X to tick one, shift-X for everything up to it, Enter to open, \u2318S to save, \u2318\u21b5 to send. All of it already worked and none of it was written anywhere. There is a sheet in the ? menu now. Hover-only row actions also appear when you tab to them, so Duplicate and Delete exist for the keyboard too \u2014 and Duplicate now admits it makes a fresh draft without the original\u2019s campaigns.",
+        commit: "55474d8",
+      },
+      {
+        kind: "fixed",
+        title: "Small things the app was saying that were not true",
+        detail:
+          "The guided tutorial told you a post type could be changed later; it cannot. The tour described a fourth post stage that does not exist \u2014 going live is something a campaign does. A post\u2019s status trigger read \u201cwip\u201d in lowercase beside badges reading \u201cWIP\u201d, and its Approved dot was a hardcoded green that turned dead grey under the brand layer. Filtering to a status with no matches blamed your tags. Staged posts were counted as \u201cwaiting for approval\u201d, which is a different thing entirely. And five items in the campaign menu \u2014 Copy link, Settings, Duplicate, Export, Delete \u2014 looked clickable and did nothing; Copy link works now and the rest are gone.",
+        commit: "55474d8",
+      },
+      {
+        kind: "improved",
+        title: "The campaign page stops keeping secrets",
+        detail:
+          "A campaign has six things its public page needs \u2014 a logo, a name, a header image, a description, a thank-you message and an end date \u2014 and the app tracked all six while never mentioning them. They are listed now when any are missing, with a way straight to the editor. A campaign holding five staged posts no longer reports \u201c0 posts\u201d, the placeholder reach and share figures are labelled as sample data rather than passing for real reporting, and the NEW chip stamped on every new campaign is gone.",
+        commit: "55474d8",
+      },
+      {
         kind: "new",
         title: "Show me around \u2014 a walkthrough you can take more than once",
         detail:
