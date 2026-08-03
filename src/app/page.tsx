@@ -779,6 +779,9 @@ export default function Home() {
         prev ? { ...prev, postIds: [...prev.postIds, id] } : null,
       );
     }
+    // Created from inside a campaign: stage it there so it lands in that campaign's drafts
+    // rather than unattached in the repository. Staged, not submitted — it isn't approved yet.
+    if (campaignPageId) stageDrafts([id], [campaignPageId]);
     setSelectedSessionId(id);
     setShowPostType(false);
   }
@@ -1205,6 +1208,7 @@ export default function Home() {
             onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
             onGoLive={() => takeCampaignLive(repoCampaign.id)}
             onEdit={() => setEditingCampaignId(repoCampaign.id)}
+            onAddPost={handleNewContent}
           />
           ) : (
             <CampaignsView

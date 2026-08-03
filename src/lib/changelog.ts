@@ -468,6 +468,7 @@ export const CHANGELOG: ChangelogDay[] = [
 ];
 
 export const CHANGELOG_OMITTED: Record<string, string> = {
+  "cb3103c": "docs commit, nothing visible changed.",
   "c085c49": "docs commit, nothing visible changed.",
   "53558f4": "chore commit, nothing visible changed.",
   "e25e348": "Changelog copy only. Nothing in the product changed.",

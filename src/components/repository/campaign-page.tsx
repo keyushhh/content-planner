@@ -3,19 +3,34 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Calculator,
   Check,
   ChevronDown,
   Copy,
   ExternalLink,
   FileEdit,
   Minus,
+  MonitorPlay,
+  MoreHorizontal,
   Pencil,
+  PlusCircle,
   Rocket,
   Send,
+  Share2,
   Trash2,
 } from "lucide-react";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { PostPreview } from "@/components/content-planner/post-preview";
+import { CampaignStatsRow } from "@/components/campaigns/campaign-stats-row";
+import { RoiSheet } from "@/components/repository/roi-sheet";
+import { ScreenSetupSheet } from "@/components/repository/screen-setup-sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SECONDARY_ACTION_MD } from "@/lib/button-styles";
 import {
   CAMPAIGN_STATE,
   campaignDrafts,
@@ -45,7 +60,12 @@ interface CampaignPageProps {
   onWithdraw: (sessionId: string) => void;
   onGoLive: () => void;
   onEdit: () => void;
+  onAddPost: () => void;
 }
+
+// Shared by the header's primary action, whichever one currently holds that role.
+const PRIMARY_ACTION =
+  "flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
 
 export function CampaignPage({
   campaign,
@@ -64,6 +84,7 @@ export function CampaignPage({
   onWithdraw,
   onGoLive,
   onEdit,
+  onAddPost,
 }: CampaignPageProps) {
   const drafts = useMemo(
     () => campaignDrafts(sessions, campaign.id),
@@ -77,11 +98,19 @@ export function CampaignPage({
   const [picked, setPicked] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [now] = useState(() => Date.now());
+  const [roiOpen, setRoiOpen] = useState(false);
+  const [screenOpen, setScreenOpen] = useState(false);
 
   const state = campaignState(campaign, now);
   const tone = CAMPAIGN_STATE[state];
   const ends = endsLabel(campaign.endDate, now);
   const readyToGoLive = state === "draft" && submitted.length > 0;
+
+  // Exactly one violet button at a time: Add post takes that role only when nothing further
+  // along the campaign's life is actionable. Sharing needs a public page to point at.
+  const addPostIsPrimary =
+    drafts.length === 0 && state !== "ended" && !readyToGoLive;
+  const shareable = state === "live" || state === "ended";
 
   const live = drafts.filter((d) => picked.includes(d.id));
   const allPicked = drafts.length > 0 && live.length === drafts.length;
@@ -171,13 +200,14 @@ export function CampaignPage({
               {state === "live" && <LiveLinkChip campaign={campaign} />}
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={onEdit}
-                  title="Edit this campaign's public page"
-                  className="flex h-9 items-center gap-1.5 rounded-(--r-pill) px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+                  onClick={onAddPost}
+                  title="Write a new post for this campaign"
+                  className={addPostIsPrimary ? PRIMARY_ACTION : SECONDARY_ACTION_MD}
                 >
-                  <Pencil className="size-3.5" />
-                  Edit page
+                  <PlusCircle className="size-4" />
+                  Add post
                 </button>
+                {shareable && <ShareCampaignButton campaign={campaign} />}
                 {drafts.length > 0 && (
                   <button
                     onClick={submit}
@@ -203,12 +233,41 @@ export function CampaignPage({
                         ? "Put this campaign live on Wozku"
                         : "Submit a post first, a campaign cannot go live empty"
                     }
-                    className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+                    className={PRIMARY_ACTION}
                   >
                     <Rocket className="size-3.5" />
                     Take it live
                   </button>
                 )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    aria-label="More campaign actions"
+                    title="More campaign actions"
+                    className="flex size-9 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-auto min-w-[190px]">
+                    <DropdownMenuItem onClick={onEdit} className="whitespace-nowrap">
+                      <Pencil className="size-3.5" />
+                      Edit page
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setRoiOpen(true)}
+                      className="whitespace-nowrap"
+                    >
+                      <Calculator className="size-3.5" />
+                      Calculate ROI
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setScreenOpen(true)}
+                      className="whitespace-nowrap"
+                    >
+                      <MonitorPlay className="size-3.5" />
+                      Screen Setup
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -242,6 +301,10 @@ export function CampaignPage({
                 </>
               )}
             </div>
+          )}
+
+          {submitted.length > 0 && (
+            <CampaignStatsRow campaignId={campaign.id} className="mb-6 shrink-0" />
           )}
         </div>
 
@@ -334,7 +397,50 @@ export function CampaignPage({
           }}
         />
       </div>
+
+      <RoiSheet open={roiOpen} onOpenChange={setRoiOpen} campaign={campaign} />
+      <ScreenSetupSheet
+        open={screenOpen}
+        onOpenChange={setScreenOpen}
+        campaign={campaign}
+      />
     </div>
+  );
+}
+
+function ShareCampaignButton({ campaign }: { campaign: Campaign }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    const url = `${window.location.origin}/c/${campaign.id}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: campaign.name, url });
+        return;
+      } catch {
+        // Dismissed the share sheet, or it failed — fall through to copying.
+      }
+    }
+
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      title="Share this campaign's public page"
+      className={SECONDARY_ACTION_MD}
+    >
+      {copied ? (
+        <Check className="size-3.5 text-emerald-300" />
+      ) : (
+        <Share2 className="size-3.5" />
+      )}
+      {copied ? "Link copied" : "Share"}
+    </button>
   );
 }
 

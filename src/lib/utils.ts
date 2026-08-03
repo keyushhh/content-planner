@@ -101,3 +101,13 @@ export function timeBucket(iso: string, now: number = Date.now()): string {
   if (dayDiff < 30) return "This month";
   return "Earlier";
 }
+
+// Fixed locale rather than the caller's: keeps the same figure identical across machines.
+export function formatCurrency(amount: number): string {
+  if (!Number.isFinite(amount)) return "$0";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}

@@ -361,7 +361,7 @@ export function CampaignForm({
   );
 }
 
-function inputClass(issue: boolean) {
+export function inputClass(issue: boolean) {
   return cn(
     "h-10 w-full rounded-(--r-inner) bg-(--ink)/[0.02] px-3.5 text-[14px] caret-violet-500 outline-none transition-[box-shadow,background-color] duration-200 inset-ring-1 placeholder:text-muted-foreground/40 focus:bg-(--ink)/[0.04]",
     issue
