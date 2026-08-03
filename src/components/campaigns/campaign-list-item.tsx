@@ -119,7 +119,7 @@ export function CampaignListItem({
         <div className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground/50 transition-[color,translate] duration-200 group-hover:translate-x-0.5 group-hover:bg-(--ink)/[0.04] group-hover:text-foreground/80">
           <ArrowRight className="size-4" />
         </div>
-        <CampaignContextMenu onOpen={onOpen} />
+        <CampaignContextMenu campaignId={campaign.id} onOpen={onOpen} />
       </div>
     </div>
   );

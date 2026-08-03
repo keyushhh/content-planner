@@ -32,10 +32,9 @@ import {
   MoreHorizontal,
   Inbox,
   SearchX,
+  Circle,
   ChevronLeft,
   ChevronRight,
-  PencilLine,
-  CheckCircle2,
   ChevronUp,
   ListFilter,
   Tag,
@@ -49,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { campaignNamesFor } from "@/lib/campaigns";
+import { JOURNEY_STEPS } from "@/lib/lifecycle";
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 export interface EmptyStateSpec {
@@ -57,15 +57,9 @@ export interface EmptyStateSpec {
   action?: { label: string; onClick: () => void };
   secondaryAction?: { label: string; onClick: () => void };
   filtered?: boolean;
-  /** Draws the Write → Approve → Send row. */
+  /** Draws the lifecycle row. */
   journey?: boolean;
 }
-
-const JOURNEY_STEPS = [
-  { icon: PencilLine, label: "Write it" },
-  { icon: CheckCircle2, label: "Get it approved" },
-  { icon: Send, label: "Send to a campaign" },
-];
 
 interface SessionsTableProps {
   customColumns?: CustomColumn[];
@@ -240,18 +234,26 @@ function CampaignCell({
   const staged = session.draftCampaignIds.length > 0;
 
   if (staged) {
+    const count = session.draftCampaignIds.length;
     return (
-      <button
-        onClick={() => onOpenSend(session.id)}
-        disabled={!approved}
-        title={`Staged, not yet submitted, in ${session.draftCampaignIds.length} ${
-          session.draftCampaignIds.length === 1 ? "campaign" : "campaigns"
-        }${approved ? " · send it to another" : ""}`}
-        className="group/send inline-flex h-7 max-w-full items-center gap-1.5 rounded-(--r-pill) bg-amber-500/[0.12] px-2.5 text-xs font-medium text-amber-200 inset-ring-1 inset-ring-amber-400/25 transition-[background-color,scale] duration-150 hover:bg-amber-500/20 active:scale-(--press) disabled:pointer-events-none"
+      <Hint
+        label={`Sent to ${count} ${
+          count === 1 ? "campaign" : "campaigns"
+        } but not yet part of ${count === 1 ? "it" : "them"}. Submit it on the campaign page to add it.${
+          approved ? " Click to send it to another." : ""
+        }`}
       >
-        <FileEdit className="size-3 shrink-0" />
-        <span className="truncate">Staged</span>
-      </button>
+        <span className="inline-flex max-w-full">
+          <button
+            onClick={() => onOpenSend(session.id)}
+            disabled={!approved}
+            className="group/send inline-flex h-7 max-w-full items-center gap-1.5 rounded-(--r-pill) bg-amber-500/[0.12] px-2.5 text-xs font-medium text-amber-200 inset-ring-1 inset-ring-amber-400/25 transition-[background-color,scale] duration-150 hover:bg-amber-500/20 active:scale-(--press) disabled:pointer-events-none"
+          >
+            <FileEdit className="size-3 shrink-0" />
+            <span className="truncate">Staged</span>
+          </button>
+        </span>
+      </Hint>
     );
   }
 
@@ -265,12 +267,12 @@ function CampaignCell({
         Send
       </button>
     ) : (
-      <span
-        title="Approve this post to send it"
-        className="text-xs text-muted-foreground/70"
-      >
-        Not ready
-      </span>
+      <Hint label="Only approved posts can go to a campaign. Approve this one to send it.">
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
+          <Circle className="size-3 shrink-0 text-muted-foreground/50" />
+          Not ready
+        </span>
+      </Hint>
     );
   }
 
@@ -292,45 +294,45 @@ function CampaignCell({
       : "Send to another";
   const actionable = approved && (needsResend || !singleDestination);
 
+  const where = names.length ? `In ${names.join(", ")}.` : "Already sent.";
+  const why = actionable
+    ? needsResend
+      ? "It changed since it went out — send the update."
+      : "Click to send it to another campaign."
+    : approved
+      ? "Sent, and nothing has changed since. Edit it to send an update."
+      : "It changed since it went out. Approve it again to send the update.";
+
   return (
-    <button
-      onClick={() => onOpenSend(session.id)}
-      disabled={!actionable}
-      title={
-        names.length
-          ? `In ${names.join(", ")}${
-              actionable
-                ? needsResend
-                  ? " · send the update"
-                  : " · send it to another campaign"
-                : approved
-                  ? " · sent and unchanged since"
-                  : " · approve it to send the update"
-            }`
-          : undefined
-      }
-      className="group/send -mx-1.5 flex max-w-full flex-col items-start gap-px rounded-md px-1.5 py-1 text-left transition-colors duration-150 hover:bg-(--ink)/[0.06] disabled:pointer-events-none"
-    >
-      <span className="flex max-w-full items-center gap-1">
-        {locked && (
-          <Lock className="size-2.5 shrink-0 text-muted-foreground/55" />
-        )}
-        <span className="truncate text-[12px] text-foreground/85">{label}</span>
+    <Hint label={`${where} ${why}`}>
+      <span className="inline-flex max-w-full">
+        <button
+          onClick={() => onOpenSend(session.id)}
+          disabled={!actionable}
+          className="group/send -mx-1.5 flex max-w-full flex-col items-start gap-px rounded-md px-1.5 py-1 text-left transition-colors duration-150 hover:bg-(--ink)/[0.06] disabled:pointer-events-none"
+        >
+          <span className="flex max-w-full items-center gap-1">
+            {locked && (
+              <Lock className="size-2.5 shrink-0 text-muted-foreground/55" />
+            )}
+            <span className="truncate text-[12px] text-foreground/85">{label}</span>
+          </span>
+          <span
+            className={cn(
+              "flex max-w-full items-center gap-1 text-[11px] font-medium transition-colors duration-150",
+              !actionable
+                ? "text-muted-foreground/60"
+                : needsResend
+                  ? "text-violet-200"
+                  : "text-muted-foreground/70 group-hover/send:text-violet-200",
+            )}
+          >
+            {actionable && <RefreshCw className="size-2.5 shrink-0" />}
+            <span className="truncate">{action}</span>
+          </span>
+        </button>
       </span>
-      <span
-        className={cn(
-          "flex max-w-full items-center gap-1 text-[11px] font-medium transition-colors duration-150",
-          !actionable
-            ? "text-muted-foreground/60"
-            : needsResend
-              ? "text-violet-200"
-              : "text-muted-foreground/70 group-hover/send:text-violet-200",
-        )}
-      >
-        {actionable && <RefreshCw className="size-2.5 shrink-0" />}
-        <span className="truncate">{action}</span>
-      </span>
-    </button>
+    </Hint>
   );
 }
 
@@ -606,6 +608,10 @@ export function SessionsTable({
   const rangeStart = sessions.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const rangeEnd = Math.min(safePage * pageSize, sessions.length);
   const pageRows = sessions.slice((safePage - 1) * pageSize, safePage * pageSize);
+  /* Select-all covers this page, but the count spans all of them. */
+  const offPageSelected = (selectedIds ?? []).filter(
+    (id) => !pageRows.some((row) => row.id === id),
+  ).length;
 
   const pageIds = pageRows.map((r) => r.id);
   const pagePicked = pageIds.filter((id) => selectedSet.has(id)).length;
@@ -1068,7 +1074,7 @@ export function SessionsTable({
                     <div
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        "pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100",
+                        "pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
                         actionsFade && "bg-gradient-to-l from-(--surface-raised) from-65% to-transparent",
                       )}
                     >
@@ -1085,7 +1091,7 @@ export function SessionsTable({
                         </Hint>
                       )}
                       {onDuplicateSession && (
-                        <Hint label="Duplicate">
+                        <Hint label="Duplicate as a new draft, without its campaigns">
                           <button
                             onClick={() => onDuplicateSession(session.id)}
                             aria-label="Duplicate"
@@ -1135,6 +1141,13 @@ export function SessionsTable({
                 {rangeStart}&ndash;{rangeEnd}
               </span>{" "}
               of <span className="tabular-nums">{sessions.length}</span>
+              {offPageSelected > 0 && (
+                <>
+                  {" · "}
+                  <span className="tabular-nums">{offPageSelected}</span> selected on
+                  other pages
+                </>
+              )}
             </p>
 
             {totalPages > 1 && (
@@ -1227,13 +1240,24 @@ export function SessionsTable({
           <span />
 
           <div className="flex items-center justify-center">
-            <button
-              onClick={handleAddColumn}
-              title="Add column"
-              className="flex size-6 items-center justify-center rounded-sm bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 hover:text-violet-300 transition-colors"
+            <Hint
+              label={
+                customColumns.length >= MAX_CUSTOM_COLUMNS
+                  ? `${MAX_CUSTOM_COLUMNS} columns is the limit`
+                  : "Add column"
+              }
             >
-              <Plus className="size-3.5" />
-            </button>
+              <span className="inline-flex">
+                <button
+                  onClick={handleAddColumn}
+                  disabled={customColumns.length >= MAX_CUSTOM_COLUMNS}
+                  aria-label="Add column"
+                  className="flex size-6 items-center justify-center rounded-sm bg-violet-500/10 text-violet-400 transition-colors hover:bg-violet-500/20 hover:text-violet-300 disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <Plus className="size-3.5" />
+                </button>
+              </span>
+            </Hint>
           </div>
         </div>
       </div>
@@ -1351,7 +1375,7 @@ export function SessionsTable({
                       onClick={() => setConfirmUnlockId(session.id)}
                       aria-label="Unlock to edit"
                       title="Live on Wozku and locked from editing. Unlock to edit."
-                      className="group/lock relative flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                      className="group/lock relative flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
                     >
                       <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0 group-focus-visible/lock:scale-90 group-focus-visible/lock:opacity-0" />
                       <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100 group-focus-visible/lock:scale-100 group-focus-visible/lock:opacity-100" />
@@ -1362,7 +1386,7 @@ export function SessionsTable({
                       onClick={() => onDuplicateSession(session.id)}
                       aria-label="Duplicate this post"
                       title="Duplicate content item"
-                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
                     >
                       <Copy className="size-3.5" />
                     </button>
@@ -1371,7 +1395,7 @@ export function SessionsTable({
                     onClick={() => setConfirmDeleteId(session.id)}
                     aria-label="Delete this post"
                     title="Delete this post"
-                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 group-focus-within:opacity-100"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
@@ -1517,9 +1541,9 @@ function EmptyRows({ emptyState }: { emptyState: EmptyStateSpec }) {
         </span>
 
         {showJourney && (
-          <div className="mt-4 flex flex-col items-center gap-2 @[560px]:flex-row @[560px]:gap-3">
+          <div className="mt-4 flex flex-col items-center gap-2 @[740px]:flex-row @[740px]:gap-3">
             {JOURNEY_STEPS.map(({ icon: Icon, label }, i) => (
-              <div key={label} className="flex items-center gap-2 @[560px]:gap-3">
+              <div key={label} className="flex items-center gap-2 @[740px]:gap-3">
                 <span className="flex items-center gap-1.5">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) bg-(--ink)/[0.05] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.09]">
                     <Icon className="size-3.5" />
@@ -1531,7 +1555,7 @@ function EmptyRows({ emptyState }: { emptyState: EmptyStateSpec }) {
                 {i < JOURNEY_STEPS.length - 1 && (
                   <ChevronRight
                     aria-hidden
-                    className="size-3.5 shrink-0 rotate-90 text-muted-foreground/40 @[560px]:rotate-0"
+                    className="size-3.5 shrink-0 rotate-90 text-muted-foreground/40 @[740px]:rotate-0"
                   />
                 )}
               </div>
@@ -1805,7 +1829,7 @@ function DeleteContentDialog({
                 </span>
               </div>
             </div>
-            <StatusBadge status={session.status} variant="dot" />
+            <StatusBadge status={session.status} variant="dot" hint={false} />
           </div>
         )
       }

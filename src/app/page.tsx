@@ -17,6 +17,7 @@ import {
   CircleCheck,
   Compass,
   GraduationCap,
+  Keyboard,
   Sparkles,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
@@ -45,6 +46,7 @@ import {
   useChangelogUnread,
 } from "@/components/content-planner/changelog-modal";
 import type { ChangeKind } from "@/lib/changelog";
+import { ShortcutsModal } from "@/components/content-planner/shortcuts-modal";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { CampaignPage } from "@/components/repository/campaign-page";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
@@ -59,6 +61,7 @@ import {
   useTourSeen,
   type TourContext,
 } from "@/lib/tour";
+import { useLifecycleStrip } from "@/lib/lifecycle";
 import { PRIMARY_ACTION_SM } from "@/lib/button-styles";
 import {
   VERSIONS,
@@ -237,6 +240,7 @@ export default function Home() {
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [changelogFilter, setChangelogFilter] = useState<"all" | ChangeKind>("all");
   const { unread: changelogUnread, markSeen: markChangelogSeen } = useChangelogUnread();
   const composerLayout: ComposerLayout = mode === "repository" ? "canvas" : "split";
@@ -254,6 +258,7 @@ export default function Home() {
   const tutorialFinishing = useRef(false);
   const [showTourNudge, setShowTourNudge] = useState(false);
   const { seen: tourSeen, markSeen: markTourSeen, reset: resetTour } = useTourSeen();
+  const { reset: resetLifecycle } = useLifecycleStrip();
 
   const startTour = useCallback(() => {
     setShowTourNudge(false);
@@ -1068,6 +1073,10 @@ export default function Home() {
                 <span className="flex-1">Search &amp; commands</span>
                 <span className="text-[10px] text-muted-foreground/70">⌘K</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowShortcuts(true)} className="gap-2">
+                <Keyboard className="size-3.5 shrink-0" />
+                Keyboard shortcuts
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -1501,6 +1510,8 @@ export default function Home() {
         contextName={selectedCampaign.name}
       />
 
+      <ShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
+
       <ChangelogModal
         open={showChangelog}
         onOpenChange={setShowChangelog}
@@ -1604,6 +1615,10 @@ export default function Home() {
         }}
         onResetTour={() => {
           resetTour();
+          setDevPanelOpen(false);
+        }}
+        onResetLifecycle={() => {
+          resetLifecycle();
           setDevPanelOpen(false);
         }}
       />

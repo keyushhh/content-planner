@@ -103,7 +103,7 @@ export function CampaignTable({
                       <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground/30 transition-colors group-hover:bg-(--ink)/[0.04] group-hover:text-foreground/80">
                         <ArrowRight className="size-4" />
                       </span>
-                      <CampaignContextMenu onOpen={() => onOpen(campaign.id)} />
+                      <CampaignContextMenu campaignId={campaign.id} onOpen={() => onOpen(campaign.id)} />
                     </div>
                   </td>
                 </tr>

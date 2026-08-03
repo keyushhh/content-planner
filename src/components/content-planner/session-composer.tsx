@@ -26,6 +26,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn, tagTint } from "@/lib/utils";
 import { SECONDARY_ACTION_SM } from "@/lib/button-styles";
 import { openFeedback } from "@/lib/feedback";
+import { MEDIA_COPY, assetsForType } from "@/lib/media";
+import { postReadiness } from "@/lib/readiness";
 import { MediaThumb } from "./media-thumb";
 import { MentionAutocomplete, MentionList, useMentionTarget } from "./mention-list";
 import { accountsByIds, stripMention, type MentionAccount } from "@/lib/mentions";
@@ -39,70 +41,7 @@ export const POST_TYPES: { id: PostType; icon: typeof Layers2 }[] = [
   { id: "Reshare", icon: Repeat2 },
 ];
 
-export const MEDIA_COPY: Record<
-  PostType,
-  {
-    section: string;
-    checklist: string;
-    attached: string;
-    cta: string;
-    ctaTitle: string;
-    ctaHint: string;
-    max: number;
-  }
-> = {
-  Image: {
-    section: "Assets",
-    checklist: "an asset",
-    attached: "Asset attached",
-    cta: "Add an image",
-    ctaTitle: "Add assets",
-    ctaHint: "One image",
-    max: Infinity,
-  },
-  Frames: {
-    section: "Frames",
-    checklist: "a frame",
-    attached: "Frame attached",
-    cta: "Add the first frame",
-    ctaTitle: "Add frames",
-    ctaHint: "Several images, swiped in order",
-    max: Infinity,
-  },
-  PDF: {
-    section: "PDF",
-    checklist: "a PDF",
-    attached: "PDF attached",
-    cta: "Add a PDF",
-    ctaTitle: "Add a PDF",
-    ctaHint: "One document, swiped as pages",
-    max: 1,
-  },
-  Reshare: {
-    section: "Media",
-    checklist: "",
-    attached: "",
-    cta: "",
-    ctaTitle: "",
-    ctaHint: "",
-    max: 0,
-  },
-};
-
-export function assetsForType(
-  ids: string[],
-  assets: MediaAsset[],
-  type: PostType,
-): string[] {
-  if (type === "Reshare") return ids;
-  const kept = ids.filter((id) => {
-    const asset = assets.find((a) => a.id === id);
-    if (!asset) return type !== "PDF";
-    return type === "PDF" ? asset.type === "pdf" : asset.type !== "pdf";
-  });
-  const { max } = MEDIA_COPY[type];
-  return Number.isFinite(max) ? kept.slice(0, max) : kept;
-}
+export { MEDIA_COPY, assetsForType };
 
 export const HASHTAG_SUGGESTIONS = [
   "#product",
@@ -261,18 +200,15 @@ export function SessionComposer({
   const media = MEDIA_COPY[session.postType];
   const canAddMore = session.visualAssetIds.length < media.max;
 
-  const checklist = [
-    { label: "Copy written", done: copyDraft.trim().length > 0, required: true },
-    ...(session.postType === "Reshare"
-      ? []
-      : [
-          {
-            label: media.attached,
-            done: session.visualAssetIds.length > 0,
-          },
-        ]),
-    { label: "Tagged", done: session.tags.length > 0 },
-  ];
+  const RAIL_LABEL: Record<string, string> = {
+    copy: "Copy written",
+    assets: media.attached,
+    tags: "Tagged",
+  };
+  const checklist = postReadiness(session, copyDraft).map((item) => ({
+    ...item,
+    label: RAIL_LABEL[item.field],
+  }));
   const doneCount = checklist.filter((c) => c.done).length;
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
 

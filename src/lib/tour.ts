@@ -36,7 +36,7 @@ export const APP_TOUR: TourStep[] = [
     section: "repository",
     anchor: "repo-header",
     title: "Your content library",
-    body: "Every post you create lives here. Posts move through four stages — Draft, WIP, Approved, then Live once a campaign publishes them.",
+    body: "Every post you create lives here. A post goes Draft, then WIP, then Approved — and a campaign takes it live from there.",
     placement: "bottom",
   },
   {
@@ -115,7 +115,7 @@ export const CREATE_POST_TUTORIAL: TourStep[] = [
     section: "repository",
     anchor: "post-type-list",
     title: "Pick a format",
-    body: "Image is one visual, Frames is several people swipe through, PDF reads as pages, and Reshare adds your take to someone else\u2019s post. Pick any \u2014 you can change it later.",
+    body: "Image is one visual, Frames is several people swipe through, PDF reads as pages, and Reshare adds your take to someone else\u2019s post. Pick the one that fits \u2014 it stays fixed once you start.",
     placement: "bottom",
     done: (c) => c.composerOpen,
     rewindWhen: (c) => !c.postTypeModalOpen && !c.composerOpen,
@@ -156,14 +156,15 @@ export const CREATE_POST_TUTORIAL: TourStep[] = [
     section: "repository",
     anchor: "composer-status",
     title: "Approve it when it\u2019s ready",
-    body: "Posts start as Draft. Move this to Approved and it becomes sendable \u2014 that\u2019s the gate before a campaign.",
+    body: "Posts start as Draft. Copy and a visual are all it takes \u2014 move this to Approved and it becomes sendable. That\u2019s the gate before a campaign.",
     placement: "bottom",
+    done: (c) => c.approved,
+    waitingFor: "Set the status to Approved to finish",
   },
 ];
 
 const SEEN_KEY = "cp_tour_seen";
 const SEEN_EVENT = "cp:tour-seen";
-const TUTORIAL_SEEN_KEY = "cp_tutorial_seen";
 
 function readSeen(): boolean {
   try {
