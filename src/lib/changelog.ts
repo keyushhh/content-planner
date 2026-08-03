@@ -557,6 +557,7 @@ export const CHANGELOG: ChangelogDay[] = [
 ];
 
 export const CHANGELOG_OMITTED: Record<string, string> = {
+  "6e5a77e": "Corrects fdae347 before release; its entries describe the shipped behaviour.",
   "ad3c4f0": "Merge commit. The work is logged under fdae347.",
   "cb3103c": "docs commit, nothing visible changed.",
   "c085c49": "docs commit, nothing visible changed.",
