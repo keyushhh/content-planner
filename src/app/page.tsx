@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   CalendarDays,
   PlusCircle,
-  Settings2,
   LayoutGrid,
   Search,
   UserPlus,
-  FlaskConical,
   ChevronDown,
   Check,
   Send,
   Database,
   Megaphone,
+  CircleHelp,
+  CircleCheck,
+  Compass,
+  GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/content-planner/campaign-sidebar";
 import {
@@ -47,11 +50,21 @@ import { CampaignPage } from "@/components/repository/campaign-page";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { CampaignEditor } from "@/components/campaigns/campaign-editor";
 import { CampaignCreateWizard, type CampaignWizardState } from "@/components/campaigns/campaign-create-wizard";
-import { BrandToggle, useBrandLayer } from "@/components/content-planner/brand-toggle";
+import { useBrandLayer } from "@/components/content-planner/brand-toggle";
+import { DevPanel } from "@/components/content-planner/dev-panel";
+import { Walkthrough } from "@/components/content-planner/walkthrough";
+import {
+  APP_TOUR,
+  CREATE_POST_TUTORIAL,
+  useTourSeen,
+  type TourContext,
+} from "@/lib/tour";
+import { PRIMARY_ACTION_SM } from "@/lib/button-styles";
 import {
   VERSIONS,
   type AppVersion,
 } from "@/lib/versions";
+import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
 import { VersionSwitchDialog } from "@/components/content-planner/version-switch-dialog";
 import {
   DropdownMenu,
@@ -232,6 +245,72 @@ export default function Home() {
     mode === "repository",
   );
 
+  const [devPanelOpen, setDevPanelOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialPostId, setTutorialPostId] = useState<string | null>(null);
+  const [tutorialDone, setTutorialDone] = useState(false);
+  const tutorialChoice = useRef<boolean | null>(null);
+  const tutorialFinishing = useRef(false);
+  const [showTourNudge, setShowTourNudge] = useState(false);
+  const { seen: tourSeen, markSeen: markTourSeen, reset: resetTour } = useTourSeen();
+
+  const startTour = useCallback(() => {
+    setShowTourNudge(false);
+    markTourSeen();
+    setTourOpen(true);
+  }, [markTourSeen]);
+
+  const dismissNudge = useCallback(() => {
+    setShowTourNudge(false);
+    markTourSeen();
+  }, [markTourSeen]);
+
+  const startTutorial = useCallback(() => {
+    setSection("repository");
+    setRepoCampaignId(null);
+    setSelectedSessionId(null);
+    setTutorialPostId(null);
+    tutorialChoice.current = null;
+    tutorialFinishing.current = false;
+    setTutorialOpen(true);
+  }, []);
+
+  const tutorialPost = sessions.find((s) => s.id === tutorialPostId) ?? null;
+
+  const tutorialCtx: TourContext = {
+    postTypeModalOpen: showPostType,
+    composerOpen: Boolean(tutorialPostId) && selectedSessionId === tutorialPostId,
+    copyLength: tutorialPost?.copy.trim().length ?? 0,
+    assetCount: tutorialPost?.visualAssetIds.length ?? 0,
+    tagCount: tutorialPost?.tags.length ?? 0,
+    approved: tutorialPost?.status === "approved",
+  };
+
+  function endTutorial(keep: boolean) {
+    tutorialChoice.current = keep;
+    setTutorialOpen(false);
+    setTutorialDone(false);
+    const id = tutorialPostId;
+    setTutorialPostId(null);
+    if (!id) return;
+    if (keep) {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, tutorial: false } : s)),
+      );
+      setSelectedSessionId(id);
+    } else {
+      setSelectedSessionId(null);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+    }
+  }
+
+  useEffect(() => {
+    if (tourSeen || mode !== "repository" || section !== "repository") return;
+    const t = setTimeout(() => setShowTourNudge(true), 700);
+    return () => clearTimeout(t);
+  }, [tourSeen, mode, section]);
+
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
   const [customCellValues, setCustomCellValues] = useState<CustomCellValues>({});
 
@@ -307,6 +386,7 @@ export default function Home() {
         setSessions(
           parsed
             .filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true)))
+            .filter((s) => !s.tutorial)
             .map(migrateSession),
         );
       } catch (e) {}
@@ -764,7 +844,14 @@ export default function Home() {
 
   function createContent(postType: PostType) {
     const id = makeSessionId();
-    setSessions((prev) => [...prev, createBlankSession(id, postType)]);
+    const inTutorial = tutorialOpen;
+    setSessions((prev) => [
+      ...prev,
+      inTutorial
+        ? { ...createBlankSession(id, postType), tutorial: true }
+        : createBlankSession(id, postType),
+    ]);
+    if (inTutorial) setTutorialPostId(id);
     if (mode === "classic") {
       setCampaigns((prev) =>
         prev.map((c) =>
@@ -932,55 +1019,13 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center gap-1.5">
-        <button
-          onClick={seedDemoContent}
-          title="Dev: add 450 sample items"
-          className={cn(
-            "ml-1 relative flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium transition-[background-color,color,scale] duration-150 active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
-            isCanvas
-              ? "bg-(--ink)/[0.03] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] hover:text-foreground"
-              : "border border-border text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <FlaskConical className="size-3.5" />
-          Seed 450
-        </button>
-
-        <div
-          title="Dev: preview the table's empty and loading states"
-          className={cn(
-            "ml-1 flex items-center gap-0.5 rounded-(--r-pill) p-0.5 text-[11px] font-medium",
-            isCanvas
-              ? "bg-(--ink)/[0.03] inset-ring-1 inset-ring-(--ink)/[0.08]"
-              : "border border-border bg-background",
-          )}
-        >
-          {DEMO_STATES.map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => setDemoState(id)}
-              className={cn(
-                "rounded-(--r-pill) px-2 py-1 transition-[background-color,color,scale] duration-150 active:scale-(--press) relative after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
-                demoState === id
-                  ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {mode === "repository" && (
-          <BrandToggle mode={brandMode} onChange={setBrandMode} />
-        )}
-
-        <DropdownMenu>
+        <div className="relative">
+          <DropdownMenu>
             <DropdownMenuTrigger
               render={
                 <button
-                  title="Dev: switch version"
-                  aria-label="Switch version"
+                  title="Help"
+                  aria-label="Help"
                   className={cn(
                     "relative flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:text-foreground active:scale-(--press) after:absolute after:inset-x-0 after:top-1/2 after:h-10 after:-translate-y-1/2 after:content-['']",
                     isCanvas ? "hover:bg-(--ink)/[0.06]" : "hover:bg-accent/40",
@@ -988,28 +1033,75 @@ export default function Home() {
                 />
               }
             >
-              <Settings2 className="size-3.5" />
+              <CircleHelp className="size-3.5" />
+              {changelogUnread && (
+                <span
+                  aria-hidden
+                  className="absolute right-0.5 top-0.5 size-1.5 rounded-(--r-round) bg-violet-400"
+                />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[190px]">
-              {VERSIONS.map(({ id, label }) => (
-                <DropdownMenuItem
-                  key={id}
-                  onClick={() => {
-                    if (id !== mode) setPendingVersion(id);
-                  }}
-                  className="gap-2"
-                >
-                  <Check
-                    className={cn(
-                      "size-3.5 shrink-0",
-                      id === mode ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  {label}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent align="end" className="min-w-[210px]">
+              <DropdownMenuItem onClick={startTour} className="gap-2">
+                <Compass className="size-3.5 shrink-0" />
+                Show me around
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={startTutorial} className="gap-2">
+                <GraduationCap className="size-3.5 shrink-0" />
+                Walk me through a post
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setShowChangelog(true);
+                  markChangelogSeen();
+                }}
+                className="gap-2"
+              >
+                <Sparkles className="size-3.5 shrink-0" />
+                <span className="flex-1">What&rsquo;s new</span>
+                {changelogUnread && (
+                  <span className="size-1.5 rounded-(--r-round) bg-violet-400" />
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPaletteOpen(true)} className="gap-2">
+                <Search className="size-3.5 shrink-0" />
+                <span className="flex-1">Search &amp; commands</span>
+                <span className="text-[10px] text-muted-foreground/70">⌘K</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
-        </DropdownMenu>
+          </DropdownMenu>
+
+          {showTourNudge && (
+            <div
+              role="dialog"
+              aria-label="Take the tour"
+              className="absolute right-0 top-[calc(100%+10px)] z-40 w-[250px] rounded-(--r-float) bg-(--surface-float) p-3.5 text-left shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.09] duration-200 animate-in fade-in slide-in-from-top-1 motion-reduce:animate-none"
+            >
+              <span
+                aria-hidden
+                className="absolute -top-1 right-2.5 size-2 rotate-45 rounded-[2px] bg-(--surface-float) inset-ring-1 inset-ring-(--ink)/[0.09]"
+              />
+              <span className="block text-[13px] font-semibold tracking-[-0.01em]">
+                New here?
+              </span>
+              <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground text-pretty">
+                Take the 30-second tour — we&rsquo;ll show you how a post gets from draft
+                to a live campaign.
+              </span>
+              <div className="mt-3 flex items-center justify-end gap-1.5">
+                <button
+                  onClick={dismissNudge}
+                  className="h-7 rounded-(--r-pill) px-2.5 text-xs text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+                >
+                  Dismiss
+                </button>
+                <button onClick={startTour} className={PRIMARY_ACTION_SM}>
+                  Start tour
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         </div>
         </div>
       </div>
@@ -1219,8 +1311,11 @@ export default function Home() {
           )
         ) : (
           <RepositoryShell
-            sessions={demoState === "empty" ? [] : sessions}
+            sessions={
+              demoState === "empty" ? [] : sessions.filter((s) => !s.tutorial)
+            }
             campaigns={campaigns}
+            onStartTour={startTour}
             tableLoading={demoState === "loading"}
             selectedSessionId={selectedSessionId}
             onSelectSession={openSession}
@@ -1241,6 +1336,7 @@ export default function Home() {
 
       <Sheet
         open={selectedSession !== null}
+        modal={!tutorialOpen}
         onOpenChange={(open) => {
           if (!open) setSelectedSessionId(null);
         }}
@@ -1435,6 +1531,80 @@ export default function Home() {
           setSelectedSessionId(null);
           if (pendingVersion) changeVersion(pendingVersion);
           setPendingVersion(null);
+        }}
+      />
+
+      {mode === "repository" && tourOpen && (
+        <Walkthrough
+          onOpenChange={setTourOpen}
+          steps={APP_TOUR}
+          section={section}
+          onNavigate={(next) => {
+            setSection(next);
+            if (next === "campaigns") setRepoCampaignId(null);
+          }}
+          finishLabel="Create your first post"
+          onFinished={startTutorial}
+        />
+      )}
+
+      {mode === "repository" && tutorialOpen && !tutorialDone && (
+        <Walkthrough
+          onOpenChange={(next) => {
+            if (!next && !tutorialFinishing.current) endTutorial(false);
+          }}
+          steps={CREATE_POST_TUTORIAL}
+          section={section}
+          onNavigate={setSection}
+          ctx={tutorialCtx}
+          onFinished={() => {
+            tutorialFinishing.current = true;
+            setTutorialDone(true);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={tutorialDone}
+        onOpenChange={(next) => {
+          if (!next && tutorialChoice.current === null) endTutorial(false);
+        }}
+        icon={CircleCheck}
+        tone="success"
+        title="That's the whole flow"
+        description="Write it, get it approved, send it to a campaign. Keep what you just made as a real draft, or clear it away."
+        actions={[
+          {
+            label: "Discard",
+            tone: "outline",
+            onClick: () => endTutorial(false),
+          },
+          {
+            label: "Keep it",
+            tone: "primary",
+            onClick: () => endTutorial(true),
+          },
+        ]}
+      />
+
+      <DevPanel
+        open={devPanelOpen}
+        onOpenChange={setDevPanelOpen}
+        seeded={sessions.some((s) => s.id.startsWith("seed-"))}
+        onToggleSeed={seedDemoContent}
+        demoState={demoState}
+        demoStates={DEMO_STATES}
+        onDemoState={(id) => setDemoState(id as DemoState)}
+        brandMode={brandMode}
+        onBrandMode={setBrandMode}
+        version={mode}
+        versions={VERSIONS}
+        onVersion={(id) => {
+          if (id !== mode) setPendingVersion(id as AppVersion);
+        }}
+        onResetTour={() => {
+          resetTour();
+          setDevPanelOpen(false);
         }}
       />
     </div>

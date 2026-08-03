@@ -32,7 +32,7 @@ const TYPES: {
   {
     id: "Image",
     label: "Image",
-    hint: "One image",
+    hint: "A single visual \u2014 the most common post.",
     icon: ImageIcon,
     well: "bg-violet-500/[0.14] text-violet-300 inset-ring-violet-400/25",
     glow: "hover:inset-ring-violet-400/45 hover:bg-violet-500/[0.07]",
@@ -40,7 +40,7 @@ const TYPES: {
   {
     id: "Frames",
     label: "Frames",
-    hint: "Several images, swiped in order",
+    hint: "2\u201310 images people swipe through.",
     icon: Layers2,
     well: "bg-sky-500/[0.14] text-sky-300 inset-ring-sky-400/25",
     glow: "hover:inset-ring-sky-400/45 hover:bg-sky-500/[0.07]",
@@ -48,7 +48,7 @@ const TYPES: {
   {
     id: "PDF",
     label: "PDF",
-    hint: "One PDF, swiped as pages",
+    hint: "A document, read as swipeable pages.",
     icon: FileText,
     well: "bg-amber-500/[0.14] text-amber-300 inset-ring-amber-400/25",
     glow: "hover:inset-ring-amber-400/45 hover:bg-amber-500/[0.07]",
@@ -56,7 +56,7 @@ const TYPES: {
   {
     id: "Reshare",
     label: "Reshare",
-    hint: "Keeps the original post\u2019s media",
+    hint: "Add your take to an existing post.",
     icon: Repeat2,
     well: "bg-emerald-500/[0.14] text-emerald-300 inset-ring-emerald-400/25",
     glow: "hover:inset-ring-emerald-400/45 hover:bg-emerald-500/[0.07]",
@@ -96,12 +96,15 @@ export function PostTypeModal({
             <DialogDescription className="mt-1.5 text-[13px] leading-snug text-muted-foreground text-pretty">
               {isChange
                 ? "Your copy is kept. Anything attached that the new type can\u2019t carry comes off."
-                : "This decides which fields the composer gives you."}
+                : "This decides which fields the composer gives you. You can change it later."}
             </DialogDescription>
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5 border-t border-(--ink)/[0.06] p-3">
+        <div
+          data-tour="post-type-list"
+          className="flex flex-col gap-1.5 border-t border-(--ink)/[0.06] p-3"
+        >
           {TYPES.map(({ id, label, hint, icon: Icon, well, glow }, i) => {
             const isCurrent = isChange && current === id;
             return (
@@ -152,7 +155,9 @@ export function PostTypeModal({
 
         <div className="flex items-center justify-between gap-3 border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
-            {isChange ? "Your copy is never touched" : "Set once, at the start"}
+            {isChange
+              ? "Your copy is never touched"
+              : "Changeable later \u2014 your copy is kept"}
           </span>
           <button
             onClick={() => onOpenChange(false)}

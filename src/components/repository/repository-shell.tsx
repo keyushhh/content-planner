@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { InviteModal } from "@/components/content-planner/invite-modal";
 import { TagFilterBar } from "@/components/content-planner/tag-filter-bar";
+import { Stagger } from "@/components/content-planner/session-composer";
+import { Hint } from "@/components/ui/tooltip";
 import type { ComposerLayout } from "@/components/content-planner/session-detail-pane";
 import {
   DropdownMenu,
@@ -13,7 +15,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, isSessionLocked } from "@/lib/utils";
-import { SECONDARY_ACTION } from "@/lib/button-styles";
+import {
+  PRIMARY_ACTION,
+  PRIMARY_ACTION_SM,
+  SECONDARY_ACTION,
+} from "@/lib/button-styles";
 import {
   Database,
   PlusCircle,
@@ -54,6 +60,7 @@ interface RepositoryShellProps extends CustomColumnProps {
   onBulkSend?: (ids: string[]) => void;
   tableLoading?: boolean;
   tableStyle: ComposerLayout;
+  onStartTour?: () => void;
 }
 
 type SortKey = "edited" | "created" | "name";
@@ -99,6 +106,7 @@ export function RepositoryShell({
   onBulkSend,
   tableLoading = false,
   tableStyle,
+  onStartTour,
   ...columnProps
 }: RepositoryShellProps) {
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -190,7 +198,7 @@ export function RepositoryShell({
   const isCanvas = tableStyle === "canvas";
 
   const title = "Repository";
-  const subtitle = "Every piece of content, across every campaign.";
+  const subtitle = "Your content library — create, refine, and send posts to campaigns.";
 
   const modals = (
     <InviteModal
@@ -205,22 +213,33 @@ export function RepositoryShell({
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col">
           <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 flex-col px-6 pb-6">
-            <div className="shrink-0 pb-6 pt-6">
-              <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
-                {title}
-              </h1>
-              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
-                {subtitle}
-                <span className="text-muted-foreground/30">&middot;</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
-                  Synced to Wozku
-                </span>
-              </p>
-            </div>
+            <Stagger index={0} className="shrink-0">
+              <div className="pb-6 pt-6">
+                {/* Text only, not the pb-6 — else the tour cut-out clips the toolbar. */}
+                <div data-tour="repo-header">
+                  <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
+                    {title}
+                  </h1>
+                  <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                    {subtitle}
+                    <span className="text-muted-foreground/30">&middot;</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="size-1.5 rounded-(--r-round) bg-live-400" />
+                      Synced to Wozku
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </Stagger>
 
-            <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2.5">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2.5">
+            <Stagger
+              index={1}
+              className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-10 gap-y-2.5"
+            >
+              <div
+                data-tour="repo-filters"
+                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2.5"
+              >
                 <div className="relative min-w-[240px] max-w-[260px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -228,7 +247,7 @@ export function RepositoryShell({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search content…"
                     aria-label="Search content"
-                    className="h-8 w-full rounded-(--r-pill) bg-(--ink)/[0.06] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.10] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.085] focus:inset-ring-violet-400/50"
+                    className="h-8 w-full rounded-(--r-pill) bg-(--ink)/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 hover:bg-(--ink)/[0.06] focus:bg-(--ink)/[0.085] focus:inset-ring-violet-400/50"
                   />
                   {search && (
                     <button
@@ -286,7 +305,7 @@ export function RepositoryShell({
                     render={
                       <button
                         title="Sort content"
-                        className="flex h-8 w-[184px] items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-(--press)"
+                        className="flex h-8 w-[168px] items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3 text-[13px] font-medium text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,box-shadow,color,scale] duration-150 hover:text-foreground active:scale-(--press)"
                       />
                     }
                   >
@@ -323,13 +342,14 @@ export function RepositoryShell({
                 </button>
                 <button
                   onClick={onNewContent}
-                  className="ml-0.5 flex h-8 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+                  data-tour="repo-new-post"
+                  className={cn(PRIMARY_ACTION, "ml-0.5")}
                 >
                   <PlusCircle className="size-4" />
                   New post
                 </button>
               </div>
-            </div>
+            </Stagger>
 
             {picked > 0 ? (
               <div className="mb-2.5 flex min-h-8 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pl-0.5">
@@ -345,19 +365,25 @@ export function RepositoryShell({
                 </span>
 
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => onBulkSend?.(sendable.map((s) => s.id))}
-                    disabled={sendable.length === 0}
-                    title={
+                  {/* On the wrapper: the button is disabled when it matters. */}
+                  <Hint
+                    label={
                       sendable.length === 0
                         ? "Approve these posts to send them"
                         : "Send the ready posts to campaigns"
                     }
-                    className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-[12px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
                   >
-                    <Send className="size-3" />
-                    Send to campaigns
-                  </button>
+                    <span className="flex">
+                      <button
+                        onClick={() => onBulkSend?.(sendable.map((s) => s.id))}
+                        disabled={sendable.length === 0}
+                        className={PRIMARY_ACTION_SM}
+                      >
+                        <Send className="size-3" />
+                        Send to campaigns
+                      </button>
+                    </span>
+                  </Hint>
                   <button
                     onClick={() => onSelectionChange?.([])}
                     className="h-7 rounded-(--r-pill) px-2 text-[12px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
@@ -384,6 +410,7 @@ export function RepositoryShell({
               </div>
             ) : null}
 
+            <Stagger index={2} className="flex min-h-0 flex-1 flex-col">
             <SessionsTable
               key={`${q}|${activeTags.join(",")}|${statusFilter.join(",")}|${sort}|${reversed}`}
               variant="canvas"
@@ -418,15 +445,20 @@ export function RepositoryShell({
                       action: { label: "Clear all filters", onClick: clearFilters },
                     }
                   : {
-                      title: "Repository is empty",
+                      title: "No posts yet",
                       description:
-                        "Every piece of content you make lands here. Create the first one to get started.",
+                        "Posts are the building blocks of your campaigns. Create one, write your copy, add visuals, and send it to a campaign when it's ready.",
+                      journey: true,
                       action: onNewContent
-                        ? { label: "New post", onClick: onNewContent }
+                        ? { label: "Create your first post", onClick: onNewContent }
+                        : undefined,
+                      secondaryAction: onStartTour
+                        ? { label: "Show me around", onClick: onStartTour }
                         : undefined,
                     }
               }
             />
+            </Stagger>
 
           </div>
         </div>
@@ -545,7 +577,7 @@ export function RepositoryShell({
             {sorted.length} items in repository
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-(--r-round) bg-emerald-500" />
+            <span className="size-1.5 rounded-(--r-round) bg-live-400" />
             Synced to Wozku
           </span>
         </footer>

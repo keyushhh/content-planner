@@ -18,3 +18,13 @@ export const SECONDARY_ACTION_MD = cn(
   SECONDARY_ACTION_BASE,
   "h-9 px-3.5 text-[13px] active:scale-(--press)",
 );
+
+// violet-* is the brand-aware accent; .wozku remaps the ramp to emerald.
+const PRIMARY_ACTION_BASE =
+  "flex items-center gap-1.5 rounded-(--r-pill) bg-violet-600 font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
+
+export const PRIMARY_ACTION = cn(PRIMARY_ACTION_BASE, "h-8 px-3.5 text-[13px]");
+
+export const PRIMARY_ACTION_SM = cn(PRIMARY_ACTION_BASE, "h-7 px-3 text-[12px]");
+
+export const PRIMARY_ACTION_MD = cn(PRIMARY_ACTION_BASE, "h-9 px-4 text-[13px]");

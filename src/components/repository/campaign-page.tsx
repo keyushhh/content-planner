@@ -30,7 +30,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SECONDARY_ACTION_MD } from "@/lib/button-styles";
+import {
+  PRIMARY_ACTION_MD as PRIMARY_ACTION,
+  SECONDARY_ACTION_MD,
+} from "@/lib/button-styles";
 import {
   CAMPAIGN_STATE,
   campaignDrafts,
@@ -62,9 +65,6 @@ interface CampaignPageProps {
   onEdit: () => void;
   onAddPost: () => void;
 }
-
-const PRIMARY_ACTION =
-  "flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-150 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
 
 export function CampaignPage({
   campaign,
@@ -275,13 +275,13 @@ export function CampaignPage({
               className={cn(
                 "mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) px-4 py-3 text-[12.5px] inset-ring-1",
                 readyToGoLive
-                  ? "bg-emerald-500/[0.06] text-emerald-100/90 inset-ring-emerald-400/25"
+                  ? "bg-live-500/[0.06] text-live-100/90 inset-ring-live-400/25"
                   : "bg-amber-500/[0.05] text-amber-100/85 inset-ring-amber-400/20",
               )}
             >
               {readyToGoLive ? (
                 <>
-                  <Rocket className="size-3.5 shrink-0 text-emerald-300" />
+                  <Rocket className="size-3.5 shrink-0 text-live-300" />
                   <span className="min-w-0 flex-1 text-pretty">
                     This campaign has everything it needs. Take it live and its posts can
                     go out to{" "}
@@ -331,7 +331,8 @@ export function CampaignPage({
                 </span>
               </span>
               <span className="text-[11.5px] text-muted-foreground/70 text-pretty">
-                Nothing here is live yet. Submit to put it in the campaign.
+                Staged means sent here but not yet part of the campaign. Submit a post
+                to add it, then take the campaign live.
               </span>
             </div>
 
@@ -433,7 +434,7 @@ function ShareCampaignButton({ campaign }: { campaign: Campaign }) {
       className={SECONDARY_ACTION_MD}
     >
       {copied ? (
-        <Check className="size-3.5 text-emerald-300" />
+        <Check className="size-3.5 text-live-300" />
       ) : (
         <Share2 className="size-3.5" />
       )}
