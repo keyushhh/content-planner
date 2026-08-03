@@ -18,8 +18,30 @@ export type ChangelogDay = {
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-08-03",
-    summary: "Rebuilt campaign stat graphs, an even QR panel, and sending from inside a campaign",
+    summary:
+      "A campaign page you can work from: stats, Add post, Share, ROI, and sending from inside a campaign",
     entries: [
+      {
+        kind: "new",
+        title: "You can write a post from inside a campaign",
+        detail:
+          "Add post sits in the campaign's header and creates the post already attached to that campaign, so it lands in its staged drafts instead of unattached in the repository — approve it and submit, as usual. Share, Calculate ROI and Screen Setup joined the header too; the quieter actions live behind the ⋯ menu so the row stays legible.",
+        commit: "e187355",
+      },
+      {
+        kind: "new",
+        title: "Total shares and Est. reach now show on the campaign page itself",
+        detail:
+          "The stat tiles were only on a campaign's public page, so you had to open the shared link to see them. Both pages now render the same component, which means the figures can't drift apart. They appear once a campaign has something submitted.",
+        commit: "e187355",
+      },
+      {
+        kind: "new",
+        title: "Calculate ROI estimates what a campaign returned",
+        detail:
+          "Enter what the campaign cost and what a share or a click is worth, and it works out earned reach, estimated value and ROI against the campaign's own figures. Nothing is saved — it's a scratchpad for sizing a campaign up. Screen Setup is in the menu but isn't wired up yet.",
+        commit: "e187355",
+      },
       {
         kind: "improved",
         title: "The campaign stat graphs were rebuilt, and they now read correctly in light mode",
