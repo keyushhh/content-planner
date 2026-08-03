@@ -33,7 +33,7 @@ interface ConfirmDialogProps {
 const TONE_WELL: Record<Tone, string> = {
   destructive: "text-red-300 bg-red-500/[0.13] inset-ring-red-400/25",
   violet: "text-violet-300 bg-violet-500/[0.13] inset-ring-violet-400/25",
-  success: "text-emerald-300 bg-emerald-500/[0.13] inset-ring-emerald-400/25",
+  success: "text-live-300 bg-live-500/[0.13] inset-ring-live-400/25",
 };
 
 export function ConfirmDialog({

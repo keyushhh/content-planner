@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Stagger } from "@/components/content-planner/session-composer";
+import { PRIMARY_ACTION, PRIMARY_ACTION_MD } from "@/lib/button-styles";
 import { CampaignContextMenu } from "./campaign-context-menu";
 import {
   CAMPAIGN_STATE,
@@ -189,7 +190,7 @@ export function CampaignsView({
 
             <button
               onClick={onNewCampaign}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3.5 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+              className={cn(PRIMARY_ACTION, "shrink-0")}
             >
               <PlusCircle className="size-4" />
               New campaign
@@ -197,6 +198,10 @@ export function CampaignsView({
           </div>
         </div>
 
+        <div
+          data-tour="campaigns-grid"
+          className={cn("flex min-w-0 flex-col", rows.length === 0 && "flex-1")}
+        >
         {rows.length === 0 ? (
           <Stagger
             index={0}
@@ -211,7 +216,7 @@ export function CampaignsView({
             <span className="max-w-[420px] text-[13px] text-muted-foreground text-pretty">
               {filtered
                 ? "Nothing here fits that search. Try a different term or clear the filter."
-                : "A campaign is the push you are writing for. Make one, send posts to it from the repository, and take it live."}
+                : "Campaigns group your posts for publishing. Make one, send approved posts to it from the repository, then take it live."}
             </span>
             {filtered ? (
               <button
@@ -226,7 +231,7 @@ export function CampaignsView({
             ) : (
               <button
                 onClick={onNewCampaign}
-                className="mt-4 flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+                className={cn(PRIMARY_ACTION_MD, "mt-4")}
               >
                 <PlusCircle className="size-4" />
                 New campaign
@@ -274,6 +279,7 @@ export function CampaignsView({
             ))}
           </div>
         )}
+        </div>
       </div>
 
     </div>

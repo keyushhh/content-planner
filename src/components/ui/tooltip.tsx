@@ -63,4 +63,22 @@ function TooltipContent({
   )
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+/** Themed replacement for `title=""` on icon-only controls. */
+function Hint({
+  label,
+  side = "top",
+  children,
+}: {
+  label: React.ReactNode
+  side?: "top" | "bottom" | "left" | "right"
+  children: React.ReactElement<Record<string, unknown>>
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, Hint }

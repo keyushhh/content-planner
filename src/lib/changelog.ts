@@ -19,8 +19,57 @@ export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-08-03",
     summary:
-      "A campaign page you can work from: stats, Add post, Share, ROI, and sending from inside a campaign",
+      "A repository that explains itself \u2014 a walkthrough, a hands-on first post, and a campaign page you can work from",
     entries: [
+      {
+        kind: "new",
+        title: "Show me around \u2014 a walkthrough you can take more than once",
+        detail:
+          "A ? in the top bar walks you through the repository: what lives here, where posts get made, what Status gates, and how a post reaches a campaign. It dims and blurs everything except the part it is talking about rather than ringing it, and it is re-openable whenever you want it \u2014 useful the fiftieth time as much as the first. On a fresh install you get a small nudge beside the ?, never a dialog in your face. Steps that depend on table rows drop out when the repository is empty, so the count never promises a step it will not show.",
+        commit: "fdae347",
+      },
+      {
+        kind: "new",
+        title: "Walk me through a post \u2014 you make a real one, step by step",
+        detail:
+          "Offered when the walkthrough ends, or from the ? menu. It waits for you to actually do each thing \u2014 click New post, choose a format, write some copy, attach a visual, add a tag \u2014 rather than clicking Next through screenshots. Change your mind and close the format picker and it rewinds a step; it never blocks you and Skip is always there. The post stays hidden while you work and at the end you decide whether to keep it as a real draft or clear it away.",
+        commit: "fdae347",
+      },
+      {
+        kind: "new",
+        title: "Post types can be changed after you have started",
+        detail:
+          "The picker now says when to reach for each format instead of only what it is, and the footer no longer implies the choice is permanent, because it is not: a type chip under the post title reopens the picker. Your copy is kept, and anything attached that the new format cannot carry comes off.",
+        commit: "fdae347",
+      },
+      {
+        kind: "improved",
+        title: "The empty repository teaches the journey",
+        detail:
+          "Instead of one line of text it shows the three steps a post moves through \u2014 write it, get it approved, send it to a campaign \u2014 with the buttons to start or to take the walkthrough. It is where a new person actually lands, and it disappears on its own once you have made something.",
+        commit: "fdae347",
+      },
+      {
+        kind: "improved",
+        title: "Dev controls left the top bar",
+        detail:
+          "Seed 450, the demo-state switch, the brand layer and the version picker now live in a panel behind Ctrl+Shift+D with a DEV badge on it, so the top bar is just the app. Resetting the first-run nudge is in there too, which means testing it no longer means clearing storage and losing every post.",
+        commit: "fdae347",
+      },
+      {
+        kind: "improved",
+        title: "\u201cNeeds copy, an asset, tags\u201d became clickable",
+        detail:
+          "Each missing item under the post title now jumps to the field it is talking about and puts your cursor in it. Hints on the toolbar and the row actions are real tooltips now rather than the browser\u2019s, so they appear straight away and read like the rest of the app \u2014 including the reasons a disabled button is disabled, which used to be unreachable at the one moment they mattered.",
+        commit: "fdae347",
+      },
+      {
+        kind: "fixed",
+        title: "More greens that washed out under the brand guideline",
+        detail:
+          "Synced to Wozku, Ready to send, the ready-to-go-live banner and success dialogs were all still using the neutralised green, so they rendered grey with the brand layer on. They follow the theme now, like the campaign statuses already did. A brand-new post also said its last editor was \u201cUnknown\u201d; it says \u201cNot edited yet\u201d.",
+        commit: "fdae347",
+      },
       {
         kind: "fixed",
         title: "Live and Approved stay green with the brand guideline on",

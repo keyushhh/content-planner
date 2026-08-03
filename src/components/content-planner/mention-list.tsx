@@ -198,12 +198,12 @@ export function MentionPopover({
             type="button"
             disabled={disabled}
             title="Tag community members"
-            className="flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-blue-400 transition-[background-color,color,scale] duration-150 hover:bg-blue-400/10 hover:text-blue-300 active:scale-(--press) disabled:cursor-not-allowed disabled:opacity-50 data-[popup-open]:bg-blue-400/12 data-[popup-open]:text-blue-200"
+            className="flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press) disabled:cursor-not-allowed disabled:opacity-50 data-[popup-open]:bg-(--ink)/[0.08] data-[popup-open]:text-foreground"
           >
             <AtSign className="size-3.5" />
             {label}
             {taggedIds.length > 0 && (
-              <span className="ml-0.5 rounded-(--r-pill) bg-blue-400/20 px-1.5 text-[10px] font-semibold tabular-nums text-blue-200">
+              <span className="ml-0.5 rounded-(--r-pill) bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
                 {taggedIds.length}
               </span>
             )}

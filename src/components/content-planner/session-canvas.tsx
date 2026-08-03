@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   AlertCircle,
+  ChevronDown,
   ChevronsRight,
   Layers,
   Repeat2,
@@ -42,6 +43,18 @@ import {
 } from "./session-composer";
 import type { Feedback } from "@/lib/types";
 
+/* Jumps to the field a readiness item refers to. */
+function focusField(field: string) {
+  const row = document.querySelector<HTMLElement>(`[data-field="${field}"]`);
+  if (!row) return;
+  row.scrollIntoView({ block: "center", behavior: "smooth" });
+  // Inputs before buttons: the section's own toolbar buttons come first in DOM order.
+  const target =
+    row.querySelector<HTMLElement>("textarea, input") ??
+    row.querySelector<HTMLElement>("button");
+  target?.focus({ preventScroll: true });
+}
+
 export function SessionCanvas({
   session,
   mediaAssets,
@@ -64,6 +77,7 @@ export function SessionCanvas({
   onOpenSend,
   onOpenMediaLibrary,
   onOpenVariations,
+  onChangeType,
   onRequestUnlock,
   sendReadinessIssues,
   readyToSend,
@@ -71,6 +85,7 @@ export function SessionCanvas({
   statusMenu,
   layoutToggle,
   unlockDialog,
+  typeModal,
 }: ComposerLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
   const [copyArea, mention] = useMentionTarget(copyDraft, onCopyChange);
@@ -100,19 +115,20 @@ export function SessionCanvas({
   const canAddMore = session.visualAssetIds.length < media.max;
 
   const checklist = [
-    { label: "copy", done: copyDraft.trim().length > 0 },
+    { label: "copy", field: "copy", done: copyDraft.trim().length > 0 },
     ...(session.postType === "Reshare"
       ? []
       : [
           {
             label: media.checklist,
+            field: "assets",
             done: session.visualAssetIds.length > 0,
           },
         ]),
-    { label: "tags", done: session.tags.length > 0 },
+    { label: "tags", field: "tags", done: session.tags.length > 0 },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
-  const missing = checklist.filter((c) => !c.done).map((c) => c.label);
+  const missing = checklist.filter((c) => !c.done);
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
 
   return (
@@ -126,7 +142,9 @@ export function SessionCanvas({
         )}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          {statusMenu}
+          <span data-tour="composer-status" className="flex shrink-0">
+            {statusMenu}
+          </span>
           <span
             aria-hidden={!scrolled}
             className={cn(
@@ -267,6 +285,20 @@ export function SessionCanvas({
                   className="-mx-2 w-[calc(100%+1rem)] rounded-lg bg-transparent px-2 py-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.028em] caret-violet-400 outline-none transition-colors duration-150 hover:bg-(--ink)/[0.03] focus:bg-(--ink)/[0.045] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
                 />
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-0.5 text-[13px] text-muted-foreground">
+                  {!isCampaignLocked && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={onChangeType}
+                        aria-label={`Change post type, currently ${session.postType}`}
+                        className="-ml-1 flex h-6 items-center gap-1.5 rounded-(--r-pill) px-1.5 text-[13px] transition-colors duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+                      >
+                        {session.postType}
+                        <ChevronDown className="size-3 shrink-0 opacity-50" />
+                      </button>
+                      <span className="text-muted-foreground/30">&middot;</span>
+                    </>
+                  )}
                   {isCampaignLocked && (
                     <span className="inline-flex items-center gap-1.5">
                       <Lock className="size-3 shrink-0" />
@@ -276,13 +308,25 @@ export function SessionCanvas({
                   {!isCampaignLocked && (
                     <>
                       {missing.length === 0 ? (
-                        <span className="text-emerald-300/90">Ready to send</span>
+                        <span className="text-live-300/90">Ready to send</span>
                       ) : (
-                        <span>
+                        <span className="flex flex-wrap items-center gap-x-1">
                           <span className="tabular-nums">
                             {doneCount} of {checklist.length}
-                          </span>{" "}
-                          ready&nbsp;· needs {missing.join(", ")}
+                          </span>
+                          <span>ready&nbsp;· needs</span>
+                          {missing.map((item, i) => (
+                            <span key={item.field} className="flex items-center">
+                              <button
+                                type="button"
+                                onClick={() => focusField(item.field)}
+                                className="rounded-(--r-pill) px-1 text-foreground/85 underline decoration-(--ink)/25 decoration-dotted underline-offset-[3px] transition-colors duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground hover:decoration-(--ink)/50"
+                              >
+                                {item.label}
+                              </button>
+                              {i < missing.length - 1 && <span>,</span>}
+                            </span>
+                          ))}
                         </span>
                       )}
                     </>
@@ -292,7 +336,11 @@ export function SessionCanvas({
             </Stagger>
 
             <Stagger index={2}>
-              <div className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]">
+              <div
+                data-field="copy"
+                data-tour="composer-copy"
+                className="flex flex-col border-t border-(--ink)/[0.06] transition-[background-color] duration-300 focus-within:bg-violet-500/[0.03]"
+              >
               <div className="group/row flex min-h-11 flex-wrap items-center justify-between gap-2 px-9 py-2">
                 <span className="flex min-w-0 items-center gap-1.5">
                   <label
@@ -386,6 +434,8 @@ export function SessionCanvas({
             ) : (
             <SettingRow
               label={media.section}
+              field="assets"
+              tourAnchor="composer-assets"
               feedback={feedbackFor("Assets")}
               onFeedback={() => onOpenFeedback("Assets")}
               align={session.visualAssetIds.length > 0 ? "start" : "center"}
@@ -452,6 +502,8 @@ export function SessionCanvas({
 
             <SettingRow
               label="Tags"
+              field="tags"
+              tourAnchor="composer-tags"
               htmlFor="canvas-tags"
               feedback={feedbackFor("Tags")}
               onFeedback={() => onOpenFeedback("Tags")}
@@ -558,6 +610,7 @@ export function SessionCanvas({
       </div>
 
       {unlockDialog}
+      {typeModal}
     </div>
   );
 }
@@ -565,6 +618,8 @@ export function SessionCanvas({
 function SettingRow({
   label,
   htmlFor,
+  field,
+  tourAnchor,
   align = "center",
   valueAlign = "end",
   feedback,
@@ -574,6 +629,8 @@ function SettingRow({
 }: {
   label: string;
   htmlFor?: string;
+  field?: string;
+  tourAnchor?: string;
   align?: "center" | "start";
   valueAlign?: "start" | "end";
   feedback?: Feedback[];
@@ -585,6 +642,8 @@ function SettingRow({
   return (
     <Stagger index={staggerIndex}>
       <div
+        data-field={field}
+        data-tour={tourAnchor}
         className={cn(
           "group/row grid gap-x-4 gap-y-2.5 border-t border-(--ink)/[0.06] px-9 py-4",
           "grid-cols-1 @[560px]:grid-cols-[168px_minmax(0,1fr)]",

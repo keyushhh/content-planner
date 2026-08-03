@@ -75,6 +75,8 @@ export interface HistoryEntry {
 
 export interface Session {
   id: string;
+  /** Set while the guided tutorial owns this post. */
+  tutorial?: boolean;
   title: string;
   createdAt: string;
   updatedAt: string;

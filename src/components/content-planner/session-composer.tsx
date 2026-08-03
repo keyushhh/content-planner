@@ -193,6 +193,7 @@ export interface ComposerLayoutProps {
   onOpenSend: () => void;
   onOpenMediaLibrary: () => void;
   onOpenVariations: () => void;
+  onChangeType: () => void;
   onRequestUnlock: () => void;
   sendReadinessIssues: string[];
   readyToSend: boolean;
@@ -200,6 +201,7 @@ export interface ComposerLayoutProps {
   statusMenu: React.ReactNode;
   layoutToggle: React.ReactNode;
   unlockDialog: React.ReactNode;
+  typeModal: React.ReactNode;
 }
 
 export function SessionComposer({
@@ -418,7 +420,7 @@ export function SessionComposer({
                         >
                           Add Mentions
                           {activeMentions.length > 0 && (
-                            <span className="ml-1 rounded-(--r-pill) bg-blue-400/20 px-1.5 text-[10px] font-semibold tabular-nums text-blue-200">
+                            <span className="ml-1 rounded-(--r-pill) bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums text-violet-200">
                               {activeMentions.length}
                             </span>
                           )}
@@ -917,11 +919,11 @@ export function Byline({ session }: { session: Session }) {
     <span className="mr-2 hidden min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
       <Avatar className="size-4 shrink-0 inset-ring-1 inset-ring-(--ink)/10">
         <AvatarFallback className="text-[8px]">
-          {session.lastEditedBy?.name?.[0] ?? "?"}
+          {session.lastEditedBy?.name?.[0] ?? "\u2013"}
         </AvatarFallback>
       </Avatar>
       <span className="max-w-[120px] truncate">
-        {session.lastEditedBy?.name ?? "Unknown"}
+        {session.lastEditedBy?.name ?? "Not edited yet"}
       </span>
       <span aria-hidden className="size-1 shrink-0 rounded-(--r-round) bg-muted-foreground/40" />
       <span className="shrink-0 tabular-nums">{formatDate(session.updatedAt)}</span>
@@ -946,8 +948,8 @@ export function GhostAction({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-blue-400 transition-[background-color,color,scale] duration-150 hover:bg-blue-400/10 hover:text-blue-300 active:scale-(--press)",
-        active && "bg-blue-400/12 text-blue-200",
+        "flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-xs font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)",
+        active && "bg-(--ink)/[0.08] text-foreground",
       )}
     >
       <Icon className="size-3.5" />
@@ -973,7 +975,7 @@ function MentionsPane({
     <div className="flex h-full min-h-0 flex-col @container">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-(--ink)/[0.06] px-5 py-3">
         <span className="flex min-w-0 items-center gap-1.5">
-          <AtSign className="size-3.5 shrink-0 text-blue-300" />
+          <AtSign className="size-3.5 shrink-0 text-violet-300" />
           <span className="truncate text-[13px] font-semibold tracking-tight">
             Tag community members
           </span>

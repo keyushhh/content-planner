@@ -13,6 +13,12 @@ import {
   tagDot,
 } from "@/lib/utils";
 import {
+  PRIMARY_ACTION_MD,
+  PRIMARY_ACTION_SM,
+  SECONDARY_ACTION_MD,
+} from "@/lib/button-styles";
+import { Hint } from "@/components/ui/tooltip";
+import {
   Send,
   Check,
   ExternalLink,
@@ -28,6 +34,8 @@ import {
   SearchX,
   ChevronLeft,
   ChevronRight,
+  PencilLine,
+  CheckCircle2,
   ChevronUp,
   ListFilter,
   Tag,
@@ -42,6 +50,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { campaignNamesFor } from "@/lib/campaigns";
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
+
+export interface EmptyStateSpec {
+  title: string;
+  description: string;
+  action?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
+  filtered?: boolean;
+  /** Draws the Write → Approve → Send row. */
+  journey?: boolean;
+}
+
+const JOURNEY_STEPS = [
+  { icon: PencilLine, label: "Write it" },
+  { icon: CheckCircle2, label: "Get it approved" },
+  { icon: Send, label: "Send to a campaign" },
+];
 
 interface SessionsTableProps {
   customColumns?: CustomColumn[];
@@ -60,12 +84,7 @@ interface SessionsTableProps {
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
   onDuplicateSession?: (id: string) => void;
-  emptyState?: {
-    title: string;
-    description: string;
-    action?: { label: string; onClick: () => void };
-    filtered?: boolean;
-  };
+  emptyState?: EmptyStateSpec;
   loading?: boolean;
   variant?: "classic" | "canvas";
   pageSize?: number;
@@ -240,7 +259,7 @@ function CampaignCell({
     return approved ? (
       <button
         onClick={() => onOpenSend(session.id)}
-        className="inline-flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-3 text-xs font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,scale] duration-150 hover:bg-violet-500 active:scale-(--press)"
+        className={cn(PRIMARY_ACTION_SM, "inline-flex")}
       >
         <Send className="size-3" />
         Send
@@ -777,27 +796,28 @@ export function SessionsTable({
                 onSort={onSort}
                 className="hidden min-w-0 @[640px]:block"
               />
-              <div className="min-w-0">
+              <div className="min-w-0" data-tour="repo-status">
                 {onCycleStatus ? (
-                  <button
-                    onClick={onCycleStatus}
-                    title="Filter by status"
-                    aria-label={`Filter by status, currently ${statusLabel}`}
-                    className={cn(
-                      "group/status -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-(--ink)/[0.06]",
-                      statusFiltered ? "text-violet-200" : "hover:text-foreground",
-                    )}
-                  >
-                    <span className="truncate">{statusLabel}</span>
-                    <ListFilter
+                  <Hint label="Click to filter by status" side="bottom">
+                    <button
+                      onClick={onCycleStatus}
+                      aria-label={`Filter by status, currently ${statusLabel}`}
                       className={cn(
-                        "size-3 shrink-0 transition-opacity duration-200",
-                        statusFiltered
-                          ? "opacity-100"
-                          : "opacity-0 group-hover/status:opacity-40",
+                        "group/status -mx-1.5 flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 transition-colors duration-150 hover:bg-(--ink)/[0.06]",
+                        statusFiltered ? "text-violet-200" : "hover:text-foreground",
                       )}
-                    />
-                  </button>
+                    >
+                      <span className="truncate">{statusLabel}</span>
+                      <ListFilter
+                        className={cn(
+                          "size-3 shrink-0 transition-opacity duration-200",
+                          statusFiltered
+                            ? "opacity-100"
+                            : "opacity-0 group-hover/status:opacity-40",
+                        )}
+                      />
+                    </button>
+                  </Hint>
                 ) : (
                   <span>Status</span>
                 )}
@@ -828,19 +848,25 @@ export function SessionsTable({
                     "hidden @[900px]:flex",
                   )}
                 >
-                  <button
-                    onClick={handleAddColumn}
-                    disabled={customColumns.length >= MAX_CUSTOM_COLUMNS}
-                    title={
+                  {/* On the wrapper: a disabled button has pointer-events:none. */}
+                  <Hint
+                    label={
                       customColumns.length >= MAX_CUSTOM_COLUMNS
                         ? `${MAX_CUSTOM_COLUMNS} columns is the limit`
                         : "Add column"
                     }
-                    aria-label="Add column"
-                    className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press) disabled:pointer-events-none disabled:opacity-30"
                   >
-                    <Plus className="size-3.5" />
-                  </button>
+                    <span className="flex">
+                      <button
+                        onClick={handleAddColumn}
+                        disabled={customColumns.length >= MAX_CUSTOM_COLUMNS}
+                        aria-label="Add column"
+                        className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press) disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    </span>
+                  </Hint>
                 </div>
               )}
             </div>
@@ -859,6 +885,7 @@ export function SessionsTable({
                   <div
                     key={session.id}
                     data-row-id={session.id}
+                    data-tour={rowIndex === 0 ? "repo-row" : undefined}
                     onClick={() => onSelectSession(session.id)}
                     style={{
                       animation: `post-type-in 260ms cubic-bezier(0.2,0,0,1) ${
@@ -1005,7 +1032,11 @@ export function SessionsTable({
                       </div>
                     )}
 
-                    <div className={wideOnly} onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className={wideOnly}
+                      data-tour={rowIndex === 0 ? "repo-send" : undefined}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <CampaignCell
                         session={session}
                         campaigns={campaigns}
@@ -1042,34 +1073,37 @@ export function SessionsTable({
                       )}
                     >
                       {locked && (
-                        <button
-                          onClick={() => setConfirmUnlockId(session.id)}
-                          aria-label="Unlock to edit"
-                          title="Live on Wozku and locked from editing. Unlock to edit."
-                          className="group/lock relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
-                        >
-                          <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0" />
-                          <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100" />
-                        </button>
+                        <Hint label="Live on Wozku and locked from editing. Unlock to edit.">
+                          <button
+                            onClick={() => setConfirmUnlockId(session.id)}
+                            aria-label="Unlock to edit"
+                            className="group/lock relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                          >
+                            <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0" />
+                            <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100" />
+                          </button>
+                        </Hint>
                       )}
                       {onDuplicateSession && (
-                        <button
-                          onClick={() => onDuplicateSession(session.id)}
-                          aria-label="Duplicate"
-                          title="Duplicate"
-                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
-                        >
-                          <Copy className="size-3.5" />
-                        </button>
+                        <Hint label="Duplicate">
+                          <button
+                            onClick={() => onDuplicateSession(session.id)}
+                            aria-label="Duplicate"
+                            className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                          >
+                            <Copy className="size-3.5" />
+                          </button>
+                        </Hint>
                       )}
-                      <button
-                        onClick={() => setConfirmDeleteId(session.id)}
-                        aria-label="Delete"
-                        title="Delete"
-                        className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
+                      <Hint label="Delete">
+                        <button
+                          onClick={() => setConfirmDeleteId(session.id)}
+                          aria-label="Delete"
+                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </Hint>
                     </div>
                   </div>
                 );
@@ -1455,17 +1489,9 @@ function SkeletonRows({ rows = 8 }: { rows?: number }) {
   );
 }
 
-function EmptyRows({
-  emptyState,
-}: {
-  emptyState: {
-    title: string;
-    description: string;
-    action?: { label: string; onClick: () => void };
-    filtered?: boolean;
-  };
-}) {
+function EmptyRows({ emptyState }: { emptyState: EmptyStateSpec }) {
   const Glyph = emptyState.filtered ? SearchX : Inbox;
+  const showJourney = emptyState.journey && !emptyState.filtered;
 
   return (
     <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden duration-300 animate-in fade-in">
@@ -1481,23 +1507,62 @@ function EmptyRows({
         <span className="mt-1.5 text-[14px] font-semibold tracking-[-0.01em]">
           {emptyState.title}
         </span>
-        <span className="max-w-[330px] text-[12.5px] leading-snug text-muted-foreground text-pretty">
+        <span
+          className={cn(
+            "text-[12.5px] leading-snug text-muted-foreground text-pretty",
+            showJourney ? "max-w-[420px]" : "max-w-[330px]",
+          )}
+        >
           {emptyState.description}
         </span>
 
-        {emptyState.action && (
-          <button
-            onClick={emptyState.action.onClick}
-            className={cn(
-              "mt-3.5 flex h-9 items-center gap-1.5 rounded-(--r-pill) px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 active:scale-(--press)",
-              emptyState.filtered
-                ? "bg-(--ink)/[0.04] inset-ring-1 inset-ring-(--ink)/[0.09] hover:bg-(--ink)/[0.08] hover:inset-ring-(--ink)/20"
-                : "bg-violet-600 text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 hover:bg-violet-500",
+        {showJourney && (
+          <div className="mt-4 flex flex-col items-center gap-2 @[560px]:flex-row @[560px]:gap-3">
+            {JOURNEY_STEPS.map(({ icon: Icon, label }, i) => (
+              <div key={label} className="flex items-center gap-2 @[560px]:gap-3">
+                <span className="flex items-center gap-1.5">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) bg-(--ink)/[0.05] text-muted-foreground inset-ring-1 inset-ring-(--ink)/[0.09]">
+                    <Icon className="size-3.5" />
+                  </span>
+                  <span className="whitespace-nowrap text-[11.5px] font-medium text-foreground/80">
+                    {label}
+                  </span>
+                </span>
+                {i < JOURNEY_STEPS.length - 1 && (
+                  <ChevronRight
+                    aria-hidden
+                    className="size-3.5 shrink-0 rotate-90 text-muted-foreground/40 @[560px]:rotate-0"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(emptyState.action || emptyState.secondaryAction) && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+            {emptyState.action && (
+              <button
+                onClick={emptyState.action.onClick}
+                className={cn(
+                  emptyState.filtered
+                    ? "flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.04] px-4 text-[13px] font-medium transition-[background-color,box-shadow,scale] duration-150 inset-ring-1 inset-ring-(--ink)/[0.09] hover:bg-(--ink)/[0.08] hover:inset-ring-(--ink)/20 active:scale-(--press)"
+                    : PRIMARY_ACTION_MD,
+                )}
+              >
+                {!emptyState.filtered && <Plus className="size-4" />}
+                {emptyState.action.label}
+              </button>
             )}
-          >
-            {!emptyState.filtered && <Plus className="size-4" />}
-            {emptyState.action.label}
-          </button>
+            {emptyState.secondaryAction && (
+              <button
+                onClick={emptyState.secondaryAction.onClick}
+                className={SECONDARY_ACTION_MD}
+              >
+                {emptyState.secondaryAction.label}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
