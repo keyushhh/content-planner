@@ -96,7 +96,7 @@ export function PostTypeModal({
             <DialogDescription className="mt-1.5 text-[13px] leading-snug text-muted-foreground text-pretty">
               {isChange
                 ? "Your copy is kept. Anything attached that the new type can\u2019t carry comes off."
-                : "This decides which fields the composer gives you. You can change it later."}
+                : "This decides which fields the composer gives you, and it stays fixed once you start."}
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -155,9 +155,7 @@ export function PostTypeModal({
 
         <div className="flex items-center justify-between gap-3 border-t border-(--ink)/[0.06] px-6 py-3">
           <span className="text-[11px] text-muted-foreground/70">
-            {isChange
-              ? "Your copy is never touched"
-              : "Changeable later \u2014 your copy is kept"}
+            {isChange ? "Your copy is never touched" : "Set once, at the start"}
           </span>
           <button
             onClick={() => onOpenChange(false)}

@@ -17,8 +17,7 @@ import {
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
 import { mentionsIn } from "@/lib/mentions";
 import { MediaLibraryView } from "./media-library-view";
-import { SessionComposer, assetsForType } from "./session-composer";
-import { PostTypeModal } from "./post-type-modal";
+import { SessionComposer } from "./session-composer";
 import { SessionCanvas } from "./session-canvas";
 
 export type ComposerLayout = "split" | "canvas";
@@ -71,7 +70,6 @@ export function SessionDetailPane({
   >({ kind: "post" });
   const [tagDraft, setTagDraft] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
-  const [changeTypeOpen, setChangeTypeOpen] = useState(false);
   const layout = composerLayout ?? readStoredLayout();
 
   const [titleDraft, setTitleDraft] = useState(session.title);
@@ -284,7 +282,6 @@ export function SessionDetailPane({
       onToggleFeedback={onToggleFeedback}
       onOpenSend={onOpenSend}
       onOpenMediaLibrary={() => setView("media-library")}
-      onChangeType={() => setChangeTypeOpen(true)}
       onOpenVariations={() => {
         setMediaTarget({ kind: "post" });
         setView("variations");
@@ -296,25 +293,6 @@ export function SessionDetailPane({
       statusMenu={statusMenu}
       layoutToggle={layoutToggle}
       unlockDialog={unlockDialog}
-      typeModal={
-        <PostTypeModal
-          open={changeTypeOpen}
-          onOpenChange={setChangeTypeOpen}
-          mode="change"
-          current={session.postType}
-          onSelect={(postType) => {
-            onUpdate({
-              postType,
-              visualAssetIds: assetsForType(
-                session.visualAssetIds,
-                mediaAssets,
-                postType,
-              ),
-            });
-            setChangeTypeOpen(false);
-          }}
-        />
-      }
     />
   );
 }
