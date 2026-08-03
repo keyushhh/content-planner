@@ -45,16 +45,14 @@ export function PublicPostTile({
         <Check className="size-3.5" strokeWidth={3} />
       </span>
 
-      {image ? (
-        image.url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image.url} alt="" className="aspect-[4/3] w-full object-cover" />
-        ) : (
-          <div className="flex aspect-[4/3] w-full items-center justify-center bg-neutral-100 text-neutral-300">
-            <ImageIcon className="size-7" />
-          </div>
-        )
-      ) : null}
+      {image?.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image.url} alt="" className="aspect-[4/3] w-full object-cover" />
+      ) : (
+        <div className="flex aspect-[4/3] w-full items-center justify-center bg-neutral-100 text-neutral-300">
+          <ImageIcon className="size-7" />
+        </div>
+      )}
 
       <div className="p-3.5">
         <p className="line-clamp-3 text-[13px] leading-[1.5] text-pretty text-neutral-800">

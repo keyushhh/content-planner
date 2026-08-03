@@ -1,4 +1,4 @@
-import { ImageIcon, MessageSquare, Repeat2, Send, ThumbsUp } from "lucide-react";
+import { MessageSquare, Repeat2, Send, ThumbsUp } from "lucide-react";
 import { relativeTime } from "@/lib/utils";
 import { mediaAssets as staticMediaAssets } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -57,15 +57,9 @@ export function PublicPostCard({
         {tags && <p className="mt-2 text-blue-700">{tags}</p>}
       </div>
 
-      {image && image.url ? (
+      {image?.url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={image.url} alt="" className="aspect-video w-full object-cover" />
-      ) : (
-        image && (
-          <div className="flex aspect-video w-full items-center justify-center bg-neutral-100 text-neutral-400">
-            <ImageIcon className="size-6" />
-          </div>
-        )
       )}
 
       <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-[12px] font-medium text-neutral-500">

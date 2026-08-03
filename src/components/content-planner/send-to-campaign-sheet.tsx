@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, FileEdit, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileEdit, Plus, Search, Send, X } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stagger } from "./session-composer";
 import { PostPreview } from "./post-preview";
@@ -18,6 +18,10 @@ interface SendToCampaignSheetProps {
   mediaAssets: MediaAsset[];
   authorName: string;
   initialCampaignIds?: string[];
+  /** Viewed campaign, if any — marked "Current" in the list. */
+  currentCampaignId?: string | null;
+  /** Campaign that gets submitted outright instead of staged as a draft. */
+  directCampaignId?: string | null;
   onShare: (campaignIds: string[]) => void;
   onNewCampaign?: (initialPostIds: string[]) => void;
 }
@@ -44,6 +48,8 @@ export function SendToCampaignSheet({
   mediaAssets,
   authorName,
   initialCampaignIds,
+  currentCampaignId,
+  directCampaignId,
   onShare,
   onNewCampaign,
 }: SendToCampaignSheetProps) {
@@ -61,7 +67,8 @@ export function SendToCampaignSheet({
       const preset = initialCampaignIds ?? [];
       setSelectedIds(preset);
       setSearch("");
-      setStep(preset.length > 0 ? "preview" : "pick");
+      // A preset pre-ticks the list; it must not skip past it.
+      setStep("pick");
     }
   }
 
@@ -83,6 +90,13 @@ export function SendToCampaignSheet({
   const selectedNames = campaigns
     .filter((c) => selectedIds.includes(c.id))
     .map((c) => c.name);
+
+  // The picked campaign that gets submitted outright; the rest still land as drafts.
+  const directId =
+    directCampaignId && selectedIds.includes(directCampaignId) ? directCampaignId : null;
+  const directName = campaigns.find((c) => c.id === directId)?.name ?? null;
+  const draftCount = count - (directId ? 1 : 0);
+  const posts = batch ? "them" : "it";
 
   function toggle(id: string) {
     setSelectedIds((prev) =>
@@ -160,9 +174,19 @@ export function SendToCampaignSheet({
             </h2>
             <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground text-pretty">
               {previewing
-                ? batch
-                  ? "This is how each post will read. They land as drafts, so the campaign can look them over before anything goes live."
-                  : "This is how the post will read. It lands as a draft, so the campaign can look it over before it goes live."
+                ? directName
+                  ? draftCount > 0
+                    ? `This is how ${batch ? "each post" : "the post"} will read. ${
+                        batch ? "They go" : "It goes"
+                      } into ${directName} as soon as you send; the other ${
+                        draftCount === 1 ? "campaign gets" : "campaigns get"
+                      } ${posts} as a draft to look over.`
+                    : `This is how ${batch ? "each post" : "the post"} will read. ${
+                        batch ? "They go" : "It goes"
+                      } into ${directName} as soon as you send.`
+                  : batch
+                    ? "This is how each post will read. They land as drafts, so the campaign can look them over before anything goes live."
+                    : "This is how the post will read. It lands as a draft, so the campaign can look it over before it goes live."
                 : batch
                   ? "Every post goes to every campaign you pick. Nothing is removed from where it already is."
                   : "Pick as many as you need. Nothing is removed from where it already is."}
@@ -270,6 +294,7 @@ export function SendToCampaignSheet({
                     campaign={campaign}
                     now={now}
                     selected={selectedIds.includes(campaign.id)}
+                    isCurrent={campaign.id === currentCampaignId}
                     onToggle={() => toggle(campaign.id)}
                   />
                 ))}
@@ -316,11 +341,19 @@ export function SendToCampaignSheet({
           >
             {count === 0
               ? "Nothing selected"
-              : previewing
-                ? "Lands as a draft"
-                : count === 1
+              : !previewing
+                ? count === 1
                   ? selectedNames[0]
-                  : `${selectedNames[0]} +${count - 1}`}
+                  : `${selectedNames[0]} +${count - 1}`
+                : directName
+                  ? draftCount > 0
+                    ? `Sends to ${directName} · ${draftCount} draft${
+                        draftCount === 1 ? "" : "s"
+                      } elsewhere`
+                    : `Sends to ${directName}`
+                  : count === 1
+                    ? `Lands as a draft in ${selectedNames[0]}`
+                    : `Lands as a draft in ${count} campaigns`}
           </span>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -334,14 +367,29 @@ export function SendToCampaignSheet({
             <button
               disabled={count === 0}
               onClick={advance}
-              title={previewing ? "Add as draft (⌘↵)" : "Review the post (⌘↵)"}
+              title={
+                previewing
+                  ? directName
+                    ? "Send (⌘↵)"
+                    : "Add as draft (⌘↵)"
+                  : "Review the post (⌘↵)"
+              }
               className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
             >
               {previewing ? (
-                <>
-                  <FileEdit className="size-3.5" />
-                  {count > 1 ? `Add as draft to ${count}` : "Add as draft"}
-                </>
+                directName ? (
+                  <>
+                    <Send className="size-3.5" />
+                    {draftCount > 0
+                      ? `Send + ${draftCount} draft${draftCount === 1 ? "" : "s"}`
+                      : "Send"}
+                  </>
+                ) : (
+                  <>
+                    <FileEdit className="size-3.5" />
+                    {count > 1 ? `Add as draft to ${count}` : "Add as draft"}
+                  </>
+                )
               ) : (
                 <>
                   Review
@@ -368,11 +416,13 @@ function CampaignRow({
   campaign,
   now,
   selected,
+  isCurrent,
   onToggle,
 }: {
   campaign: Campaign;
   now: number;
   selected: boolean;
+  isCurrent?: boolean;
   onToggle: () => void;
 }) {
   const ends = endsLabel(campaign.endDate, now);
@@ -401,6 +451,11 @@ function CampaignRow({
           <span className="shrink-0 rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
             {campaign.tag}
           </span>
+          {isCurrent && (
+            <span className="shrink-0 rounded-(--r-inner) bg-violet-500/15 px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-violet-200 inset-ring-1 inset-ring-violet-400/25">
+              Current
+            </span>
+          )}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground/70">
           <span className="shrink-0 tabular-nums">

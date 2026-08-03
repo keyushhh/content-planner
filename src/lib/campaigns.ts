@@ -167,6 +167,12 @@ export function campaignSubmitted(
   );
 }
 
+export function sortBySentDesc(a: Session, b: Session) {
+  return (
+    new Date(b.sentAt ?? b.updatedAt).getTime() - new Date(a.sentAt ?? a.updatedAt).getTime()
+  );
+}
+
 export function campaignMembers(
   sessions: Session[],
   campaign: Pick<Campaign, "id" | "sessionIds">,

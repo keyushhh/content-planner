@@ -26,10 +26,9 @@ import {
 } from "@/lib/campaigns";
 import { platformMeta } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
-import type { CustomColumnProps } from "./repository-shell";
 import type { Campaign, MediaAsset, Session } from "@/lib/types";
 
-interface CampaignPageProps extends CustomColumnProps {
+interface CampaignPageProps {
   campaign: Campaign;
   campaigns: Campaign[];
   sessions: Session[];
@@ -65,7 +64,6 @@ export function CampaignPage({
   onWithdraw,
   onGoLive,
   onEdit,
-  ...columnProps
 }: CampaignPageProps) {
   const drafts = useMemo(
     () => campaignDrafts(sessions, campaign.id),
@@ -327,7 +325,7 @@ export function CampaignPage({
           onDeleteSession={onDeleteSession}
           onUnlockSession={onUnlockSession}
           onDuplicateSession={onDuplicateSession}
-          {...columnProps}
+          actionsFade={false}
           emptyState={{
             title: "Nothing submitted yet",
             description: drafts.length
@@ -353,7 +351,7 @@ function LiveLinkChip({ campaign }: { campaign: Campaign }) {
   }
 
   return (
-    <div className="w-[300px] rounded-(--r-surface) bg-emerald-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-emerald-400/25">
+    <div className="w-fit min-w-[300px] max-w-[460px] rounded-(--r-surface) bg-emerald-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-emerald-400/25">
       <span className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-emerald-300/85">
         <Rocket className="size-3" />
         Campaign is live

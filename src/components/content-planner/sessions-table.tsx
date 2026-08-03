@@ -44,12 +44,12 @@ import { campaignNamesFor } from "@/lib/campaigns";
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 interface SessionsTableProps {
-  customColumns: CustomColumn[];
-  customCellValues: CustomCellValues;
-  onAddColumn: () => string;
-  onRenameColumn: (colId: string, name: string) => void;
-  onDeleteColumn: (colId: string) => void;
-  onSetCellValue: (sessionId: string, colId: string, value: string) => void;
+  customColumns?: CustomColumn[];
+  customCellValues?: CustomCellValues;
+  onAddColumn?: () => string;
+  onRenameColumn?: (colId: string, name: string) => void;
+  onDeleteColumn?: (colId: string) => void;
+  onSetCellValue?: (sessionId: string, colId: string, value: string) => void;
   sessions: Session[];
   campaigns?: Campaign[];
   selectedSessionId: string | null;
@@ -77,11 +77,12 @@ interface SessionsTableProps {
   onCycleStatus?: () => void;
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
+  actionsFade?: boolean;
 }
 
 const ROW_EXIT_MS = 220;
 
-const EDITED_LEFT = 616;
+const EDITED_LEFT = 560;
 
 const NAME_CAP = 310;
 
@@ -393,8 +394,9 @@ export function SessionsTable({
   onCycleStatus,
   selectedIds,
   onSelectionChange,
-  customColumns,
-  customCellValues,
+  actionsFade = true,
+  customColumns = [],
+  customCellValues = {},
   onAddColumn,
   onRenameColumn,
   onDeleteColumn,
@@ -443,7 +445,8 @@ export function SessionsTable({
     sessions.find((s) => s.id === confirmUnlockId) ?? null;
 
   const handleAddColumn = () => {
-    setEditingHeaderId(onAddColumn());
+    const id = onAddColumn?.();
+    if (id) setEditingHeaderId(id);
   };
 
   const [confirmDeleteColId, setConfirmDeleteColId] = useState<string | null>(null);
@@ -455,7 +458,7 @@ export function SessionsTable({
       .length;
 
   function requestDeleteColumn(colId: string) {
-    if (filledCells(colId) === 0) onDeleteColumn(colId);
+    if (filledCells(colId) === 0) onDeleteColumn?.(colId);
     else setConfirmDeleteColId(colId);
   }
 
@@ -514,7 +517,7 @@ export function SessionsTable({
             label: "Delete column",
             tone: "destructive",
             onClick: () => {
-              if (columnPendingDelete) onDeleteColumn(columnPendingDelete.id);
+              if (columnPendingDelete) onDeleteColumn?.(columnPendingDelete.id);
               setConfirmDeleteColId(null);
             },
           },
@@ -563,11 +566,12 @@ export function SessionsTable({
   const pick = selectable ? "26px " : "";
   const campaignLeft = 20 + (selectable ? 26 + 12 : 0) + NAME_CAP + 12;
   const campaignWidth = EDITED_LEFT - 12 - campaignLeft;
-  const viewCol = onViewPublic ? "112px " : "";
+  const viewCol = onViewPublic ? "96px " : "";
+  const actionsBuffer = headerColumns.length === 0 ? " 88px" : "";
   const canvasGrid = {
     "--cols-sm": `${pick}minmax(0,1fr) 104px`,
     "--cols-md": `${pick}minmax(0,1fr) 152px 184px 112px`,
-    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 184px 138px ${viewCol}138px ${headerColumns
+    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 160px 118px ${viewCol}116px${actionsBuffer} ${headerColumns
       .map(() => "140px")
       .join(" ")}`,
   } as React.CSSProperties;
@@ -809,7 +813,7 @@ export function SessionsTable({
                   className={wideOnlyRow}
                   editing={editingHeaderId === col.id}
                   onStartRename={() => setEditingHeaderId(col.id)}
-                  onCommitRename={(name) => onRenameColumn(col.id, name)}
+                  onCommitRename={(name) => onRenameColumn?.(col.id, name)}
                   onStopRename={() => setEditingHeaderId(null)}
                   onDelete={() => requestDeleteColumn(col.id)}
                 />
@@ -817,26 +821,28 @@ export function SessionsTable({
 
             </div>
 
-              <div
-                className={cn(
-                  "sticky right-0 z-20 col-start-1 row-start-1 items-center justify-self-end bg-gradient-to-l from-(--surface-panel) from-65% to-transparent pl-12 pr-5",
-                  "hidden @[900px]:flex",
-                )}
-              >
-                <button
-                  onClick={handleAddColumn}
-                  disabled={customColumns.length >= MAX_CUSTOM_COLUMNS}
-                  title={
-                    customColumns.length >= MAX_CUSTOM_COLUMNS
-                      ? `${MAX_CUSTOM_COLUMNS} columns is the limit`
-                      : "Add column"
-                  }
-                  aria-label="Add column"
-                  className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press) disabled:pointer-events-none disabled:opacity-30"
+              {onAddColumn && (
+                <div
+                  className={cn(
+                    "sticky right-0 z-20 col-start-1 row-start-1 items-center justify-self-end bg-gradient-to-l from-(--surface-panel) from-65% to-transparent pl-12 pr-5",
+                    "hidden @[900px]:flex",
+                  )}
                 >
-                  <Plus className="size-3.5" />
-                </button>
-              </div>
+                  <button
+                    onClick={handleAddColumn}
+                    disabled={customColumns.length >= MAX_CUSTOM_COLUMNS}
+                    title={
+                      customColumns.length >= MAX_CUSTOM_COLUMNS
+                        ? `${MAX_CUSTOM_COLUMNS} columns is the limit`
+                        : "Add column"
+                    }
+                    aria-label="Add column"
+                    className="flex size-7 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press) disabled:pointer-events-none disabled:opacity-30"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {loading ? (
@@ -1021,7 +1027,7 @@ export function SessionsTable({
                         onStartEdit={() =>
                           setEditingCell({ sessionId: session.id, colId: col.id })
                         }
-                        onCommit={(value) => onSetCellValue(session.id, col.id, value)}
+                        onCommit={(value) => onSetCellValue?.(session.id, col.id, value)}
                         onStopEdit={() => setEditingCell(null)}
                       />
                     ))}
@@ -1030,7 +1036,10 @@ export function SessionsTable({
 
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end bg-gradient-to-l from-(--surface-raised) from-65% to-transparent pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+                      className={cn(
+                        "pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100",
+                        actionsFade && "bg-gradient-to-l from-(--surface-raised) from-65% to-transparent",
+                      )}
                     >
                       {locked && (
                         <button
@@ -1175,7 +1184,7 @@ export function SessionsTable({
               variant="classic"
               editing={editingHeaderId === col.id}
               onStartRename={() => setEditingHeaderId(col.id)}
-              onCommitRename={(name) => onRenameColumn(col.id, name)}
+              onCommitRename={(name) => onRenameColumn?.(col.id, name)}
               onStopRename={() => setEditingHeaderId(null)}
               onDelete={() => requestDeleteColumn(col.id)}
             />
@@ -1294,7 +1303,7 @@ export function SessionsTable({
                     onStartEdit={() =>
                       setEditingCell({ sessionId: session.id, colId: col.id })
                     }
-                    onCommit={(value) => onSetCellValue(session.id, col.id, value)}
+                    onCommit={(value) => onSetCellValue?.(session.id, col.id, value)}
                     onStopEdit={() => setEditingCell(null)}
                   />
                 ))}

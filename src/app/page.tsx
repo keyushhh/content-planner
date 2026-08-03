@@ -382,6 +382,18 @@ export default function Home() {
       : null;
   const editingCampaign =
     campaigns.find((c) => c.id === editingCampaignId) ?? null;
+
+  // Gated like CampaignPage's own render: repoCampaignId outlives a section switch.
+  const campaignPageId =
+    mode === "repository" &&
+    section === "campaigns" &&
+    !campaignWizard &&
+    !editingCampaign
+      ? repoCampaignId
+      : null;
+
+  const currentCampaignId =
+    mode === "repository" ? campaignPageId : selectedCampaignId;
   const campaignSessions = campaignMembers(sessions, selectedCampaign).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
@@ -603,8 +615,17 @@ export default function Home() {
   }
 
   function requestSend(sessionId: string) {
-    setSendPreset(mode === "repository" ? null : [selectedCampaignId]);
+    setSendPreset(currentCampaignId ? [currentCampaignId] : null);
     setSendSheetSessionId(sessionId);
+  }
+
+  // Inside a campaign, that campaign is submitted outright; others still stage as drafts.
+  // submitDrafts ignores unstaged posts, so stage first — the updaters run in order.
+  function shareSessions(sessionIds: string[], campaignIds: string[]) {
+    stageDrafts(sessionIds, campaignIds);
+    if (campaignPageId && campaignIds.includes(campaignPageId)) {
+      submitDrafts(campaignPageId, sessionIds);
+    }
   }
 
   function openCampaign(campaignId: string) {
@@ -1184,7 +1205,6 @@ export default function Home() {
             onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
             onGoLive={() => takeCampaignLive(repoCampaign.id)}
             onEdit={() => setEditingCampaignId(repoCampaign.id)}
-            {...customColumnProps}
           />
           ) : (
             <CampaignsView
@@ -1291,6 +1311,8 @@ export default function Home() {
         mediaAssets={mediaAssets}
         authorName={currentUser.name}
         initialCampaignIds={bulkBatch ? undefined : sendPreset ?? undefined}
+        currentCampaignId={currentCampaignId}
+        directCampaignId={campaignPageId}
         session={sessions.find((s) => s.id === sendSheetSessionId) ?? null}
         sessions={bulkBatch ?? undefined}
         alreadySentTo={
@@ -1301,12 +1323,15 @@ export default function Home() {
                 )
                 .map((c) => c.id)
             : sendSheetSession && !sessionNeedsResend(sendSheetSession)
-              ? sendSheetSession.sentToCampaignIds
+              ? // Keep the current campaign selectable so its pre-tick can be undone.
+                sendSheetSession.sentToCampaignIds.filter(
+                  (id) => id !== currentCampaignId,
+                )
               : []
         }
         onShare={(campaignIds) => {
           if (bulkBatch) {
-            stageDrafts(
+            shareSessions(
               bulkBatch.map((s) => s.id),
               campaignIds,
             );
@@ -1321,7 +1346,7 @@ export default function Home() {
           }
           if (!sendSheetSessionId) return;
           const shared = sessions.find((s) => s.id === sendSheetSessionId);
-          stageDrafts([sendSheetSessionId], campaignIds);
+          shareSessions([sendSheetSessionId], campaignIds);
           setSendResult({
             title: shared?.title ?? "",
             campaignIds,
