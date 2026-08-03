@@ -63,7 +63,12 @@ const recorded = [
 
 const log = execFileSync(
   "git",
-  ["log", `--pretty=format:%H${FIELD}%h${FIELD}%ad${FIELD}%s${FIELD}%b${REC}`, "--date=short"],
+  [
+    "log",
+    "--no-merges",
+    `--pretty=format:%H${FIELD}%h${FIELD}%ad${FIELD}%s${FIELD}%b${REC}`,
+    "--date=short",
+  ],
   { cwd: root, encoding: "utf8" },
 )
   .split(REC)
