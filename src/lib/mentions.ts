@@ -4,7 +4,7 @@ export interface MentionAccount {
   id: string;
   handle: string;
   name: string;
-  kind: "brand" | "person" | "community";
+  kind: "brand" | "person";
   platforms: Platform[];
   followers: number;
 }
@@ -74,69 +74,33 @@ export const mentionAccounts: MentionAccount[] = [
     platforms: ["linkedin"],
     followers: 3300,
   },
-  {
-    id: "m-buildersroom",
-    handle: "buildersroom",
-    name: "The Builders Room",
-    kind: "community",
-    platforms: ["x", "linkedin"],
-    followers: 63500,
-  },
-  {
-    id: "m-craftweekly",
-    handle: "craftweekly",
-    name: "Craft Weekly",
-    kind: "community",
-    platforms: ["x"],
-    followers: 28700,
-  },
-  {
-    id: "m-orbitcollective",
-    handle: "orbitcollective",
-    name: "Orbit Collective",
-    kind: "community",
-    platforms: ["instagram", "facebook"],
-    followers: 34100,
-  },
-  {
-    id: "m-signalclub",
-    handle: "signal.club",
-    name: "Signal Club",
-    kind: "community",
-    platforms: ["linkedin"],
-    followers: 11200,
-  },
 ];
 
 export const MENTION_KIND_LABEL: Record<MentionAccount["kind"], string> = {
   brand: "Brand",
   person: "Person",
-  community: "Community",
 };
 
 export const MENTION_GROUP_LABEL: Record<MentionAccount["kind"], string> = {
   brand: "Organizations",
   person: "People",
-  community: "Communities",
 };
 
-export type MentionTab = "all" | "orgs" | "people" | "communities";
+export type MentionTab = "all" | "orgs" | "people";
 
 export const MENTION_TABS: { id: MentionTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "orgs", label: "Orgs" },
   { id: "people", label: "People" },
-  { id: "communities", label: "Communities" },
 ];
 
 const TAB_KINDS: Record<MentionTab, MentionAccount["kind"][]> = {
-  all: ["brand", "person", "community"],
+  all: ["brand", "person"],
   orgs: ["brand"],
   people: ["person"],
-  communities: ["community"],
 };
 
-const KIND_ORDER: MentionAccount["kind"][] = ["brand", "community", "person"];
+const KIND_ORDER: MentionAccount["kind"][] = ["brand", "person"];
 
 export function accountsForTab(tab: MentionTab, accounts: MentionAccount[]) {
   const kinds = TAB_KINDS[tab];
