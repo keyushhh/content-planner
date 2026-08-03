@@ -455,15 +455,15 @@ function LiveLinkChip({ campaign }: { campaign: Campaign }) {
   }
 
   return (
-    <div className="w-fit min-w-[300px] max-w-[460px] rounded-(--r-surface) bg-emerald-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-emerald-400/25">
-      <span className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-emerald-300/85">
+    <div className="w-fit min-w-[300px] max-w-[460px] rounded-(--r-surface) bg-live-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-live-400/25">
+      <span className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-live-300">
         <Rocket className="size-3" />
         Campaign is live
       </span>
       <div className="flex items-center gap-1.5">
         <span
           title={url}
-          className="min-w-0 flex-1 truncate rounded-(--r-inner) bg-(--ink)/[0.15] px-2.5 py-1.5 text-[12px] text-emerald-100/85"
+          className="min-w-0 flex-1 truncate rounded-(--r-inner) bg-(--ink)/[0.15] px-2.5 py-1.5 text-[12px] text-foreground/85"
         >
           {url}
         </span>
@@ -472,16 +472,16 @@ function LiveLinkChip({ campaign }: { campaign: Campaign }) {
           target="_blank"
           rel="noopener noreferrer"
           title="Open the public page"
-          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-emerald-100/80 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-emerald-50"
+          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-foreground/70 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-foreground"
         >
           <ExternalLink className="size-3.5" />
         </a>
         <button
           onClick={handleCopy}
           title="Copy link"
-          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-emerald-100/80 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-emerald-50"
+          className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-foreground/70 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-foreground"
         >
-          {copied ? <Check className="size-3.5 text-emerald-300" /> : <Copy className="size-3.5" />}
+          {copied ? <Check className="size-3.5 text-live-300" /> : <Copy className="size-3.5" />}
         </button>
       </div>
     </div>

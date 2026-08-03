@@ -18,8 +18,8 @@ export const CAMPAIGN_STATE: Record<
   },
   live: {
     label: "Live",
-    chip: "bg-emerald-500/[0.13] text-emerald-200 inset-ring-emerald-400/30",
-    dot: "bg-emerald-400",
+    chip: "bg-live-500/[0.13] text-live-200 inset-ring-live-400/30",
+    dot: "bg-live-400",
   },
   ended: {
     label: "Ended",

@@ -49,6 +49,17 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* "Live"/approved signalling. Its own scale because neither existing one is green in every
+   theme: emerald-* is neutralised under .wozku (the brand's green lives on violet-*), and
+   violet-* is violet outside it. Not `@theme inline`, so .wozku can override the steps. */
+@theme {
+  --color-live-100: #d1fae5;
+  --color-live-200: #a7f3d0;
+  --color-live-300: #6ee7b7;
+  --color-live-400: #34d399;
+  --color-live-500: #10b981;
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -261,6 +272,13 @@
   --color-violet-600: #059669;
   --color-violet-700: #047857;
   --color-violet-950: #ecfdf5;
+
+  /* Darker steps so the chip still reads on white. */
+  --color-live-100: #065f46;
+  --color-live-200: #047857;
+  --color-live-300: #047857;
+  --color-live-400: #059669;
+  --color-live-500: #10b981;
 
   --color-emerald-100: #171717;
   --color-emerald-200: #262626;

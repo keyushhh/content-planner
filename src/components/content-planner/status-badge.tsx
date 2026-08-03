@@ -9,9 +9,9 @@ export const STATUS_TONE: Record<
 > = {
   approved: {
     label: "Approved",
-    dot: "bg-emerald-400",
-    text: "text-emerald-300",
-    bar: "bg-emerald-400/80",
+    dot: "bg-live-400",
+    text: "text-live-300",
+    bar: "bg-live-400/80",
   },
   wip: {
     label: "WIP",
@@ -50,9 +50,9 @@ export function StatusBadge({
     return (
       <Badge
         variant="outline"
-        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-(--r-pill) border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-400"
+        className="!h-6.5 !px-2.5 !py-0 inline-flex items-center gap-1.5 rounded-(--r-pill) border-live-500/50 bg-live-500/10 text-xs font-medium text-live-400"
       >
-        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
+        <CheckCircle2 className="size-3.5 shrink-0 text-live-400" />
         <span>Approved</span>
       </Badge>
     );
