@@ -23,6 +23,12 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         kind: "new",
+        title: "Communities are gone from the mention picker",
+        detail: "The picker is down to All, Orgs and People. Community accounts are no longer suggested when you tag.",
+        commit: "0a15072",
+      },
+      {
+        kind: "new",
         title: "You can write a post from inside a campaign",
         detail:
           "Add post sits in the campaign's header and creates the post already attached to that campaign, so it lands in its staged drafts instead of unattached in the repository — approve it and submit, as usual. Share, Calculate ROI and Screen Setup joined the header too; the quieter actions live behind the ⋯ menu so the row stays legible.",
