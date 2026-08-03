@@ -17,6 +17,33 @@ export type ChangelogDay = {
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-08-03",
+    summary: "Rebuilt campaign stat graphs, an even QR panel, and sending from inside a campaign",
+    entries: [
+      {
+        kind: "improved",
+        title: "The campaign stat graphs were rebuilt, and they now read correctly in light mode",
+        detail:
+          "Total shares and Est. reach sit in stat tiles — label and value on the left, a small sharp-edged graph on the right. The shape is a seeded random walk rather than twelve unrelated samples, so it trends the way the percentage beside it claims instead of sawtoothing, and the line keeps its weight whatever the tile's width. Their colours previously only worked against the dark surface; they now follow the theme in both modes.",
+        commit: "800adde",
+      },
+      {
+        kind: "improved",
+        title: "The QR panel on a campaign's public page is split into even halves",
+        detail:
+          "The copy column was a fixed width against a flexible white panel, so the white side took up roughly two thirds of the card. Both halves are now equal, and the placeholder reads as an actual QR grid rather than an icon of one.",
+        commit: "800adde",
+      },
+      {
+        kind: "new",
+        title: "Sending a post from inside a campaign no longer means staging a draft first",
+        detail:
+          "The campaign you're looking at arrives pre-selected and marked \"Current\", and committing sends the post to it outright instead of leaving a draft you then had to submit by hand. Picking a different campaign is still one click — the pre-selection is a head start, not a decision, so the list never gets skipped. Any other campaign you tick still receives the post as a draft for its own owner to look over, and sending from the repository works exactly as before.",
+        commit: "800adde",
+      },
+    ],
+  },
+  {
     date: "2026-07-31",
     summary: "Public campaign links, structured mentions, and a required header image",
     entries: [
