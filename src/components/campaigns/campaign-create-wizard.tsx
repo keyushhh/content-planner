@@ -354,7 +354,7 @@ function Step2AddPosts({
                         <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                           <span>{s.postType}</span>
                           <span aria-hidden>·</span>
-                          <StatusBadge status={s.status} />
+                          <StatusBadge status={s.status} hint={false} />
                         </span>
                       </span>
                     </button>

@@ -1,26 +1,30 @@
 import { Badge } from "@/components/ui/badge";
+import { Hint } from "@/components/ui/tooltip";
 import { Circle, CheckCircle2, PencilLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SessionStatus } from "@/lib/types";
 
 export const STATUS_TONE: Record<
   SessionStatus,
-  { label: string; dot: string; text: string; bar: string }
+  { label: string; meaning: string; dot: string; text: string; bar: string }
 > = {
   approved: {
     label: "Approved",
+    meaning: "Ready for a campaign. Send it from the Campaign column.",
     dot: "bg-live-400",
     text: "text-live-300",
     bar: "bg-live-400/80",
   },
   wip: {
     label: "WIP",
+    meaning: "Work in progress. Approve it to make it sendable.",
     dot: "bg-violet-400",
     text: "text-violet-300",
     bar: "bg-violet-400/80",
   },
   draft: {
     label: "Draft",
+    meaning: "Still being written. Nothing leaves the repository yet.",
     dot: "bg-muted-foreground/60",
     text: "text-muted-foreground",
     bar: "bg-(--ink)/20",
@@ -32,9 +36,28 @@ const DOT = STATUS_TONE;
 export function StatusBadge({
   status,
   variant = "pill",
+  hint = true,
 }: {
   status: SessionStatus;
   variant?: "pill" | "dot";
+  /** Off where a tooltip would fight something else, like the tour scrim. */
+  hint?: boolean;
+}) {
+  const badge = <StatusBadgeBody status={status} variant={variant} />;
+  if (!hint) return badge;
+  return (
+    <Hint label={STATUS_TONE[status].meaning}>
+      <span className="inline-flex">{badge}</span>
+    </Hint>
+  );
+}
+
+function StatusBadgeBody({
+  status,
+  variant,
+}: {
+  status: SessionStatus;
+  variant: "pill" | "dot";
 }) {
   if (variant === "dot") {
     const { label, dot, text } = DOT[status];

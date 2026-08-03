@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatFollowers, mentionAccounts } from "@/lib/mentions";
 import { mockCount, mockSeries, mockTrendPercent } from "@/lib/mock-engagement";
 import { avatarTint, cn } from "@/lib/utils";
+import { Hint } from "@/components/ui/tooltip";
 
 export const CAMPAIGN_PARTICIPANTS = mentionAccounts.filter((a) => a.kind === "person");
 
@@ -151,10 +152,16 @@ export function CampaignStatsRow({
   return (
     <div
       className={cn(
-        "flex flex-col gap-6 rounded-(--r-surface) bg-(--surface-raised) p-6 shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.08] sm:flex-row sm:items-center",
+        "relative flex flex-col gap-6 rounded-(--r-surface) bg-(--surface-raised) p-6 shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.08] sm:flex-row sm:items-center",
         className,
       )}
     >
+      <Hint label="Placeholder figures, so you can see the shape of the report. Real numbers arrive once the campaign is live.">
+        <span className="absolute right-3 top-3 cursor-default rounded-(--r-pill) bg-(--ink)/[0.06] px-1.5 py-0.5 text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/70">
+          Sample data
+        </span>
+      </Hint>
+
       <div className="flex flex-1 items-center gap-4">
         <span className="flex -space-x-2.5">
           {CAMPAIGN_PARTICIPANTS.slice(0, 4).map((p) => (

@@ -43,6 +43,7 @@ import {
   useTagFlash,
   type ComposerLayoutProps,
 } from "./session-composer";
+import { missingRequired, postReadiness } from "@/lib/readiness";
 import type { Feedback } from "@/lib/types";
 
 /* Jumps to the field a readiness item refers to. */
@@ -114,21 +115,10 @@ export function SessionCanvas({
   const media = MEDIA_COPY[session.postType];
   const canAddMore = session.visualAssetIds.length < media.max;
 
-  const checklist = [
-    { label: "copy", field: "copy", done: copyDraft.trim().length > 0 },
-    ...(session.postType === "Reshare"
-      ? []
-      : [
-          {
-            label: media.checklist,
-            field: "assets",
-            done: session.visualAssetIds.length > 0,
-          },
-        ]),
-    { label: "tags", field: "tags", done: session.tags.length > 0 },
-  ];
+  const checklist = postReadiness(session, copyDraft);
   const doneCount = checklist.filter((c) => c.done).length;
   const missing = checklist.filter((c) => !c.done);
+  const blocking = missingRequired(checklist);
   const wordCount = copyDraft.trim() ? copyDraft.trim().split(/\s+/).length : 0;
 
   return (
@@ -253,12 +243,12 @@ export function SessionCanvas({
           >
             {!isCampaignLocked && (
               <div className="flex h-0.5 w-full shrink-0 overflow-hidden">
-                {checklist.map((item, i) => (
+                {checklist.map((item) => (
                   <span
-                    key={item.label}
+                    key={item.field}
                     className={cn(
                       "h-full flex-1 transition-colors duration-500",
-                      i < doneCount ? "bg-violet-400" : "bg-(--ink)/[0.06]",
+                      item.done ? "bg-violet-400" : "bg-(--ink)/[0.06]",
                     )}
                     style={{ transitionTimingFunction: EASE }}
                   />
@@ -307,7 +297,9 @@ export function SessionCanvas({
                       ) : (
                         <span className="flex flex-wrap items-center gap-x-1.5">
                           <span className="tabular-nums">
-                            {doneCount} of {checklist.length} ready
+                            {blocking.length === 0
+                              ? "Ready to approve"
+                              : `${doneCount} of ${checklist.length} ready`}
                           </span>
                           <span className="text-muted-foreground/30">&middot;</span>
                           {checklist.map((item) => (
@@ -318,13 +310,17 @@ export function SessionCanvas({
                               title={
                                 item.done
                                   ? `${item.label} \u2014 done`
-                                  : `${item.label} \u2014 still needed`
+                                  : item.required
+                                    ? `${item.label} \u2014 needed before you can approve`
+                                    : `${item.label} \u2014 optional, but worth adding`
                               }
                               className={cn(
                                 "flex items-center gap-1 rounded-(--r-pill) px-1.5 py-0.5 text-[12.5px] transition-colors duration-200",
                                 item.done
                                   ? "text-live-300/90 hover:bg-live-500/10"
-                                  : "text-amber-300/90 hover:bg-amber-500/10",
+                                  : item.required
+                                    ? "text-amber-300/90 hover:bg-amber-500/10"
+                                    : "text-muted-foreground/70 hover:bg-(--ink)/[0.06]",
                               )}
                             >
                               {item.done ? (

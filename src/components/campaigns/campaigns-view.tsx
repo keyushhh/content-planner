@@ -120,7 +120,8 @@ export function CampaignsView({
                 <span className="text-muted-foreground/30">&middot;</span>
                 <span className="flex items-center gap-1.5 text-amber-300/90">
                   <FileEdit className="size-3" />
-                  <span className="tabular-nums">{waiting}</span> waiting for approval
+                  <span className="tabular-nums">{waiting}</span> staged, not yet
+                  submitted
                 </span>
               </>
             )}
@@ -395,7 +396,7 @@ function CampaignCard({
           <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-(--r-round) text-muted-foreground/30 transition-colors group-hover:bg-(--ink)/[0.04] group-hover:text-foreground/80">
             <ArrowRight className="size-4" />
           </span>
-          <CampaignContextMenu onOpen={onOpen} />
+          <CampaignContextMenu campaignId={campaign.id} onOpen={onOpen} />
         </span>
       </span>
     </div>

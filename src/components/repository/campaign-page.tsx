@@ -40,9 +40,11 @@ import {
   campaignState,
   campaignSubmitted,
   endsLabel,
+  missingFields,
   platformsOf,
 } from "@/lib/campaigns";
 import { platformMeta } from "@/lib/platforms";
+import { Hint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Campaign, MediaAsset, Session } from "@/lib/types";
 
@@ -104,6 +106,8 @@ export function CampaignPage({
   const tone = CAMPAIGN_STATE[state];
   const ends = endsLabel(campaign.endDate, now);
   const readyToGoLive = state === "draft" && submitted.length > 0;
+  /* The public page has required fields nobody sees until they're missing. */
+  const pageGaps = useMemo(() => missingFields(campaign), [campaign]);
 
   // One violet button at a time; sharing needs a public page to point at.
   const addPostIsPrimary =
@@ -143,26 +147,38 @@ export function CampaignPage({
             <div className="min-w-0">
               <h1 className="flex min-w-0 flex-wrap items-center gap-2.5 text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                 {campaign.name}
-                <span
-                  className={cn(
-                    "flex h-[22px] shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium inset-ring-1",
-                    tone.chip,
-                  )}
-                >
+                <Hint label={tone.meaning}>
                   <span
-                    aria-hidden
-                    className={cn("size-1.5 rounded-(--r-round)", tone.dot)}
-                  />
-                  {tone.label}
-                </span>
+                    className={cn(
+                      "flex h-[22px] shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium inset-ring-1",
+                      tone.chip,
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn("size-1.5 rounded-(--r-round)", tone.dot)}
+                    />
+                    {tone.label}
+                  </span>
+                </Hint>
               </h1>
               <p className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
-                <span className="rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
-                  {campaign.tag}
-                </span>
+                {campaign.tag && campaign.tag !== "NEW" && (
+                  <span className="rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
+                    {campaign.tag}
+                  </span>
+                )}
                 <span className="tabular-nums">
-                  {submitted.length} {submitted.length === 1 ? "post" : "posts"}
+                  {submitted.length} in the campaign
                 </span>
+                {drafts.length > 0 && (
+                  <>
+                    <span className="text-muted-foreground/30">&middot;</span>
+                    <span className="tabular-nums text-amber-300/85">
+                      {drafts.length} staged
+                    </span>
+                  </>
+                )}
                 <span className="text-muted-foreground/30">&middot;</span>
                 <span>{ends.date}</span>
                 {ends.soon && (
@@ -223,19 +239,24 @@ export function CampaignPage({
                   </button>
                 )}
                 {state === "draft" && (
-                  <button
-                    onClick={onGoLive}
-                    disabled={!readyToGoLive}
-                    title={
+                  <Hint
+                    label={
                       readyToGoLive
                         ? "Put this campaign live on Wozku"
-                        : "Submit a post first, a campaign cannot go live empty"
+                        : "Submit a post first — a campaign cannot go live empty."
                     }
-                    className={PRIMARY_ACTION}
                   >
-                    <Rocket className="size-3.5" />
-                    Take it live
-                  </button>
+                    <span className="inline-flex">
+                      <button
+                        onClick={onGoLive}
+                        disabled={!readyToGoLive}
+                        className={PRIMARY_ACTION}
+                      >
+                        <Rocket className="size-3.5" />
+                        Take it live
+                      </button>
+                    </span>
+                  </Hint>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -297,6 +318,23 @@ export function CampaignPage({
                       : "No posts yet. Send one from the repository, then submit it here to take the campaign live."}
                   </span>
                 </>
+              )}
+              {pageGaps.length > 0 && (
+                <span className="flex w-full flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-(--ink)/[0.07] pt-2 text-[12px] text-muted-foreground">
+                  Its public page still needs
+                  {pageGaps.map((field, i) => (
+                    <span key={field.key} className="text-amber-200/90">
+                      {field.label.toLowerCase()}
+                      {i < pageGaps.length - 1 ? "," : ""}
+                    </span>
+                  ))}
+                  <button
+                    onClick={onEdit}
+                    className="ml-0.5 rounded-(--r-pill) px-1.5 py-0.5 font-medium text-foreground/85 transition-colors duration-150 hover:bg-(--ink)/[0.07]"
+                  >
+                    Edit page
+                  </button>
+                </span>
               )}
             </div>
           )}

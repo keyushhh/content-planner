@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Check, FileEdit, Plus, Search, Send, X } from "l
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stagger } from "./session-composer";
 import { PostPreview } from "./post-preview";
+import { Hint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Campaign, MediaAsset, Session } from "@/lib/types";
 
@@ -364,16 +365,21 @@ export function SendToCampaignSheet({
               {previewing && <ArrowLeft className="size-3.5" />}
               {previewing ? "Back" : "Cancel"}
             </button>
+            <Hint
+              label={
+                count === 0
+                  ? "Pick at least one campaign first"
+                  : previewing
+                    ? directName
+                      ? "Send (⌘↵)"
+                      : "Add as draft (⌘↵)"
+                    : "Review the post (⌘↵)"
+              }
+            >
+            <span className="inline-flex">
             <button
               disabled={count === 0}
               onClick={advance}
-              title={
-                previewing
-                  ? directName
-                    ? "Send (⌘↵)"
-                    : "Add as draft (⌘↵)"
-                  : "Review the post (⌘↵)"
-              }
               className="flex h-9 items-center gap-1.5 rounded-(--r-pill) bg-violet-600 px-4 text-[13px] font-medium text-white shadow-(--lift-accent) inset-ring-1 inset-ring-(--ink)/15 transition-[background-color,box-shadow,scale] duration-200 hover:bg-violet-500 active:scale-(--press) disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
             >
               {previewing ? (
@@ -397,6 +403,8 @@ export function SendToCampaignSheet({
                 </>
               )}
             </button>
+            </span>
+            </Hint>
           </div>
         </div>
       </SheetContent>

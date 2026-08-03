@@ -9,20 +9,23 @@ import type {
 
 export const CAMPAIGN_STATE: Record<
   CampaignState,
-  { label: string; chip: string; dot: string }
+  { label: string; meaning: string; chip: string; dot: string }
 > = {
   draft: {
     label: "Draft",
+    meaning: "Not published yet. Submit posts, then take it live.",
     chip: "bg-(--ink)/[0.06] text-muted-foreground inset-ring-(--ink)/[0.10]",
     dot: "bg-muted-foreground/60",
   },
   live: {
     label: "Live",
+    meaning: "Published on Wozku. Its public page is open to visitors.",
     chip: "bg-live-500/[0.13] text-live-200 inset-ring-live-400/30",
     dot: "bg-live-400",
   },
   ended: {
     label: "Ended",
+    meaning: "Its end date has passed, so it is no longer collecting shares.",
     chip: "bg-amber-500/[0.10] text-amber-200/85 inset-ring-amber-400/25",
     dot: "bg-amber-400/80",
   },

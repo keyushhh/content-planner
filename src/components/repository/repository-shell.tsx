@@ -7,6 +7,7 @@ import { InviteModal } from "@/components/content-planner/invite-modal";
 import { TagFilterBar } from "@/components/content-planner/tag-filter-bar";
 import { Stagger } from "@/components/content-planner/session-composer";
 import { Hint } from "@/components/ui/tooltip";
+import { LifecycleStrip } from "./lifecycle-strip";
 import type { ComposerLayout } from "@/components/content-planner/session-detail-pane";
 import {
   DropdownMenu,
@@ -187,6 +188,22 @@ export function RepositoryShell({
     [sessions, selectedIds],
   );
 
+  /* The app knows exactly why each selected row is out; say so. */
+  const excluded = useMemo(() => {
+    const chosen = sessions.filter((s) => (selectedIds ?? []).includes(s.id));
+    return {
+      needApproval: chosen.filter((s) => s.status !== "approved").length,
+      locked: chosen.filter((s) => s.status === "approved" && isSessionLocked(s)).length,
+    };
+  }, [sessions, selectedIds]);
+
+  const blockedNote = [
+    excluded.needApproval > 0 ? `${excluded.needApproval} need approval` : "",
+    excluded.locked > 0 ? `${excluded.locked} already up to date` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const isFiltered = q.length > 0 || activeTags.length > 0 || statusFilter.length > 0;
 
   function clearFilters() {
@@ -230,6 +247,10 @@ export function RepositoryShell({
                   </p>
                 </div>
               </div>
+            </Stagger>
+
+            <Stagger index={1} className="shrink-0">
+              <LifecycleStrip postCount={sessions.length} />
             </Stagger>
 
             <Stagger
@@ -355,13 +376,11 @@ export function RepositoryShell({
               <div className="mb-2.5 flex min-h-8 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 pl-0.5">
                 <span className="text-[12px] text-foreground/85">
                   <span className="font-medium tabular-nums">{picked}</span> selected
-                  {sendable.length !== picked && (
-                    <span className="text-muted-foreground">
-                      {" · "}
-                      <span className="tabular-nums">{sendable.length}</span> ready to
-                      send
-                    </span>
-                  )}
+                  <span className="text-muted-foreground">
+                    {" · "}
+                    <span className="tabular-nums">{sendable.length}</span> ready to send
+                    {blockedNote && ` · ${blockedNote}`}
+                  </span>
                 </span>
 
                 <div className="flex items-center gap-1.5">
@@ -369,8 +388,12 @@ export function RepositoryShell({
                   <Hint
                     label={
                       sendable.length === 0
-                        ? "Approve these posts to send them"
-                        : "Send the ready posts to campaigns"
+                        ? excluded.locked === picked
+                          ? "These are already live and unchanged. Edit one to send an update."
+                          : "Only approved posts can go to a campaign. Approve these to send them."
+                        : `Send the ${sendable.length} ready ${
+                            sendable.length === 1 ? "post" : "posts"
+                          } to campaigns`
                     }
                   >
                     <span className="flex">
@@ -440,7 +463,13 @@ export function RepositoryShell({
                       title: "No matches",
                       description: q
                         ? `Nothing matches “${search.trim()}”. Try a different term or clear the filters.`
-                        : "No content carries these tags. Try clearing the filters.",
+                        : activeTags.length > 0 && statusFilter.length > 0
+                          ? "No post carries these tags at this status. Try clearing the filters."
+                          : statusFilter.length === 1
+                            ? `No post is ${statusLabel} right now. Try clearing the filters.`
+                            : statusFilter.length > 0
+                              ? "No post is at any of these statuses. Try clearing the filters."
+                              : "No content carries these tags. Try clearing the filters.",
                       filtered: true,
                       action: { label: "Clear all filters", onClick: clearFilters },
                     }

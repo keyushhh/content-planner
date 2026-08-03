@@ -19,6 +19,7 @@ export interface DevPanelProps {
   versions: { id: string; label: string }[];
   onVersion: (id: string) => void;
   onResetTour: () => void;
+  onResetLifecycle: () => void;
 }
 
 const BRAND_MODES: { id: BrandMode; label: string }[] = [
@@ -42,6 +43,7 @@ export function DevPanel({
   versions,
   onVersion,
   onResetTour,
+  onResetLifecycle,
 }: DevPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -131,6 +133,15 @@ export function DevPanel({
       >
         <RotateCcw className="size-3.5" />
         Reset first-run tour
+      </button>
+
+      <button
+        onClick={onResetLifecycle}
+        title="Bring the how-it-works strip back"
+        className="flex h-7 w-full items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11.5px] font-medium text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+      >
+        <RotateCcw className="size-3.5" />
+        Reset how-it-works strip
       </button>
     </div>
   );

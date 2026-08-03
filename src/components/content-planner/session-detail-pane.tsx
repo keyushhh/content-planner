@@ -15,6 +15,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, isSessionLocked, sessionNeedsResend } from "@/lib/utils";
+import {
+  blockedReason,
+  canApprove as isApprovable,
+  missingRequired,
+  postReadiness,
+} from "@/lib/readiness";
+import { STATUS_TONE } from "./status-badge";
+import { Hint } from "@/components/ui/tooltip";
 import { mentionsIn } from "@/lib/mentions";
 import { MediaLibraryView } from "./media-library-view";
 import { SessionComposer } from "./session-composer";
@@ -204,9 +212,9 @@ export function SessionDetailPane({
     );
   }
 
-  const sendReadinessIssues: string[] = [];
-  if (!copyDraft.trim()) sendReadinessIssues.push("copy");
-  const canApprove = sendReadinessIssues.length === 0;
+  const readiness = postReadiness(session, copyDraft);
+  const sendReadinessIssues = missingRequired(readiness).map((item) => item.label);
+  const canApprove = isApprovable(readiness);
 
   const isDirty =
     titleDraft !== session.title ||
@@ -214,7 +222,8 @@ export function SessionDetailPane({
     hashtagsDraft !== session.hashtags;
 
   const isCampaignLocked = isSessionLocked(session);
-  const readyToSend = session.status === "approved" && sendReadinessIssues.length === 0;
+  /* Approval is the gate; posts approved before the asset rule stay sendable. */
+  const readyToSend = session.status === "approved";
   const needsResend = sessionNeedsResend(session);
 
   const statusMenu = (
@@ -223,6 +232,7 @@ export function SessionDetailPane({
       onChange={(status) => handleUpdateWithPendingSave({ status })}
       disabled={isCampaignLocked}
       canApprove={canApprove}
+      blockedReason={blockedReason(readiness)}
     />
   );
 
@@ -302,42 +312,48 @@ function StatusMenu({
   onChange,
   disabled,
   canApprove,
+  blockedReason,
 }: {
   status: SessionStatus;
   onChange: (status: SessionStatus) => void;
   disabled?: boolean;
   canApprove: boolean;
+  blockedReason: string;
 }) {
+  const trigger = (
+    <DropdownMenuTrigger
+      disabled={disabled}
+      render={
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          className="gap-1.5 text-xs font-(family-name:--font-label) uppercase tracking-wide disabled:opacity-70"
+        />
+      }
+    >
+      {disabled ? (
+        <Lock className="size-3" />
+      ) : (
+        <span className={cn("size-1.5 rounded-(--r-round)", STATUS_TONE[status].dot)} />
+      )}
+      {STATUS_TONE[status].label}
+      {!disabled && <ChevronDown className="size-3.5" />}
+    </DropdownMenuTrigger>
+  );
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        disabled={disabled}
-        render={
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-            className="gap-1.5 text-xs font-(family-name:--font-label) uppercase tracking-wide disabled:opacity-70"
-          />
+      <Hint
+        side="bottom"
+        label={
+          disabled
+            ? "Live on Wozku and locked from editing. Unlock to edit."
+            : STATUS_TONE[status].meaning
         }
       >
-        {disabled ? (
-          <Lock className="size-3" />
-        ) : (
-          <span
-            className={cn(
-              "size-1.5 rounded-(--r-round)",
-              status === "approved"
-                ? "bg-emerald-500"
-                : status === "wip"
-                  ? "bg-violet-500"
-                  : "bg-muted-foreground",
-            )}
-          />
-        )}
-        {status}
-        {!disabled && <ChevronDown className="size-3.5" />}
-      </DropdownMenuTrigger>
+        <span className="inline-flex">{trigger}</span>
+      </Hint>
       <DropdownMenuContent align="start">
         <DropdownMenuItem onClick={() => onChange("draft")}>
           Draft
@@ -347,10 +363,13 @@ function StatusMenu({
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={!canApprove}
-          title={!canApprove ? "Add copy and at least one image first" : undefined}
           onClick={() => canApprove && onChange("approved")}
+          className={cn(!canApprove && "flex-col items-start gap-0.5")}
         >
           Approved
+          {!canApprove && (
+            <span className="text-[11px] text-muted-foreground">{blockedReason}</span>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
