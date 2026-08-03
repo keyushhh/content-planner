@@ -22,6 +22,12 @@ export const CHANGELOG: ChangelogDay[] = [
       "A campaign page you can work from: stats, Add post, Share, ROI, and sending from inside a campaign",
     entries: [
       {
+        kind: "fixed",
+        title: "Live and Approved stay green with the brand guideline on",
+        detail: "They were washing out to grey, which made a live campaign look inactive. Status colour now follows whichever theme you're in, in the campaigns list, on the campaign page, and on the post status badge.",
+        commit: "8589063",
+      },
+      {
         kind: "new",
         title: "Type @ to tag someone, without leaving the keyboard",
         detail: "A suggestion menu opens at your cursor as soon as you type \"@\" — arrow keys to move, Enter to insert. It works in the main copy, in variations, and in AI drafts. Handles you type or paste yourself now count as tags too, so the post's tagged list always matches what it actually says.",
