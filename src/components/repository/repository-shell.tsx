@@ -217,7 +217,7 @@ export function RepositoryShell({
   const isCanvas = tableStyle === "canvas";
 
   const title = "Repository";
-  const subtitle = "Your content library — create, refine, and send posts to campaigns.";
+  const subtitle = "Manage, refine, and organize content for your campaigns.";
 
   const modals = (
     <>
@@ -265,13 +265,8 @@ export function RepositoryShell({
                   <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                     {title}
                   </h1>
-                  <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                  <p className="mt-1.5 text-[13px] text-muted-foreground">
                     {subtitle}
-                    <span className="text-muted-foreground/30">&middot;</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="size-1.5 rounded-(--r-round) bg-live-400" />
-                      Synced to Wozku
-                    </span>
                   </p>
                 </div>
               </div>

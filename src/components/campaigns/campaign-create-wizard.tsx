@@ -70,6 +70,7 @@ export function CampaignCreateWizard({
               : [...state.postIds, id];
             onStateChange({ ...state, postIds: next });
           }}
+          onSelectAll={(nextIds) => onStateChange({ ...state, postIds: nextIds })}
           onWriteNewPost={onWriteNewPost}
           onContinue={() => {
             if (state.campaignId && state.postIds.length > 0) {
@@ -251,6 +252,7 @@ function Step2AddPosts({
   selectedIds,
   onBack,
   onToggle,
+  onSelectAll,
   onWriteNewPost,
   onContinue,
 }: {
@@ -258,6 +260,7 @@ function Step2AddPosts({
   selectedIds: string[];
   onBack: () => void;
   onToggle: (id: string) => void;
+  onSelectAll: (ids: string[]) => void;
   onWriteNewPost: () => void;
   onContinue: () => void;
 }) {
@@ -271,13 +274,27 @@ function Step2AddPosts({
   }, [sessions, q]);
 
   const count = selectedIds.length;
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((s) => selectedIds.includes(s.id));
+
+  function toggleSelectAll() {
+    if (allFilteredSelected) {
+      // Unselect all filtered
+      const filteredIds = new Set(filtered.map((s) => s.id));
+      onSelectAll(selectedIds.filter((id) => !filteredIds.has(id)));
+    } else {
+      // Select all filtered
+      const newSelected = Array.from(new Set([...selectedIds, ...filtered.map((s) => s.id)]));
+      onSelectAll(newSelected);
+    }
+  }
 
   return (
     <>
       <WizardHeader step={2} onBack={onBack} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden [background-image:var(--wash-page)] relative">
-        <div className="mx-auto flex w-full max-w-[800px] flex-1 flex-col overflow-hidden px-6 pb-16 pt-12">
-          <div className="mb-8 text-center">
+        <div className="mx-auto flex w-full max-w-[800px] flex-1 flex-col overflow-y-auto px-6 pb-28 pt-8">
+          <div className="mb-6 text-center">
             <h2 className="text-[24px] font-semibold tracking-tight">Add posts</h2>
             <p className="mt-1.5 text-[14px] text-muted-foreground">
               A campaign stays a draft until it has at least one post. Select posts to add
@@ -286,23 +303,46 @@ function Step2AddPosts({
           </div>
 
           <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="relative min-w-[240px] max-w-[320px] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search posts…"
-                className="h-9 w-full rounded-(--r-pill) bg-(--ink)/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.06] focus:inset-ring-violet-400/50"
-              />
-              {search && (
+            <div className="flex items-center gap-3 flex-1 min-w-[240px] max-w-[360px]">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search posts…"
+                  className="h-9 w-full rounded-(--r-pill) bg-(--ink)/[0.035] pl-8 pr-8 text-[13px] caret-violet-400 inset-ring-1 inset-ring-(--ink)/[0.08] outline-none transition-[box-shadow,background-color] duration-200 placeholder:text-muted-foreground/75 focus:bg-(--ink)/[0.06] focus:inset-ring-violet-400/50"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-(--r-pill) text-muted-foreground hover:bg-(--ink)/[0.08] hover:text-foreground"
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </div>
+
+              {filtered.length > 0 && (
                 <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-(--r-pill) text-muted-foreground hover:bg-(--ink)/[0.08] hover:text-foreground"
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3 text-[12.5px] font-medium text-foreground/80 inset-ring-1 inset-ring-(--ink)/[0.08] transition-all hover:bg-(--ink)/[0.06] active:scale-95"
                 >
-                  <X className="size-3" />
+                  <span
+                    className={cn(
+                      "flex size-3.5 items-center justify-center rounded-[3px] inset-ring-1 transition-colors",
+                      allFilteredSelected
+                        ? "bg-violet-500 text-white inset-ring-violet-400"
+                        : "inset-ring-(--ink)/[0.3]",
+                    )}
+                  >
+                    {allFilteredSelected && <Check className="size-2.5" strokeWidth={3} />}
+                  </span>
+                  <span>{allFilteredSelected ? "Deselect all" : "Select all"}</span>
                 </button>
               )}
             </div>
+
             <button
               onClick={onWriteNewPost}
               className="flex h-9 shrink-0 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.035] px-3.5 text-[13px] font-medium inset-ring-1 inset-ring-(--ink)/[0.08] transition-[background-color,scale] hover:bg-(--ink)/[0.06] active:scale-(--press)"
@@ -312,7 +352,7 @@ function Step2AddPosts({
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.07]">
+          <div className="rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.07]">
             {filtered.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center gap-2 text-center text-[13px] text-muted-foreground">
                 {q ? "No posts match that search." : "No posts found in the repository."}
@@ -363,19 +403,15 @@ function Step2AddPosts({
               </div>
             )}
           </div>
+        </div>
 
-          <div className="mt-4 flex justify-end">
-            <span className="text-[12.5px] font-medium text-muted-foreground/80">
+        <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-(--ink)/[0.06] bg-background/90 p-4 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-[800px] items-center justify-between px-6">
+            <span className="text-[13px] font-medium text-muted-foreground">
               {count === 0
                 ? "You can always add posts later."
                 : `${count} ${count === 1 ? "post" : "posts"} selected`}
             </span>
-          </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-(--ink)/[0.06] bg-background/80 p-4 backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-[800px] items-center justify-between px-6">
-            <div />
             <button
               onClick={onContinue}
               className={cn(
