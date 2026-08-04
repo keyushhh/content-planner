@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { CampaignLandingPreview } from "./campaign-landing-preview";
+import { ExpandPreviewButton } from "./campaign-preview-dialog";
 import {
   ACCEPTED_IMAGES,
   HEADER_BOX,
@@ -163,7 +164,9 @@ export function CampaignForm({
                   box={HEADER_BOX}
                   shape="banner"
                   cta="Upload header image"
+                  headerPosition={draft.headerPosition ?? 50}
                   onChange={(headerUrl) => onChange({ headerUrl })}
+                  onPositionChange={(headerPosition) => onChange({ headerPosition })}
                   onError={onError}
                 />
               </FieldRow>
@@ -219,27 +222,11 @@ export function CampaignForm({
                 hint="When this campaign stops collecting shares."
                 layout="horizontal"
               >
-                <Popover>
-                  <PopoverTrigger
-                    className={cn(
-                      inputClass(showIssue("endDate")),
-                      "flex items-center justify-between text-left",
-                      !draft.endDate && "text-muted-foreground/50",
-                    )}
-                  >
-                    {draft.endDate ? format(parseISO(draft.endDate), "PPP") : "Select a date..."}
-                    <ChevronDown className="size-4 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[220px] p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={draft.endDate ? parseISO(draft.endDate) : undefined}
-                      onSelect={(date) => {
-                        onChange({ endDate: date ? format(date, "yyyy-MM-dd") : "" });
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerField
+                  value={draft.endDate}
+                  issue={showIssue("endDate")}
+                  onChange={(dateStr) => onChange({ endDate: dateStr })}
+                />
               </FieldRow>
             </Section>
 
@@ -312,9 +299,12 @@ export function CampaignForm({
 
           <aside className="min-w-0">
             <div className="@[1000px]:sticky @[1000px]:top-10">
-              <span className="mb-3.5 flex shrink-0 items-center gap-2 text-[12px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Public page preview
-              </span>
+              <div className="mb-3.5 flex items-center justify-between gap-3">
+                <span className="flex min-w-0 shrink items-center gap-2 truncate text-[12px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  Public page preview
+                </span>
+                <ExpandPreviewButton draft={draft} />
+              </div>
               <CampaignLandingPreview draft={draft} className="shadow-xl shadow-black/5 ring-1 ring-(--ink)/[0.08]" />
             </div>
           </aside>
@@ -458,19 +448,27 @@ function ImageField({
   box,
   shape,
   cta,
+  headerPosition = 50,
   onChange,
+  onPositionChange,
   onError,
 }: {
   value: string;
   box: ImageBox;
   shape: "square" | "banner";
   cta: string;
+  headerPosition?: number;
   onChange: (dataUrl: string) => void;
+  onPositionChange?: (position: number) => void;
   onError: (message: string) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLSpanElement>(null);
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef(0);
+  const startPos = useRef(50);
 
   async function accept(file: File | undefined) {
     if (!file) return;
@@ -481,6 +479,7 @@ function ImageField({
     setBusy(true);
     try {
       onChange(await fileToScaledDataUrl(file, box));
+      onPositionChange?.(50);
     } catch {
       onError("That image could not be read. Try another file.");
     } finally {
@@ -488,52 +487,105 @@ function ImageField({
     }
   }
 
+  function handleMouseDown(e: React.MouseEvent) {
+    if (shape !== "banner" || !onPositionChange) return;
+    e.preventDefault();
+    setIsDragging(true);
+    startY.current = e.clientY;
+    startPos.current = headerPosition;
+  }
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    function handleMouseMove(e: MouseEvent) {
+      if (!containerRef.current || !onPositionChange) return;
+      const height = containerRef.current.clientHeight || 120;
+      const deltaY = e.clientY - startY.current;
+      // Convert pixel drag delta to percentage
+      const deltaPercent = (deltaY / height) * 100;
+      const newPos = Math.min(100, Math.max(0, startPos.current - deltaPercent));
+      onPositionChange(Math.round(newPos));
+    }
+
+    function handleMouseUp() {
+      setIsDragging(false);
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, onPositionChange]);
+
   if (value) {
     return (
-      <div className="flex items-center gap-3">
-        <span
-          className={cn(
-            "overflow-hidden bg-(--ink)/[0.04] shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.10]",
-            shape === "square"
-              ? "size-16 shrink-0 rounded-(--r-inner)"
-              : "aspect-[1920/400] min-w-0 flex-1 rounded-(--r-inner)",
-          )}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={value}
-            alt=""
-            draggable={false}
-            className="size-full object-cover"
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <span
+            ref={containerRef}
+            onMouseDown={handleMouseDown}
+            className={cn(
+              "group/banner relative overflow-hidden bg-(--ink)/[0.04] shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.10]",
+              shape === "square"
+                ? "size-16 shrink-0 rounded-(--r-inner)"
+                : "aspect-[1920/400] min-w-0 flex-1 rounded-(--r-inner) cursor-grab active:cursor-grabbing select-none",
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt=""
+              draggable={false}
+              style={shape === "banner" ? { objectPosition: `center ${headerPosition}%` } : undefined}
+              className="size-full object-cover pointer-events-none transition-none"
+            />
+            {shape === "banner" && (
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] text-white text-[11px] font-medium transition-opacity duration-200",
+                  isDragging ? "opacity-100" : "opacity-0 group-hover/banner:opacity-100",
+                )}
+              >
+                <span className="rounded-full bg-black/60 px-3 py-1 text-white shadow-md inset-ring-1 inset-ring-white/20">
+                  {isDragging ? "Dragging header position…" : "Drag up / down to adjust cover"}
+                </span>
+              </div>
+            )}
+          </span>
+          <span className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => input.current?.click()}
+              className="flex h-8 items-center rounded-(--r-pill) px-2.5 text-[12px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.07] hover:text-foreground active:scale-(--press)"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                onPositionChange?.(50);
+              }}
+              aria-label="Remove image"
+              className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/70 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </span>
+          <input
+            ref={input}
+            type="file"
+            accept={ACCEPTED_IMAGES}
+            hidden
+            onChange={(e) => {
+              accept(e.target.files?.[0]);
+              e.target.value = "";
+            }}
           />
-        </span>
-        <span className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => input.current?.click()}
-            className="flex h-8 items-center rounded-(--r-pill) px-2.5 text-[12px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.07] hover:text-foreground active:scale-(--press)"
-          >
-            Replace
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            aria-label="Remove image"
-            className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/70 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
-        </span>
-        <input
-          ref={input}
-          type="file"
-          accept={ACCEPTED_IMAGES}
-          hidden
-          onChange={(e) => {
-            accept(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-        />
+        </div>
       </div>
     );
   }
@@ -641,5 +693,42 @@ function SettingToggle({
         </span>
       </button>
     </div>
+  );
+}
+
+function DatePickerField({
+  value,
+  issue,
+  onChange,
+}: {
+  value: string;
+  issue?: boolean;
+  onChange: (dateStr: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(
+          inputClass(Boolean(issue)),
+          "flex items-center justify-between text-left",
+          !value && "text-muted-foreground/50",
+        )}
+      >
+        {value ? format(parseISO(value), "PPP") : "Select a date..."}
+        <ChevronDown className="size-4 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-0" align="end" side="top" sideOffset={8}>
+        <Calendar
+          mode="single"
+          selected={value ? parseISO(value) : undefined}
+          onSelect={(date) => {
+            onChange(date ? format(date, "yyyy-MM-dd") : "");
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

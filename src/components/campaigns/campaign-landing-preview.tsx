@@ -9,9 +9,13 @@ import type { NewCampaign } from "@/lib/types";
 export function CampaignLandingPreview({
   draft,
   className,
+  chrome = true,
+  fill = false,
 }: {
   draft: NewCampaign;
   className?: string;
+  chrome?: boolean;
+  fill?: boolean;
 }) {
   const primary = draft.platforms[0];
   const shareLabel = primary
@@ -22,9 +26,11 @@ export function CampaignLandingPreview({
     <div
       className={cn(
         "overflow-hidden rounded-(--r-surface) bg-(--surface-raised) shadow-(--lift-lg) inset-ring-1 inset-ring-(--ink)/[0.08]",
+        fill && "flex h-full flex-col",
         className,
       )}
     >
+      {chrome && (
       <div className="flex items-center gap-1.5 border-b border-(--ink)/[0.06] bg-(--surface-panel) px-3 py-2">
         <span aria-hidden className="flex items-center gap-1">
           <span className="size-2 rounded-(--r-round) bg-(--ink)/[0.14]" />
@@ -36,8 +42,9 @@ export function CampaignLandingPreview({
           <span className="text-muted-foreground/45">6a6b3232e051c</span>
         </span>
       </div>
+      )}
 
-      <div className="relative">
+      <div className={cn("relative", fill && "shrink-0")}>
         {draft.headerUrl ? (
           <div className="aspect-[1920/400] w-full overflow-hidden bg-(--ink)/[0.04]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -45,6 +52,7 @@ export function CampaignLandingPreview({
               src={draft.headerUrl}
               alt=""
               draggable={false}
+              style={{ objectPosition: `center ${draft.headerPosition ?? 50}%` }}
               className="size-full object-cover"
             />
           </div>
@@ -77,7 +85,12 @@ export function CampaignLandingPreview({
         </div>
       </div>
 
-      <div className="px-6 pb-6 pt-9 text-center">
+      <div
+        className={cn(
+          "px-6 pb-6 pt-9 text-center",
+          fill && "flex flex-1 flex-col justify-center",
+        )}
+      >
         <h3 className="text-[17px] font-semibold leading-tight tracking-[-0.015em] text-balance">
           {draft.name.trim() || (
             <span className="text-muted-foreground/45">Your campaign name</span>
@@ -90,7 +103,10 @@ export function CampaignLandingPreview({
           </p>
         ) : (
           <div
-            className="rich-text mx-auto mt-2 max-w-[42ch] text-left text-[12.5px] leading-[1.6] text-foreground/80"
+            className={cn(
+              "rich-text mx-auto mt-2 max-w-[42ch] text-left text-[12.5px] leading-[1.6] text-foreground/80",
+              fill && "line-clamp-5",
+            )}
             dangerouslySetInnerHTML={{ __html: draft.description }}
           />
         )}
@@ -103,7 +119,12 @@ export function CampaignLandingPreview({
         </div>
       </div>
 
-      <div className="border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-6 py-3.5">
+      <div
+        className={cn(
+          "border-t border-(--ink)/[0.06] bg-(--ink)/[0.015] px-6 py-3.5",
+          fill && "mt-auto shrink-0",
+        )}
+      >
         <span className="block text-[10px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/55">
           Post-share behavior
         </span>
