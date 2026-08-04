@@ -32,7 +32,9 @@ import {
   ChevronDown,
   Check,
   Send,
+  Trash2,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
 import type { Campaign, CustomCellValues, CustomColumn, Session } from "@/lib/types";
 
 export interface CustomColumnProps {
@@ -115,6 +117,7 @@ export function RepositoryShell({
   const [sort, setSort] = useState<SortKey>("edited");
   const [reversed, setReversed] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Session["status"][]>([]);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   const statusLabel =
     statusFilter.length === 0
@@ -217,11 +220,37 @@ export function RepositoryShell({
   const subtitle = "Your content library — create, refine, and send posts to campaigns.";
 
   const modals = (
-    <InviteModal
-      open={showInvite}
-      onOpenChange={setShowInvite}
-      contextName="Repository"
-    />
+    <>
+      <InviteModal
+        open={showInvite}
+        onOpenChange={setShowInvite}
+        contextName="Repository"
+      />
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        onOpenChange={setConfirmBulkDelete}
+        tone="destructive"
+        title={`Delete ${picked} ${picked === 1 ? "item" : "items"}?`}
+        description="Their copy, assets, and comments will go with them. They will be deleted permanently. This action cannot be undone."
+        actions={[
+          {
+            label: "Cancel",
+            tone: "outline",
+            onClick: () => setConfirmBulkDelete(false),
+          },
+          {
+            label: `Delete ${picked} ${picked === 1 ? "item" : "items"}`,
+            tone: "destructive",
+            icon: Trash2,
+            onClick: () => {
+              (selectedIds ?? []).forEach((id) => onDeleteSession(id));
+              onSelectionChange?.([]);
+              setConfirmBulkDelete(false);
+            },
+          },
+        ]}
+      />
+    </>
   );
 
   if (isCanvas) {
@@ -402,6 +431,15 @@ export function RepositoryShell({
                       </button>
                     </span>
                   </Hint>
+                  {/* Bulk Delete option */}
+                  <button
+                    onClick={() => setConfirmBulkDelete(true)}
+                    className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-red-500/10 px-2.5 text-[12px] font-medium text-red-400 inset-ring-1 inset-ring-red-500/20 transition-all duration-150 hover:bg-red-500/20 hover:text-red-300 active:scale-95"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete {picked} {picked === 1 ? "item" : "items"}
+                  </button>
+
                   <button
                     onClick={() => onSelectionChange?.([])}
                     className="h-7 rounded-(--r-pill) px-2 text-[12px] text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
