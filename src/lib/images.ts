@@ -7,6 +7,7 @@ export interface ImageBox {
 
 export const LOGO_BOX: ImageBox = { width: 300, height: 300 };
 export const HEADER_BOX: ImageBox = { width: 1920, height: 400 };
+export const SCREEN_BOX: ImageBox = { width: 1920, height: 1080 };
 
 export function isAcceptedImage(file: File) {
   return ACCEPTED_IMAGES.split(",").includes(file.type);
