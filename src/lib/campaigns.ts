@@ -1,4 +1,6 @@
 import { isRichTextEmpty } from "./rich-text";
+import { migrateContest } from "./contest";
+import { migrateScreenTheme } from "./screen-theme";
 import type {
   Campaign,
   CampaignSettings,
@@ -22,6 +24,14 @@ export const CAMPAIGN_STATE: Record<
     meaning: "Published on Wozku. Its public page is open to visitors.",
     chip: "bg-live-500/[0.13] text-live-200 inset-ring-live-400/30",
     dot: "bg-live-400",
+  },
+  /* Sky, not amber: green reads live and amber reads ended, and a pause is neither
+     finished nor a problem — it is on hold. */
+  paused: {
+    label: "Paused",
+    meaning: "Published but on hold. Its public page is unavailable until you resume it.",
+    chip: "bg-sky-500/[0.12] text-sky-200 inset-ring-sky-400/30",
+    dot: "bg-sky-400",
   },
   ended: {
     label: "Ended",
@@ -60,6 +70,9 @@ export function migrateCampaign(c: Campaign): Campaign {
     ...c,
     platforms: Array.isArray(c.platforms) ? c.platforms : ["linkedin"],
     sessionIds: Array.isArray(c.sessionIds) ? c.sessionIds : [],
+    paused: c.paused ?? false,
+    stopped: c.stopped ?? false,
+    hiddenSessionIds: Array.isArray(c.hiddenSessionIds) ? c.hiddenSessionIds : [],
     tag: c.tag || "NEW",
     endDate: c.endDate ?? "",
     logoUrl: c.logoUrl ?? "",
@@ -68,6 +81,8 @@ export function migrateCampaign(c: Campaign): Campaign {
     thankYou: c.thankYou ?? "",
     redirectUrl: c.redirectUrl ?? "",
     settings: { ...BLANK_SETTINGS, ...(c.settings ?? {}) },
+    theme: migrateScreenTheme(c.theme),
+    contest: migrateContest(c.contest),
   };
 }
 
@@ -105,15 +120,19 @@ export function platformsOf(campaign: Campaign) {
 }
 
 export function hasEnded(campaign: Campaign, now = Date.now()) {
+  if (campaign.stopped) return true;
   if (!campaign.endDate || campaign.endDate === "TBD") return false;
   const parsed = new Date(campaign.endDate);
   if (Number.isNaN(parsed.getTime())) return false;
   return parsed.getTime() < now;
 }
 
+/* Order matters: a passed end date outranks everything, an unpublished campaign is a draft
+   whether or not it carries a stale paused flag, and only then does pausing apply. */
 export function campaignState(campaign: Campaign, now = Date.now()): CampaignState {
   if (hasEnded(campaign, now)) return "ended";
-  return campaign.inWozku ? "live" : "draft";
+  if (!campaign.inWozku) return "draft";
+  return campaign.paused ? "paused" : "live";
 }
 
 export function canGoLive(
@@ -168,6 +187,29 @@ export function campaignSubmitted(
   return sessions.filter(
     (s) => isSubmittedIn(s, campaign) && !isDraftIn(s, campaign.id),
   );
+}
+
+export function isHiddenOnScreen(campaign: Campaign, sessionId: string) {
+  return (campaign.hiddenSessionIds ?? []).includes(sessionId);
+}
+
+/**
+ * Submitted posts in the order the public screen shows them. `sessionIds` is already
+ * append-ordered from submitting, so it doubles as the screen order — anything missing
+ * from it (legacy data) falls to the end, keeping the sort total.
+ */
+export function screenPosts(sessions: Session[], campaign: Campaign) {
+  const order = campaign.sessionIds ?? [];
+  const rank = (s: Session) => {
+    const at = order.indexOf(s.id);
+    return at === -1 ? order.length : at;
+  };
+  return campaignSubmitted(sessions, campaign).sort((a, b) => rank(a) - rank(b));
+}
+
+/** What visitors actually see: screen order, minus anything toggled off. */
+export function publicScreenPosts(sessions: Session[], campaign: Campaign) {
+  return screenPosts(sessions, campaign).filter((s) => !isHiddenOnScreen(campaign, s.id));
 }
 
 export function sortBySentDesc(a: Session, b: Session) {

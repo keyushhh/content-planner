@@ -35,12 +35,13 @@ export function CampaignEditor({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-(--ink)/[0.06] px-6 py-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex shrink-0 border-b border-(--ink)/[0.06] bg-background">
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4 px-6 py-3">
+          <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onCancel}
             aria-label="Back to campaigns"
-            className="flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
+            className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-(--r-pill) text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
           >
             <ArrowLeft className="size-4" />
           </button>
@@ -83,6 +84,7 @@ export function CampaignEditor({
             {mode === "create" ? "Create campaign" : "Save changes"}
           </button>
         </div>
+      </div>
       </div>
 
       <CampaignForm

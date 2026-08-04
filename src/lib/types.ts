@@ -1,3 +1,6 @@
+import type { ContestSettings } from "./contest";
+import type { ScreenTheme } from "./screen-theme";
+
 export type SessionStatus = "draft" | "wip" | "approved";
 
 export type Platform = "linkedin" | "x" | "slack" | "facebook" | "instagram";
@@ -24,21 +27,37 @@ export interface Campaign {
   name: string;
   tag: string;
   inWozku: boolean;
+  /** Published but temporarily off — the public screen is unavailable until resumed. */
+  paused: boolean;
+  /** Ended by hand before its end date. Kept separate from `endDate` so stopping a
+   *  campaign doesn't rewrite the schedule it was planned against. */
+  stopped: boolean;
+  /** Submitted posts kept out of the public screen. Per-campaign, so the same post can
+   *  show in one campaign and be hidden in another. */
+  hiddenSessionIds: string[];
   endDate: string;
   platforms: Platform[];
   sessionIds: string[];
   logoUrl: string;
   headerUrl: string;
+  headerPosition?: number;
   description: string;
   thankYou: string;
   redirectUrl: string;
   linkedInCompanyId?: string;
   settings: CampaignSettings;
+  theme: ScreenTheme;
+  contest: ContestSettings;
 }
 
-export type CampaignState = "draft" | "live" | "ended";
+export type CampaignState = "draft" | "live" | "paused" | "ended";
 
-export type NewCampaign = Omit<Campaign, "id" | "inWozku" | "sessionIds">;
+/** The editor's shape. Runtime state — publication, pausing, screen visibility — is not
+ *  something the form owns, so those keys stay out. */
+export type NewCampaign = Omit<
+  Campaign,
+  "id" | "inWozku" | "sessionIds" | "paused" | "stopped" | "hiddenSessionIds" | "theme" | "contest"
+>;
 
 export interface PostVariation {
   id: string;

@@ -2,30 +2,38 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   Calculator,
+  CalendarDays,
   Check,
   ChevronDown,
+  CircleStop,
   Copy,
   ExternalLink,
   FileEdit,
+  Megaphone,
   Minus,
   MonitorPlay,
   MoreHorizontal,
+  Pause,
   Pencil,
+  Play,
   PlusCircle,
   Rocket,
   Send,
   Share2,
+  Sparkles,
+  Tag,
   Trash2,
   TrendingUp,
   UserPlus,
 } from "lucide-react";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { PostPreview } from "@/components/content-planner/post-preview";
-import { CampaignStatsRow } from "@/components/campaigns/campaign-stats-row";
 import { RoiSheet } from "@/components/repository/roi-sheet";
-import { ScreenSetupSheet } from "@/components/repository/screen-setup-sheet";
+import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
+import { CampaignPostMix } from "@/components/repository/campaign-post-mix";
+import { CampaignPerformanceCard } from "@/components/repository/campaign-performance-card";
+import { CampaignSettingsPanel } from "@/components/repository/campaign-settings-panel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +47,7 @@ import {
 import {
   CAMPAIGN_STATE,
   campaignDrafts,
+  campaignMembers,
   campaignState,
   campaignSubmitted,
   endsLabel,
@@ -48,7 +57,7 @@ import {
 import { platformMeta } from "@/lib/platforms";
 import { Hint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Campaign, MediaAsset, Session } from "@/lib/types";
+import type { Campaign, CampaignSettings, MediaAsset, Session } from "@/lib/types";
 
 interface CampaignPageProps {
   campaign: Campaign;
@@ -71,6 +80,10 @@ interface CampaignPageProps {
   onInvite: () => void;
   roiOpen: boolean;
   onRoiOpenChange: (open: boolean) => void;
+  onSettingsChange: (patch: Partial<CampaignSettings>) => void;
+  onPausedChange: (paused: boolean) => void;
+  onStop: () => void;
+  onOpenScreenSetup: () => void;
 }
 
 export function CampaignPage({
@@ -94,6 +107,10 @@ export function CampaignPage({
   onInvite,
   roiOpen,
   onRoiOpenChange,
+  onSettingsChange,
+  onPausedChange,
+  onStop,
+  onOpenScreenSetup,
 }: CampaignPageProps) {
   const drafts = useMemo(
     () => campaignDrafts(sessions, campaign.id),
@@ -103,15 +120,22 @@ export function CampaignPage({
     () => campaignSubmitted(sessions, campaign),
     [sessions, campaign],
   );
+  const members = useMemo(
+    () => campaignMembers(sessions, campaign),
+    [sessions, campaign],
+  );
 
   const [picked, setPicked] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [now] = useState(() => Date.now());
-  const [screenOpen, setScreenOpen] = useState(false);
+  const [confirmStop, setConfirmStop] = useState(false);
 
   const state = campaignState(campaign, now);
   const tone = CAMPAIGN_STATE[state];
-  const ends = endsLabel(campaign.endDate, now);
+  /* A stopped campaign ended early, so its scheduled date would read as a future promise. */
+  const ends = campaign.stopped
+    ? { date: "Stopped early", soon: null }
+    : endsLabel(campaign.endDate, now);
   const readyToGoLive = state === "draft" && submitted.length > 0;
   /* The public page has required fields nobody sees until they're missing. */
   const pageGaps = useMemo(() => missingFields(campaign), [campaign]);
@@ -119,7 +143,10 @@ export function CampaignPage({
   // One violet button at a time; sharing needs a public page to point at.
   const addPostIsPrimary =
     drafts.length === 0 && state !== "ended" && !readyToGoLive;
+  /* Paused is deliberately excluded — its link 404s, so offering Share would hand out a
+     dead URL. Stopping is only offered while there is something running to stop. */
   const shareable = state === "live" || state === "ended";
+  const stoppable = state === "live" || state === "paused";
 
   const live = drafts.filter((d) => picked.includes(d.id));
   const allPicked = drafts.length > 0 && live.length === drafts.length;
@@ -140,86 +167,60 @@ export function CampaignPage({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 flex-col px-6 pb-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 flex-col overflow-y-auto px-6 pb-6">
         <div className="shrink-0 pt-6">
-          <button
-            onClick={onBack}
-            className="-ml-2 flex h-7 items-center gap-1.5 rounded-(--r-pill) px-2 text-[12px] font-medium text-muted-foreground transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground active:scale-(--press)"
-          >
-            <ArrowLeft className="size-3.5" />
-            Campaigns
-          </button>
+          <div className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
+            <button
+              onClick={onBack}
+              className="-ml-1.5 flex h-6 items-center gap-1.5 rounded-(--r-pill) px-1.5 font-medium text-muted-foreground transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.06] hover:text-foreground"
+            >
+              <Megaphone className="size-3.5" />
+              Campaigns
+            </button>
+            <span className="text-muted-foreground/40">/</span>
+            <span className="font-semibold text-violet-300">{campaign.name}</span>
+          </div>
 
-          <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 pb-6">
-            <div className="min-w-0">
-              <h1 className="flex min-w-0 flex-wrap items-center gap-2.5 text-[28px] font-semibold leading-tight tracking-[-0.025em] text-balance">
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2">
+              <h1 className="min-w-0 text-[26px] font-semibold leading-tight tracking-[-0.025em] text-balance">
                 {campaign.name}
-                <Hint label={tone.meaning}>
+              </h1>
+              <Hint label={tone.meaning}>
+                <span
+                  className={cn(
+                    "flex h-[22px] shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium inset-ring-1",
+                    tone.chip,
+                  )}
+                >
                   <span
+                    aria-hidden
+                    className={cn("size-1.5 rounded-(--r-round)", tone.dot)}
+                  />
+                  {tone.label}
+                </span>
+              </Hint>
+              {platformsOf(campaign).map((id) => {
+                const meta = platformMeta(id);
+                return (
+                  <span
+                    key={id}
                     className={cn(
-                      "flex h-[22px] shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2.5 text-[11px] font-medium inset-ring-1",
-                      tone.chip,
+                      "flex h-[22px] shrink-0 items-center gap-1.5 rounded-(--r-pill) px-2 text-[10.5px] font-medium inset-ring-1",
+                      meta.tint,
                     )}
                   >
                     <span
                       aria-hidden
-                      className={cn("size-1.5 rounded-(--r-round)", tone.dot)}
+                      className={cn("size-1 rounded-(--r-round)", meta.dot)}
                     />
-                    {tone.label}
+                    {meta.label}
                   </span>
-                </Hint>
-              </h1>
-              <p className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
-                {campaign.tag && campaign.tag !== "NEW" && (
-                  <span className="rounded-(--r-inner) bg-(--ink)/[0.06] px-1.5 py-px text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/85">
-                    {campaign.tag}
-                  </span>
-                )}
-                <span className="tabular-nums">
-                  {submitted.length} in the campaign
-                </span>
-                {drafts.length > 0 && (
-                  <>
-                    <span className="text-muted-foreground/30">&middot;</span>
-                    <span className="tabular-nums text-amber-300/85">
-                      {drafts.length} staged
-                    </span>
-                  </>
-                )}
-                <span className="text-muted-foreground/30">&middot;</span>
-                <span>{ends.date}</span>
-                {ends.soon && (
-                  <>
-                    <span className="text-muted-foreground/30">&middot;</span>
-                    <span className="text-amber-300/80">{ends.soon}</span>
-                  </>
-                )}
-              </p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                {platformsOf(campaign).map((id) => {
-                  const meta = platformMeta(id);
-                  return (
-                    <span
-                      key={id}
-                      className={cn(
-                        "flex h-[22px] items-center gap-1.5 rounded-(--r-pill) px-2 text-[10.5px] font-medium inset-ring-1",
-                        meta.tint,
-                      )}
-                    >
-                      <span
-                        aria-hidden
-                        className={cn("size-1 rounded-(--r-round)", meta.dot)}
-                      />
-                      {meta.label}
-                    </span>
-                  );
-                })}
-              </div>
+                );
+              })}
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              {state === "live" && <LiveLinkChip campaign={campaign} />}
-              <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
                 <button
                   onClick={onAddPost}
                   title="Write a new post for this campaign"
@@ -265,6 +266,22 @@ export function CampaignPage({
                     </span>
                   </Hint>
                 )}
+                {state === "live" && (
+                  <Hint label="Take the public page offline for now. Nothing is lost.">
+                    <button onClick={() => onPausedChange(true)} className={SECONDARY_ACTION_MD}>
+                      <Pause className="size-3.5" />
+                      Pause
+                    </button>
+                  </Hint>
+                )}
+                {state === "paused" && (
+                  <Hint label="Put the public page back online">
+                    <button onClick={() => onPausedChange(false)} className={PRIMARY_ACTION}>
+                      <Play className="size-3.5" />
+                      Resume
+                    </button>
+                  </Hint>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     aria-label="More campaign actions"
@@ -286,22 +303,30 @@ export function CampaignPage({
                       Calculate ROI
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => setScreenOpen(true)}
+                      onClick={onOpenScreenSetup}
                       className="whitespace-nowrap"
                     >
                       <MonitorPlay className="size-3.5" />
                       Screen Setup
                     </DropdownMenuItem>
+                    {stoppable && (
+                      <DropdownMenuItem
+                        onClick={() => setConfirmStop(true)}
+                        className="whitespace-nowrap text-destructive data-highlighted:text-destructive"
+                      >
+                        <CircleStop className="size-3.5" />
+                        Stop campaign
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
             </div>
           </div>
 
           {state === "draft" && (
             <div
               className={cn(
-                "mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) px-4 py-3 text-[12.5px] inset-ring-1",
+                "mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) px-4 py-3 text-[12.5px] inset-ring-1",
                 readyToGoLive
                   ? "bg-live-500/[0.06] text-live-100/90 inset-ring-live-400/25"
                   : "bg-amber-500/[0.05] text-amber-100/85 inset-ring-amber-400/20",
@@ -347,7 +372,7 @@ export function CampaignPage({
           )}
 
           {state === "live" && (
-            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-live-500/[0.06] px-4 py-3 text-[12.5px] text-live-100/90 inset-ring-1 inset-ring-live-400/25">
+            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-live-500/[0.06] px-4 py-3 text-[12.5px] text-live-100/90 inset-ring-1 inset-ring-live-400/25">
               <Rocket className="size-3.5 shrink-0 text-live-300" />
               <span className="min-w-0 flex-1 text-pretty">
                 This campaign is public. Invite advocates to help it spread, or
@@ -372,8 +397,27 @@ export function CampaignPage({
             </div>
           )}
 
+          {state === "paused" && (
+            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-sky-500/[0.05] px-4 py-3 text-[12.5px] text-sky-100/85 inset-ring-1 inset-ring-sky-400/20">
+              <Pause className="size-3.5 shrink-0 text-sky-300" />
+              <span className="min-w-0 flex-1 text-pretty">
+                This campaign is paused. Its public page is unavailable until you
+                resume it — the posts, shares and stats are all still here.
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                <button
+                  onClick={() => onPausedChange(false)}
+                  className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 text-[11.5px] font-medium text-foreground/85 transition-[background-color,scale] duration-150 hover:bg-(--ink)/[0.09] active:scale-(--press)"
+                >
+                  <Play className="size-3" />
+                  Resume
+                </button>
+              </span>
+            </div>
+          )}
+
           {state === "ended" && (
-            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-amber-500/[0.05] px-4 py-3 text-[12.5px] text-amber-100/85 inset-ring-1 inset-ring-amber-400/20">
+            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-amber-500/[0.05] px-4 py-3 text-[12.5px] text-amber-100/85 inset-ring-1 inset-ring-amber-400/20">
               <TrendingUp className="size-3.5 shrink-0 text-amber-300" />
               <span className="min-w-0 flex-1 text-pretty">
                 This campaign&rsquo;s window has closed. See what it earned, or reuse
@@ -391,109 +435,242 @@ export function CampaignPage({
             </div>
           )}
 
-          {submitted.length > 0 && (
-            <CampaignStatsRow campaignId={campaign.id} className="mb-6 shrink-0" />
-          )}
+          <div className="mb-3 mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              icon={Tag}
+              label="Campaign type"
+              value={campaign.tag && campaign.tag !== "NEW" ? campaign.tag : "Standard"}
+            />
+            <StatCard
+              icon={Send}
+              label="Posts in campaign"
+              value={String(submitted.length)}
+              badge={drafts.length > 0 ? `+${drafts.length} staged` : undefined}
+            />
+            <StatCard
+              icon={Rocket}
+              label="Status"
+              value={tone.label}
+              dot={tone.dot}
+            />
+            <StatCard
+              icon={CalendarDays}
+              label="Ends"
+              value={ends.date}
+              badge={ends.soon ?? undefined}
+            />
+          </div>
+
+          <CampaignPostMix sessions={members} />
         </div>
 
-        {drafts.length > 0 && (
-          <section className="mb-6 flex min-h-0 shrink-0 flex-col">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <button
-                  role="checkbox"
-                  aria-checked={allPicked ? true : live.length ? "mixed" : false}
-                  onClick={() =>
-                    setPicked(allPicked ? [] : drafts.map((d) => d.id))
-                  }
-                  className="group/box -m-1 flex items-center gap-2 p-1 text-[12px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
-                >
-                  <Box checked={allPicked} indeterminate={!allPicked && live.length > 0} />
-                  Select all
-                </button>
-                <span className="text-muted-foreground/30">&middot;</span>
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-amber-300/90">
-                  <FileEdit className="size-3" />
-                  Staged, not submitted
-                  <span className="tabular-nums text-amber-300/60">
-                    {drafts.length}
+        {/* Same 4-track geometry as the stat grid above, so the split lands on the
+            same gutter: content spans the first three cards, the rail the fourth. */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-4">
+          <div className="flex min-h-0 min-w-0 flex-col lg:col-span-3">
+            {submitted.length > 0 && (
+              <CampaignPerformanceCard campaignId={campaign.id} className="mb-3 shrink-0" />
+            )}
+
+            {drafts.length > 0 && (
+              <section className="mb-3 flex min-h-0 shrink-0 flex-col">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <span className="flex items-center gap-2">
+                    <button
+                      role="checkbox"
+                      aria-checked={allPicked ? true : live.length ? "mixed" : false}
+                      onClick={() =>
+                        setPicked(allPicked ? [] : drafts.map((d) => d.id))
+                      }
+                      className="group/box -m-1 flex items-center gap-2 p-1 text-[12px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                    >
+                      <Box checked={allPicked} indeterminate={!allPicked && live.length > 0} />
+                      Select all
+                    </button>
+                    <span className="text-muted-foreground/30">&middot;</span>
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-amber-300/90">
+                      <FileEdit className="size-3" />
+                      Staged, not submitted
+                      <span className="tabular-nums text-amber-300/60">
+                        {drafts.length}
+                      </span>
+                    </span>
                   </span>
+                  <span className="text-[11.5px] text-muted-foreground/70 text-pretty">
+                    Staged means sent here but not yet part of the campaign. Submit a post
+                    to add it, then take the campaign live.
+                  </span>
+                </div>
+
+                <ScrollFade className="max-h-[min(40vh,460px)]">
+                  <div className="flex flex-col gap-2 pb-0.5">
+                  {drafts.map((draft) => (
+                    <DraftCard
+                      key={draft.id}
+                      session={draft}
+                      mediaAssets={mediaAssets}
+                      authorName={authorName}
+                      picked={picked.includes(draft.id)}
+                      open={expanded.includes(draft.id)}
+                      onToggle={() => toggle(draft.id)}
+                      onToggleOpen={() =>
+                        setExpanded((prev) =>
+                          prev.includes(draft.id)
+                            ? prev.filter((x) => x !== draft.id)
+                            : [...prev, draft.id],
+                        )
+                      }
+                      onOpen={() => onSelectSession(draft.id)}
+                      onSubmit={() => onSubmit([draft.id])}
+                      onWithdraw={() => onWithdraw(draft.id)}
+                    />
+                  ))}
+                  </div>
+                </ScrollFade>
+              </section>
+            )}
+
+            <div className="mb-3 flex shrink-0 items-center gap-2">
+              <span className="text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
+                In the campaign
+              </span>
+              {submitted.length > 0 && (
+                <span className="text-[11px] tabular-nums text-muted-foreground/50">
+                  {submitted.length}
                 </span>
-              </span>
-              <span className="text-[11.5px] text-muted-foreground/70 text-pretty">
-                Staged means sent here but not yet part of the campaign. Submit a post
-                to add it, then take the campaign live.
-              </span>
+              )}
             </div>
 
-            <ScrollFade className="max-h-[min(40vh,460px)]">
-              <div className="flex flex-col gap-2 pb-0.5">
-              {drafts.map((draft) => (
-                <DraftCard
-                  key={draft.id}
-                  session={draft}
-                  mediaAssets={mediaAssets}
-                  authorName={authorName}
-                  picked={picked.includes(draft.id)}
-                  open={expanded.includes(draft.id)}
-                  onToggle={() => toggle(draft.id)}
-                  onToggleOpen={() =>
-                    setExpanded((prev) =>
-                      prev.includes(draft.id)
-                        ? prev.filter((x) => x !== draft.id)
-                        : [...prev, draft.id],
-                    )
-                  }
-                  onOpen={() => onSelectSession(draft.id)}
-                  onSubmit={() => onSubmit([draft.id])}
-                  onWithdraw={() => onWithdraw(draft.id)}
-                />
-              ))}
-              </div>
-            </ScrollFade>
-          </section>
-        )}
+            <SessionsTable
+              variant="canvas"
+              pageSize={15}
+              sessions={submitted}
+              campaigns={campaigns}
+              selectedSessionId={selectedSessionId}
+              onSelectSession={onSelectSession}
+              onOpenSend={onOpenSend}
+              onViewPublic={(id) => window.open(`/p/${id}`, "_blank", "noopener,noreferrer")}
+              onDeleteSession={onDeleteSession}
+              onUnlockSession={onUnlockSession}
+              onDuplicateSession={onDuplicateSession}
+              actionsFade={false}
+              inlineActions
+              emptyState={{
+                title: "Nothing submitted yet",
+                description: drafts.length
+                  ? "Submit the posts above and they will show up here."
+                  : "Posts you send to this campaign land here once they are submitted.",
+              }}
+            />
+          </div>
 
-        <div className="mb-3 flex shrink-0 items-center gap-2">
-          <span className="text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
-            In the campaign
-          </span>
-          {submitted.length > 0 && (
-            <span className="text-[11px] tabular-nums text-muted-foreground/50">
-              {submitted.length}
-            </span>
-          )}
+          <div className="flex min-w-0 shrink-0 flex-col gap-3 lg:col-span-1 lg:sticky lg:top-0 lg:self-start">
+            {state === "live" && <LiveLinkChip campaign={campaign} />}
+
+            <CampaignSettingsPanel settings={campaign.settings} onChange={onSettingsChange} />
+
+            {/* gap-0.5, not gap-2: these read as a menu list, so the rows sit close
+                together and the card ends where its content does. */}
+            <div className="flex flex-col gap-0.5 rounded-(--r-surface) bg-(--surface-raised) p-5 shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.08]">
+              <span className="mb-1.5 flex items-center gap-2 text-[13.5px] font-semibold">
+                <Sparkles className="size-4 text-muted-foreground" />
+                Quick actions
+              </span>
+              <SidebarAction icon={Pencil} label="Edit public page" onClick={onEdit} />
+              {shareable && (
+                <SidebarAction icon={UserPlus} label="Invite advocates" onClick={onInvite} />
+              )}
+              <SidebarAction
+                icon={Calculator}
+                label="Calculate ROI"
+                onClick={() => onRoiOpenChange(true)}
+              />
+              <SidebarAction
+                icon={MonitorPlay}
+                label="Screen setup"
+                onClick={onOpenScreenSetup}
+              />
+            </div>
+          </div>
         </div>
-
-        <SessionsTable
-          variant="canvas"
-          pageSize={15}
-          sessions={submitted}
-          campaigns={campaigns}
-          selectedSessionId={selectedSessionId}
-          onSelectSession={onSelectSession}
-          onOpenSend={onOpenSend}
-          onViewPublic={(id) => window.open(`/p/${id}`, "_blank", "noopener,noreferrer")}
-          onDeleteSession={onDeleteSession}
-          onUnlockSession={onUnlockSession}
-          onDuplicateSession={onDuplicateSession}
-          actionsFade={false}
-          emptyState={{
-            title: "Nothing submitted yet",
-            description: drafts.length
-              ? "Submit the posts above and they will show up here."
-              : "Posts you send to this campaign land here once they are submitted.",
-          }}
-        />
       </div>
 
       <RoiSheet open={roiOpen} onOpenChange={onRoiOpenChange} campaign={campaign} />
-      <ScreenSetupSheet
-        open={screenOpen}
-        onOpenChange={setScreenOpen}
-        campaign={campaign}
+
+      <ConfirmDialog
+        open={confirmStop}
+        onOpenChange={setConfirmStop}
+        tone="destructive"
+        title="Stop this campaign?"
+        description="Its public page closes for good and it stops collecting shares. Posts and stats are kept, but a stopped campaign cannot be reopened — pause it instead if you only need a break."
+        actions={[
+          { label: "Cancel", tone: "outline", onClick: () => setConfirmStop(false) },
+          {
+            label: "Stop campaign",
+            tone: "destructive",
+            icon: CircleStop,
+            onClick: () => {
+              onStop();
+              setConfirmStop(false);
+            },
+          },
+        ]}
       />
     </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  badge,
+  dot,
+}: {
+  icon: typeof Tag;
+  label: string;
+  value: string;
+  badge?: string;
+  dot?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-(--r-surface) bg-(--surface-raised) p-4 shadow-(--lift-sm) inset-ring-1 inset-ring-(--ink)/[0.08]">
+      <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+        <Icon className="size-3.5" />
+        {label}
+      </span>
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1.5 text-[18px] font-semibold leading-none tracking-[-0.015em] text-balance">
+          {dot && <span aria-hidden className={cn("size-2 shrink-0 rounded-(--r-round)", dot)} />}
+          {value}
+        </span>
+        {badge && (
+          <span className="rounded-(--r-pill) bg-live-500/[0.13] px-1.5 py-0.5 text-[10px] font-medium text-live-300">
+            {badge}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function SidebarAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Pencil;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-(--r-inner) px-2.5 py-2 text-left text-[12.5px] font-medium text-foreground/85 transition-colors duration-150 hover:bg-(--ink)/[0.05] hover:text-foreground"
+    >
+      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+      {label}
+    </button>
   );
 }
 
@@ -533,7 +710,7 @@ function ShareCampaignButton({ campaign }: { campaign: Campaign }) {
   );
 }
 
-function LiveLinkChip({ campaign }: { campaign: Campaign }) {
+function LiveLinkChip({ campaign, className }: { campaign: Campaign; className?: string }) {
   const [copied, setCopied] = useState(false);
   const path = `/c/${campaign.id}`;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -546,7 +723,12 @@ function LiveLinkChip({ campaign }: { campaign: Campaign }) {
   }
 
   return (
-    <div className="w-fit min-w-[300px] max-w-[460px] rounded-(--r-surface) bg-live-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-live-400/25">
+    <div
+      className={cn(
+        "rounded-(--r-surface) bg-live-500/[0.06] p-3 shadow-(--lift-sm) inset-ring-1 inset-ring-live-400/25",
+        className,
+      )}
+    >
       <span className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-live-300">
         <Rocket className="size-3" />
         Campaign is live

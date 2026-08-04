@@ -1,3 +1,5 @@
+import { blankContest } from "./contest";
+import { blankScreenTheme } from "./screen-theme";
 import type {
   Campaign,
   MediaAsset,
@@ -128,6 +130,11 @@ export const campaigns: Campaign[] = [
     name: "test-contest",
     tag: "CONTEST",
     inWozku: true,
+    paused: false,
+    stopped: false,
+    hiddenSessionIds: [],
+    theme: blankScreenTheme(),
+    contest: blankContest(),
     endDate: "2026-08-04",
     platforms: ["linkedin"],
     logoUrl: "",
@@ -150,6 +157,11 @@ export const campaigns: Campaign[] = [
     name: "summer-launch",
     tag: "LAUNCH",
     inWozku: false,
+    paused: false,
+    stopped: false,
+    hiddenSessionIds: [],
+    theme: blankScreenTheme(),
+    contest: blankContest(),
     endDate: "2026-09-15",
     platforms: ["linkedin"],
     logoUrl: "",
