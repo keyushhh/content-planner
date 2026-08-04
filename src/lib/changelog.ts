@@ -46,6 +46,55 @@ export const CHANGELOG: ChangelogDay[] = [
           "It used to just name the four stages a post travels through. Its pills now show how many posts are in each stage and filter the table when clicked, so it teaches the model and gets you to the posts you need in one click.",
         commit: "947115d",
       },
+      {
+        kind: "improved",
+        title: "Select every matching post at once when building a campaign",
+        detail:
+          "Step 2 of the wizard listed your posts with a checkbox each, so starting a campaign from a dozen drafts meant a dozen clicks. There is a select-all now, and it acts on whatever your search has narrowed the list to rather than on everything.",
+        commit: "59f6553",
+      },
+      {
+        kind: "new",
+        title: "A campaign page you can run the campaign from",
+        detail:
+          "It was a header and a table. It now opens on four stat cards, a performance chart that stays folded away because the posts table is what the page is actually for, and a settings panel that says what each toggle does instead of naming it. The post-type mix hides itself when there is only one type, because a bar reading “Image 100%” tells you nothing. Row actions inside a campaign moved into their own column — the hover overlay floats above the row, and in a narrower table it was landing on top of the cells it is meant to sit beside. Tables elsewhere are untouched.",
+        commit: "85605c6",
+      },
+      {
+        kind: "new",
+        title: "Pause, resume and stop a campaign",
+        detail:
+          "A live campaign had one exit: wait for its end date. You can pause one and put it back, or stop it early behind a confirmation that spells out the difference — a stopped campaign cannot be reopened, so pause it if you only need a break. Stopping records itself separately rather than back-dating the end date, so ending a campaign early never rewrites the schedule it was planned against. Both public pages follow: a paused campaign shows a holding page, and a hidden post says so rather than breaking.",
+        commit: "b0fb7e4",
+      },
+      {
+        kind: "new",
+        title: "Screen Setup decides what the public screen actually shows",
+        detail:
+          "The old sheet was a placeholder. It is a page now: the link and QR to hand out, and every post on the screen with a switch, drag-to-reorder, and its own menu. Turning a post off takes it off the screen without removing it from the campaign, and that choice is per-campaign — the same post can show in one and be hidden in another.",
+        commit: "c81bc58",
+      },
+      {
+        kind: "new",
+        title: "Themes, and a second screen built for a projector",
+        detail:
+          "Colour scheme, accent, font and a backdrop, with the preview beside them showing the result as you go — and that preview is no longer an impression of the page, it is the page itself at a smaller scale, so it cannot drift from what visitors get. There is a second surface too, a full-screen version that plays Welcome, Posts, a featured video, the prize and a thank-you on a loop, with space and arrow keys so whoever is running the room can hold a slide when a speaker overruns.",
+        commit: "e0ace76",
+      },
+      {
+        kind: "new",
+        title: "Contest settings, a leaderboard, and an embed that works",
+        detail:
+          "The leaderboard is real: a podium for the top three and a ranked list below, or a flat list of everyone when you would rather not show scores. Contest settings covers the call to action, what the QR opens, the language scores are formatted in, and the two closing messages for winners announced or still pending. Clearing the board asks first and can be rebuilt afterwards, so it is not a one-way door. Embed gives you an iframe that genuinely runs — whole screen or leaderboard only — rather than a snippet you have to trust.",
+        commit: "a6f9610",
+      },
+      {
+        kind: "improved",
+        title: "See the campaign page full size while you are still writing it",
+        detail:
+          "The preview in the campaign form is a narrow card in a sidebar, which is a hard place to judge whether your header image and description sit well together. Expand opens the same preview inside a laptop, big enough to read, with nothing cut off and nothing to scroll.",
+        commit: "d8b3961",
+      },
     ],
   },
   {
