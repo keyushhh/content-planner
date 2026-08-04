@@ -4,14 +4,14 @@ import { useState } from "react";
 import { formatFollowers, mentionAccounts } from "@/lib/mentions";
 import { mockCount, mockSeries, mockTrendPercent } from "@/lib/mock-engagement";
 import { avatarTint, cn } from "@/lib/utils";
-import { Hint } from "@/components/ui/tooltip";
 
 export const CAMPAIGN_PARTICIPANTS = mentionAccounts.filter((a) => a.kind === "person");
 
-// Theme-remapped in globals.css; both pairs clear 3:1 against the surface they land on.
-const SPARK_COLOR = {
+// Theme-remapped in globals.css; every pair clears 3:1 against the surface they land on.
+export const SPARK_COLOR = {
   sky: "var(--color-sky-400)",
   brand: "var(--color-violet-400)",
+  amber: "var(--color-amber-400)",
 } as const;
 
 const PLOT_W = 120;
@@ -34,7 +34,7 @@ function linePathFrom(coords: readonly (readonly [number, number])[]): string {
   return coords.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${r(x)} ${r(y)}`).join(" ");
 }
 
-function Sparkline({ seed, tone }: { seed: string; tone: keyof typeof SPARK_COLOR }) {
+export function Sparkline({ seed, tone }: { seed: string; tone: keyof typeof SPARK_COLOR }) {
   const series = mockSeries(seed, PLOT_POINTS);
   const stepX = PLOT_W / (series.length - 1);
   const coords = series.map(
@@ -74,7 +74,7 @@ function Sparkline({ seed, tone }: { seed: string; tone: keyof typeof SPARK_COLO
   );
 }
 
-function StatTile({
+export function StatTile({
   label,
   value,
   trendPct,
@@ -156,12 +156,6 @@ export function CampaignStatsRow({
         className,
       )}
     >
-      <Hint label="Placeholder figures, so you can see the shape of the report. Real numbers arrive once the campaign is live.">
-        <span className="absolute right-3 top-3 cursor-default rounded-(--r-pill) bg-(--ink)/[0.06] px-1.5 py-0.5 text-[9.5px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.06em] text-muted-foreground/70">
-          Sample data
-        </span>
-      </Hint>
-
       <div className="flex flex-1 items-center gap-4">
         <span className="flex -space-x-2.5">
           {CAMPAIGN_PARTICIPANTS.slice(0, 4).map((p) => (

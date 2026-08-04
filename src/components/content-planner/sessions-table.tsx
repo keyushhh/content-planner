@@ -91,6 +91,12 @@ interface SessionsTableProps {
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
   actionsFade?: boolean;
+  /**
+   * Park the row actions in their own trailing column instead of the hover overlay.
+   * The overlay floats above the row, so in a narrow table it lands on top of the
+   * cells it is meant to sit beside. Opt in where the table is width-constrained.
+   */
+  inlineActions?: boolean;
 }
 
 const ROW_EXIT_MS = 220;
@@ -416,6 +422,7 @@ export function SessionsTable({
   selectedIds,
   onSelectionChange,
   actionsFade = true,
+  inlineActions = false,
   customColumns = [],
   customCellValues = {},
   onAddColumn,
@@ -588,13 +595,15 @@ export function SessionsTable({
   const campaignLeft = 20 + (selectable ? 26 + 12 : 0) + NAME_CAP + 12;
   const campaignWidth = EDITED_LEFT - 12 - campaignLeft;
   const viewCol = onViewPublic ? "96px " : "";
-  const actionsBuffer = headerColumns.length === 0 ? " 88px" : "";
+  /* Inline actions occupy a real trailing track; the overlay only needs dead space to float over. */
+  const actionsBuffer = inlineActions || headerColumns.length > 0 ? "" : " 88px";
+  const inlineActionsCol = inlineActions ? " 96px" : "";
   const canvasGrid = {
     "--cols-sm": `${pick}minmax(0,1fr) 104px`,
     "--cols-md": `${pick}minmax(0,1fr) 152px 184px 112px`,
     "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 160px 118px ${viewCol}116px${actionsBuffer} ${headerColumns
       .map(() => "140px")
-      .join(" ")}`,
+      .join(" ")}${inlineActionsCol}`,
   } as React.CSSProperties;
 
   const canvasGridClass =
@@ -845,6 +854,10 @@ export function SessionsTable({
                 />
               ))}
 
+              {inlineActions && (
+                <span className={cn(wideOnly, "text-right")}>Manage</span>
+              )}
+
             </div>
 
               {onAddColumn && (
@@ -886,6 +899,44 @@ export function SessionsTable({
                 const isSelected = session.id === selectedSessionId;
                 const picked = selectedSet.has(session.id);
                 const locked = isSessionLocked(session);
+
+                /* Same controls either way — only where they sit changes. */
+                const rowActions = (
+                  <>
+                    {locked && (
+                      <Hint label="Live on Wozku and locked from editing. Unlock to edit.">
+                        <button
+                          onClick={() => setConfirmUnlockId(session.id)}
+                          aria-label="Unlock to edit"
+                          className="group/lock relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                        >
+                          <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0" />
+                          <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100" />
+                        </button>
+                      </Hint>
+                    )}
+                    {onDuplicateSession && (
+                      <Hint label="Duplicate as a new draft, without its campaigns">
+                        <button
+                          onClick={() => onDuplicateSession(session.id)}
+                          aria-label="Duplicate"
+                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
+                      </Hint>
+                    )}
+                    <Hint label="Delete">
+                      <button
+                        onClick={() => setConfirmDeleteId(session.id)}
+                        aria-label="Delete"
+                        className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </Hint>
+                  </>
+                );
 
                 return (
                   <div
@@ -1069,48 +1120,30 @@ export function SessionsTable({
                       />
                     ))}
 
+                    {inlineActions && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        /* wideOnlyRow, not wideOnly — the latter's @[900px]:block would
+                           override the flex row and stack the buttons vertically. */
+                        className={cn(wideOnlyRow, "items-center justify-end gap-0.5")}
+                      >
+                        {rowActions}
+                      </div>
+                    )}
+
                     </div>
 
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className={cn(
-                        "pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-                        actionsFade && "bg-gradient-to-l from-(--surface-raised) from-65% to-transparent",
-                      )}
-                    >
-                      {locked && (
-                        <Hint label="Live on Wozku and locked from editing. Unlock to edit.">
-                          <button
-                            onClick={() => setConfirmUnlockId(session.id)}
-                            aria-label="Unlock to edit"
-                            className="group/lock relative flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
-                          >
-                            <Lock className="size-3.5 transition-[opacity,scale] duration-150 group-hover/lock:scale-90 group-hover/lock:opacity-0" />
-                            <LockOpen className="absolute size-3.5 scale-90 opacity-0 transition-[opacity,scale] duration-150 group-hover/lock:scale-100 group-hover/lock:opacity-100" />
-                          </button>
-                        </Hint>
-                      )}
-                      {onDuplicateSession && (
-                        <Hint label="Duplicate as a new draft, without its campaigns">
-                          <button
-                            onClick={() => onDuplicateSession(session.id)}
-                            aria-label="Duplicate"
-                            className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
-                          >
-                            <Copy className="size-3.5" />
-                          </button>
-                        </Hint>
-                      )}
-                      <Hint label="Delete">
-                        <button
-                          onClick={() => setConfirmDeleteId(session.id)}
-                          aria-label="Delete"
-                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-destructive/15 hover:text-destructive active:scale-(--press)"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </Hint>
-                    </div>
+                    {!inlineActions && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className={cn(
+                          "pointer-events-none sticky right-0 z-20 col-start-1 row-start-1 flex h-[58px] items-center gap-0.5 justify-self-end pl-12 pr-5 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+                          actionsFade && "bg-gradient-to-l from-(--surface-raised) from-65% to-transparent",
+                        )}
+                      >
+                        {rowActions}
+                      </div>
+                    )}
                   </div>
                 );
               })
