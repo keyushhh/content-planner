@@ -7,7 +7,6 @@ import { InviteModal } from "@/components/content-planner/invite-modal";
 import { TagFilterBar } from "@/components/content-planner/tag-filter-bar";
 import { Stagger } from "@/components/content-planner/session-composer";
 import { Hint } from "@/components/ui/tooltip";
-import { LifecycleStrip } from "./lifecycle-strip";
 import type { ComposerLayout } from "@/components/content-planner/session-detail-pane";
 import {
   DropdownMenu,
@@ -247,10 +246,6 @@ export function RepositoryShell({
                   </p>
                 </div>
               </div>
-            </Stagger>
-
-            <Stagger index={1} className="shrink-0">
-              <LifecycleStrip postCount={sessions.length} />
             </Stagger>
 
             <Stagger
