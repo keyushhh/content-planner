@@ -1541,7 +1541,7 @@ function EmptyRows({ emptyState }: { emptyState: EmptyStateSpec }) {
         </span>
 
         {showJourney && (
-          <div className="mt-4 flex flex-col items-center gap-2 @[740px]:flex-row @[740px]:gap-3">
+          <div className="mt-4 flex flex-col items-center gap-2 @[740px]:flex-row @[740px]:flex-wrap @[740px]:justify-center @[740px]:gap-3">
             {JOURNEY_STEPS.map(({ icon: Icon, label }, i) => (
               <div key={label} className="flex items-center gap-2 @[740px]:gap-3">
                 <span className="flex items-center gap-1.5">
