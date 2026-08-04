@@ -18,6 +18,8 @@ import {
   Send,
   Share2,
   Trash2,
+  TrendingUp,
+  UserPlus,
 } from "lucide-react";
 import { SessionsTable } from "@/components/content-planner/sessions-table";
 import { PostPreview } from "@/components/content-planner/post-preview";
@@ -66,6 +68,9 @@ interface CampaignPageProps {
   onGoLive: () => void;
   onEdit: () => void;
   onAddPost: () => void;
+  onInvite: () => void;
+  roiOpen: boolean;
+  onRoiOpenChange: (open: boolean) => void;
 }
 
 export function CampaignPage({
@@ -86,6 +91,9 @@ export function CampaignPage({
   onGoLive,
   onEdit,
   onAddPost,
+  onInvite,
+  roiOpen,
+  onRoiOpenChange,
 }: CampaignPageProps) {
   const drafts = useMemo(
     () => campaignDrafts(sessions, campaign.id),
@@ -99,7 +107,6 @@ export function CampaignPage({
   const [picked, setPicked] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [now] = useState(() => Date.now());
-  const [roiOpen, setRoiOpen] = useState(false);
   const [screenOpen, setScreenOpen] = useState(false);
 
   const state = campaignState(campaign, now);
@@ -272,7 +279,7 @@ export function CampaignPage({
                       Edit page
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => setRoiOpen(true)}
+                      onClick={() => onRoiOpenChange(true)}
                       className="whitespace-nowrap"
                     >
                       <Calculator className="size-3.5" />
@@ -336,6 +343,51 @@ export function CampaignPage({
                   </button>
                 </span>
               )}
+            </div>
+          )}
+
+          {state === "live" && (
+            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-live-500/[0.06] px-4 py-3 text-[12.5px] text-live-100/90 inset-ring-1 inset-ring-live-400/25">
+              <Rocket className="size-3.5 shrink-0 text-live-300" />
+              <span className="min-w-0 flex-1 text-pretty">
+                This campaign is public. Invite advocates to help it spread, or
+                check its ROI to see what it&rsquo;s earning so far.
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                <button
+                  onClick={onInvite}
+                  className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 text-[11.5px] font-medium text-foreground/85 transition-[background-color,scale] duration-150 hover:bg-(--ink)/[0.09] active:scale-(--press)"
+                >
+                  <UserPlus className="size-3" />
+                  Invite advocates
+                </button>
+                <button
+                  onClick={() => onRoiOpenChange(true)}
+                  className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 text-[11.5px] font-medium text-foreground/85 transition-[background-color,scale] duration-150 hover:bg-(--ink)/[0.09] active:scale-(--press)"
+                >
+                  <Calculator className="size-3" />
+                  Calculate ROI
+                </button>
+              </span>
+            </div>
+          )}
+
+          {state === "ended" && (
+            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-amber-500/[0.05] px-4 py-3 text-[12.5px] text-amber-100/85 inset-ring-1 inset-ring-amber-400/20">
+              <TrendingUp className="size-3.5 shrink-0 text-amber-300" />
+              <span className="min-w-0 flex-1 text-pretty">
+                This campaign&rsquo;s window has closed. See what it earned, or reuse
+                its best posts to run something new.
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                <button
+                  onClick={() => onRoiOpenChange(true)}
+                  className="flex h-7 items-center gap-1.5 rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 text-[11.5px] font-medium text-foreground/85 transition-[background-color,scale] duration-150 hover:bg-(--ink)/[0.09] active:scale-(--press)"
+                >
+                  <Calculator className="size-3" />
+                  Calculate ROI
+                </button>
+              </span>
             </div>
           )}
 
@@ -435,7 +487,7 @@ export function CampaignPage({
         />
       </div>
 
-      <RoiSheet open={roiOpen} onOpenChange={setRoiOpen} campaign={campaign} />
+      <RoiSheet open={roiOpen} onOpenChange={onRoiOpenChange} campaign={campaign} />
       <ScreenSetupSheet
         open={screenOpen}
         onOpenChange={setScreenOpen}

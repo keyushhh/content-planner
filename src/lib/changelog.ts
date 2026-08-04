@@ -20,6 +20,13 @@ export const CHANGELOG: ChangelogDay[] = [
     date: "2026-08-04",
     entries: [
       {
+        kind: "new",
+        title: "Taking a campaign live now leads somewhere",
+        detail:
+          "It used to just fire a toast. A modal now hands you the public link plus two next steps — invite advocates or estimate its ROI — and the campaign page keeps speaking once it's live or ended instead of going quiet. The journey strip carries the story two beats further too: advocates sharing it, and seeing what it earned.",
+        commit: "8b174c1",
+      },
+      {
         kind: "fixed",
         title: "The post editor now closes when you jump to a campaign from the send confirmation",
         detail: "It used to stay open over the campaign page, hiding the very campaign you asked to see.",

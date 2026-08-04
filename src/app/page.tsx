@@ -49,6 +49,7 @@ import type { ChangeKind } from "@/lib/changelog";
 import { ShortcutsModal } from "@/components/content-planner/shortcuts-modal";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { CampaignPage } from "@/components/repository/campaign-page";
+import { GoLiveModal } from "@/components/repository/go-live-modal";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { CampaignEditor } from "@/components/campaigns/campaign-editor";
 import { CampaignCreateWizard, type CampaignWizardState } from "@/components/campaigns/campaign-create-wizard";
@@ -239,6 +240,8 @@ export default function Home() {
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(initialMediaAssets);
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [goLiveCampaignId, setGoLiveCampaignId] = useState<string | null>(null);
+  const [roiSheetCampaignId, setRoiSheetCampaignId] = useState<string | null>(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [changelogFilter, setChangelogFilter] = useState<"all" | ChangeKind>("all");
@@ -749,17 +752,10 @@ export default function Home() {
   }
 
   function takeCampaignLive(campaignId: string) {
-    const campaign = campaigns.find((c) => c.id === campaignId);
     setCampaigns((prev) =>
       prev.map((c) => (c.id === campaignId ? { ...c, inWozku: true } : c)),
     );
-    toast({
-      title: "Campaign is live",
-      description: campaign
-        ? `${campaign.name} is public now. Its landing page link is ready to share.`
-        : "Its landing page link is ready to share.",
-      tone: "success",
-    });
+    setGoLiveCampaignId(campaignId);
   }
 
   function uploadAssets(files: File[], folderId: string): string[] {
@@ -1309,6 +1305,11 @@ export default function Home() {
             onGoLive={() => takeCampaignLive(repoCampaign.id)}
             onEdit={() => setEditingCampaignId(repoCampaign.id)}
             onAddPost={handleNewContent}
+            onInvite={() => setShowInviteModal(true)}
+            roiOpen={roiSheetCampaignId === repoCampaign.id}
+            onRoiOpenChange={(open) =>
+              setRoiSheetCampaignId(open ? repoCampaign.id : null)
+            }
           />
           ) : (
             <CampaignsView
@@ -1509,6 +1510,18 @@ export default function Home() {
         open={showInviteModal}
         onOpenChange={setShowInviteModal}
         contextName={selectedCampaign.name}
+      />
+
+      <GoLiveModal
+        open={goLiveCampaignId !== null}
+        onOpenChange={(next) => {
+          if (!next) setGoLiveCampaignId(null);
+        }}
+        campaign={campaigns.find((c) => c.id === goLiveCampaignId) ?? null}
+        onInvite={() => setShowInviteModal(true)}
+        onCalculateRoi={() => {
+          if (goLiveCampaignId) setRoiSheetCampaignId(goLiveCampaignId);
+        }}
       />
 
       <ShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />

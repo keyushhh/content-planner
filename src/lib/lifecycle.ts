@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { CheckCircle2, PencilLine, Radio, Send } from "lucide-react";
+import { CheckCircle2, PencilLine, Radio, Send, TrendingUp, Users } from "lucide-react";
 
-/** The four beats a post travels, shown in the empty state and the header strip. */
+/** The beats a post travels, shown in the empty state and the header strip. Going live isn't the end. */
 export const JOURNEY_STEPS = [
   { icon: PencilLine, label: "Write it" },
   { icon: CheckCircle2, label: "Get it approved" },
   { icon: Send, label: "Send to a campaign" },
   { icon: Radio, label: "Campaign goes live" },
+  { icon: Users, label: "Advocates share it" },
+  { icon: TrendingUp, label: "See what it earned" },
 ];
 
 const KEY = "cp_lifecycle_dismissed";
