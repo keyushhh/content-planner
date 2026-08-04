@@ -3,12 +3,17 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Check, Copy, Gift, Star, Users } from "lucide-react";
+import { ArrowLeft, Check, Copy, EyeOff, Gift, Star, Users } from "lucide-react";
 import { platformMeta } from "@/lib/platforms";
 import { PublicPostCard } from "@/components/public/public-post-card";
 import { ShareButton } from "@/components/public/share-button";
 import { SocialProofStack } from "@/components/public/social-proof-stack";
-import { campaignSubmitted, isSubmittedIn, sortBySentDesc } from "@/lib/campaigns";
+import {
+  campaignState,
+  isHiddenOnScreen,
+  isSubmittedIn,
+  publicScreenPosts,
+} from "@/lib/campaigns";
 import { mentionAccounts } from "@/lib/mentions";
 import { mockCount } from "@/lib/mock-engagement";
 import { cn, relativeTime, tagTint } from "@/lib/utils";
@@ -50,15 +55,35 @@ export default function PublicPostContent() {
     );
   }
 
+  /* A post is only public while its campaign is: pausing the campaign or toggling the post
+     off in Screen Setup has to close this link too, or hiding it would mean nothing. */
+  const unavailable =
+    campaign &&
+    (campaignState(campaign) === "paused" || isHiddenOnScreen(campaign, session.id));
+
+  if (unavailable) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center gap-1.5 p-6 text-center">
+        <span className="mb-1.5 flex size-11 items-center justify-center rounded-(--r-round) bg-sky-500/[0.10] text-sky-300 inset-ring-1 inset-ring-sky-400/25">
+          <EyeOff className="size-5" />
+        </span>
+        <h1 className="text-[17px] font-semibold">This post isn&rsquo;t available</h1>
+        <p className="max-w-[42ch] text-pretty text-[13px] text-muted-foreground">
+          It has been taken off {campaign?.name ?? "the campaign"}&rsquo;s screen for now.
+          Check back soon.
+        </p>
+      </div>
+    );
+  }
+
   const platformId = campaign?.platforms[0] ?? session.platforms[0];
   const platformMetaValue = platformId ? platformMeta(platformId) : null;
   const platformLabel = platformMetaValue?.label ?? "your network";
   const authorName = session.lastEditedBy?.name ?? campaign?.name ?? "Wozku";
   const tag = session.tags[0];
 
-  const campaignPosts = campaign
-    ? campaignSubmitted(sessions, campaign).slice().sort(sortBySentDesc)
-    : [];
+  /* Siblings follow the screen, so "next post" never offers something hidden. */
+  const campaignPosts = campaign ? publicScreenPosts(sessions, campaign) : [];
   const postIndex = campaignPosts.findIndex((p) => p.id === session.id);
 
   const proofCount = mockCount(session.id, 3, 40);
