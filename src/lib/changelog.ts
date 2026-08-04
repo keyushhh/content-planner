@@ -17,6 +17,24 @@ export type ChangelogDay = {
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-08-04",
+    entries: [
+      {
+        kind: "fixed",
+        title: "The post editor now closes when you jump to a campaign from the send confirmation",
+        detail: "It used to stay open over the campaign page, hiding the very campaign you asked to see.",
+        commit: "ad4c2bd",
+      },
+      {
+        kind: "new",
+        title: "The pipeline strip is now a status filter, with live counts",
+        detail:
+          "It used to just name the four stages a post travels through. Its pills now show how many posts are in each stage and filter the table when clicked, so it teaches the model and gets you to the posts you need in one click.",
+        commit: "947115d",
+      },
+    ],
+  },
+  {
     date: "2026-08-03",
     summary:
       "A repository that explains itself \u2014 a walkthrough, a hands-on first post, and a campaign page you can work from",

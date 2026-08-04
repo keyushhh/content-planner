@@ -1496,6 +1496,7 @@ export default function Home() {
         campaigns={campaigns.filter((c) => sendResult?.campaignIds.includes(c.id))}
         onViewCampaign={(campaignId) => {
           setSendResult(null);
+          setSelectedSessionId(null);
           setSelectedCampaignId(campaignId);
           if (mode === "repository") {
             setSection("campaigns");
