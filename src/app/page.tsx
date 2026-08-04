@@ -50,6 +50,7 @@ import { ShortcutsModal } from "@/components/content-planner/shortcuts-modal";
 import { RepositoryShell } from "@/components/repository/repository-shell";
 import { CampaignPage } from "@/components/repository/campaign-page";
 import { GoLiveModal } from "@/components/repository/go-live-modal";
+import { ScreenSetupPage } from "@/components/repository/screen-setup-page";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { CampaignEditor } from "@/components/campaigns/campaign-editor";
 import { CampaignCreateWizard, type CampaignWizardState } from "@/components/campaigns/campaign-create-wizard";
@@ -103,6 +104,8 @@ import {
   campaignMembers,
   migrateCampaign,
 } from "@/lib/campaigns";
+import { blankContest, type ContestSettings } from "@/lib/contest";
+import { blankScreenTheme, type ScreenTheme } from "@/lib/screen-theme";
 
 const COLUMNS_STORAGE_KEY = "cp_custom_columns";
 const CELLS_STORAGE_KEY = "cp_custom_cells";
@@ -182,7 +185,17 @@ function migrateSession(
 }
 
 function toDraft(c: Campaign): NewCampaign {
-  const { id: _id, inWozku: _inWozku, sessionIds: _sessionIds, ...draft } = c;
+  const {
+    id: _id,
+    inWozku: _inWozku,
+    sessionIds: _sessionIds,
+    paused: _paused,
+    stopped: _stopped,
+    hiddenSessionIds: _hiddenSessionIds,
+    theme: _theme,
+    contest: _contest,
+    ...draft
+  } = c;
   return draft;
 }
 
@@ -241,6 +254,7 @@ export default function Home() {
   const [demoState, setDemoState] = useState<DemoState>("live");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [goLiveCampaignId, setGoLiveCampaignId] = useState<string | null>(null);
+  const [screenSetupCampaignId, setScreenSetupCampaignId] = useState<string | null>(null);
   const [roiSheetCampaignId, setRoiSheetCampaignId] = useState<string | null>(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -470,6 +484,11 @@ export default function Home() {
       : null;
   const editingCampaign =
     campaigns.find((c) => c.id === editingCampaignId) ?? null;
+  /* Gated on repository mode like repoCampaign — the id outlives a section switch. */
+  const screenSetupCampaign =
+    mode === "repository"
+      ? campaigns.find((c) => c.id === screenSetupCampaignId) ?? null
+      : null;
 
   // Gated like CampaignPage's render: repoCampaignId outlives a section switch.
   const campaignPageId =
@@ -738,7 +757,18 @@ export default function Home() {
     const id = `camp-${Date.now()}`;
     setCampaigns((prev) => [
       ...prev,
-      { ...draft, id, tag: draft.tag || "NEW", inWozku: false, sessionIds: [] },
+      {
+        ...draft,
+        id,
+        tag: draft.tag || "NEW",
+        inWozku: false,
+        sessionIds: [],
+        paused: false,
+        stopped: false,
+        hiddenSessionIds: [],
+        theme: blankScreenTheme(),
+        contest: blankContest(),
+      },
     ]);
     return id;
   }
@@ -748,6 +778,105 @@ export default function Home() {
       prev.map((c) =>
         c.id === campaignId ? { ...c, ...draft, tag: draft.tag || "NEW" } : c,
       ),
+    );
+  }
+
+  function updateCampaignSettings(campaignId: string, patch: Partial<Campaign["settings"]>) {
+    setCampaigns((prev) =>
+      prev.map((c) =>
+        c.id === campaignId ? { ...c, settings: { ...c.settings, ...patch } } : c,
+      ),
+    );
+  }
+
+  function patchCampaign(campaignId: string, patch: Partial<Campaign>) {
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === campaignId ? { ...c, ...patch } : c)),
+    );
+  }
+
+  function setCampaignPaused(campaignId: string, paused: boolean) {
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    patchCampaign(campaignId, { paused });
+    toast({
+      title: paused ? "Campaign paused" : "Campaign resumed",
+      description: paused
+        ? `${campaign?.name ?? "It"} is off the air. Its public page is unavailable until you resume it.`
+        : `${campaign?.name ?? "It"} is public again.`,
+      tone: paused ? "default" : "success",
+    });
+  }
+
+  function stopCampaign(campaignId: string) {
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    /* Ended by hand. `paused` is cleared so a stopped campaign never reports both. */
+    patchCampaign(campaignId, { stopped: true, paused: false });
+    toast({
+      title: "Campaign stopped",
+      description: `${campaign?.name ?? "It"} has ended and is no longer collecting shares.`,
+      tone: "default",
+    });
+  }
+
+  function patchCampaignTheme(campaignId: string, patch: Partial<ScreenTheme>) {
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === campaignId ? { ...c, theme: { ...c.theme, ...patch } } : c)),
+    );
+  }
+
+  function patchCampaignContest(campaignId: string, patch: Partial<ContestSettings>) {
+    setCampaigns((prev) =>
+      prev.map((c) =>
+        c.id === campaignId ? { ...c, contest: { ...c.contest, ...patch } } : c,
+      ),
+    );
+  }
+
+  /** Screen visibility is per-campaign, so a post can show in one and be hidden in another. */
+  function toggleScreenVisibility(campaignId: string, sessionId: string) {
+    setCampaigns((prev) =>
+      prev.map((c) => {
+        if (c.id !== campaignId) return c;
+        const hidden = c.hiddenSessionIds ?? [];
+        return {
+          ...c,
+          hiddenSessionIds: hidden.includes(sessionId)
+            ? hidden.filter((id) => id !== sessionId)
+            : [...hidden, sessionId],
+        };
+      }),
+    );
+  }
+
+  /** Reorders the public screen by moving one post within `sessionIds`. */
+  function moveScreenPost(campaignId: string, sessionId: string, direction: -1 | 1) {
+    setCampaigns((prev) =>
+      prev.map((c) => {
+        if (c.id !== campaignId) return c;
+        const order = [...(c.sessionIds ?? [])];
+        const from = order.indexOf(sessionId);
+        const to = from + direction;
+        if (from === -1 || to < 0 || to >= order.length) return c;
+        [order[from], order[to]] = [order[to], order[from]];
+        return { ...c, sessionIds: order };
+      }),
+    );
+  }
+
+  /** Drag-and-drop reorder: lift `sessionId` out and drop it at `toIndex`. */
+  function reorderScreenPost(campaignId: string, sessionId: string, toIndex: number) {
+    setCampaigns((prev) =>
+      prev.map((c) => {
+        if (c.id !== campaignId) return c;
+        const order = [...(c.sessionIds ?? [])];
+        const from = order.indexOf(sessionId);
+        if (from === -1 || toIndex < 0 || toIndex >= order.length || from === toIndex) {
+          return c;
+        }
+        order.splice(from, 1);
+        order.splice(toIndex, 0, sessionId);
+        return { ...c, sessionIds: order };
+      }),
     );
   }
 
@@ -1286,6 +1415,39 @@ export default function Home() {
                 setRepoCampaignId(editingCampaign.id);
               }}
             />
+          ) : screenSetupCampaign ? (
+            <ScreenSetupPage
+              key={screenSetupCampaign.id}
+              campaign={screenSetupCampaign}
+              sessions={sessions}
+              mediaAssets={mediaAssets}
+              onThemeChange={(patch) =>
+                patchCampaignTheme(screenSetupCampaign.id, patch)
+              }
+              onContestChange={(patch) =>
+                patchCampaignContest(screenSetupCampaign.id, patch)
+              }
+              onBack={() => {
+                setScreenSetupCampaignId(null);
+                setRepoCampaignId(null);
+              }}
+              onOpenCampaign={() => {
+                setRepoCampaignId(screenSetupCampaign.id);
+                setScreenSetupCampaignId(null);
+              }}
+              onToggleVisibility={(sessionId) =>
+                toggleScreenVisibility(screenSetupCampaign.id, sessionId)
+              }
+              onMove={(sessionId, direction) =>
+                moveScreenPost(screenSetupCampaign.id, sessionId, direction)
+              }
+              onReorder={(sessionId, toIndex) =>
+                reorderScreenPost(screenSetupCampaign.id, sessionId, toIndex)
+              }
+              onAddPost={handleNewContent}
+              onSelectSession={openSession}
+              onWithdraw={(sessionId) => withdrawDraft(screenSetupCampaign.id, sessionId)}
+            />
           ) : repoCampaign ? (
           <CampaignPage
             campaign={repoCampaign}
@@ -1310,6 +1472,10 @@ export default function Home() {
             onRoiOpenChange={(open) =>
               setRoiSheetCampaignId(open ? repoCampaign.id : null)
             }
+            onSettingsChange={(patch) => updateCampaignSettings(repoCampaign.id, patch)}
+            onPausedChange={(paused) => setCampaignPaused(repoCampaign.id, paused)}
+            onStop={() => stopCampaign(repoCampaign.id)}
+            onOpenScreenSetup={() => setScreenSetupCampaignId(repoCampaign.id)}
           />
           ) : (
             <CampaignsView
