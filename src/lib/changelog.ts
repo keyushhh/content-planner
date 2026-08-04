@@ -21,6 +21,13 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         kind: "new",
+        title: "Delete several posts at once",
+        detail:
+          "Selecting rows already let you send a batch to a campaign together. Clearing out stale drafts meant deleting them one at a time until now — select them and delete the batch, behind the same confirmation a single delete already asks for.",
+        commit: "25be6c3",
+      },
+      {
+        kind: "new",
         title: "Taking a campaign live now leads somewhere",
         detail:
           "It used to just fire a toast. A modal now hands you the public link plus two next steps — invite advocates or estimate its ROI — and the campaign page keeps speaking once it's live or ended instead of going quiet. The journey strip carries the story two beats further too: advocates sharing it, and seeing what it earned.",
