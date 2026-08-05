@@ -21,7 +21,7 @@ When `true`, several files gate behind it to restrict the app to just the Reposi
 
 **Only when explicitly asked to refresh the hand-off zip**, follow this exact sequence:
 1. Flip `HANDOFF_MODE` to `true` in `src/lib/handoff.ts`.
-2. `rm -rf .next && npx tsc --noEmit -p tsconfig.json` then `npm run build` — confirm both are clean.
+2. `rm -rf .next && npx tsc --noEmit -p tsconfig.json` then `npm run build`; confirm both are clean.
 3. Delete the old zip, `rsync` the working tree into a temp folder excluding `.git`, `node_modules`, `.next`, `out`, `build`, `coverage`, `.vercel`, `*.tsbuildinfo`, `.DS_Store`, `.claude`, and the zip itself, then zip that temp folder.
 4. Verify: no `.git/` entries inside the zip, `HANDOFF_MODE` reads `true` inside the zipped `src/lib/handoff.ts`, and a fresh unzip + `npm install` + `npm run build` succeeds standalone.
 5. Flip `HANDOFF_MODE` back to `false` in this working directory, re-run typecheck to confirm it's clean.
@@ -54,13 +54,16 @@ Never use `git archive`/`git bundle` for this export and never include `.git` in
 - If a comment is used, it must be a single line, max. Never multi-line comment blocks.
 
 ## Coding Conventions
-> Example rules below, replace with this project's actual conventions.
 
-- State theme checks explicitly (e.g. `resolvedTheme !== 'light'`) rather than relying on implicit defaults.
+- State mode/theme checks explicitly (e.g. `mode !== "off"`, `brandMode === "light"`) rather than relying on implicit truthy/falsy defaults.
 - All React hooks must be called before any early `return` statements.
-- Store monetary values in the smallest currency unit (e.g. paise, cents), never floats for money.
-- Wrap any native/platform-specific calls (e.g. Capacitor) in explicit platform guards (`isNativePlatform()`).
-- (Add more as they come up: naming conventions, folder structure, import order, error handling patterns, etc.)
+- Design tokens (colors, radii, shadows, surfaces) come from CSS custom properties defined in `src/app/globals.css` (e.g. `--r-pill`, `--ink`, `--surface-raised`), not raw Tailwind color/spacing utilities or hardcoded hex values. Reuse the existing token set; add a new token to `globals.css` rather than inlining one-off values.
+- All conditional className composition goes through the `cn()` helper in `src/lib/utils.ts` (a `clsx` + `tailwind-merge` wrapper), never template literals or manual string concatenation.
+- Business logic (readiness gating, campaign state derivation, draft/submit lifecycle) lives in `src/lib/*.ts` as plain, framework-free TypeScript functions, and components import from there rather than recomputing the same logic inline in JSX.
+- Feature/mode flags (see `HANDOFF_MODE`) are a single exported boolean constant in `src/lib/`, gated inline at each call site with a plain conditional, not wrapped in a separate config object or context provider.
+- Components are named exports (`export function ComponentName(...)`), never default exports, except where the Next.js App Router itself requires a default export (`page.tsx`, `layout.tsx`).
+- Filenames are kebab-case; component and type names are PascalCase.
+- (Add more as they come up: import order, error handling patterns, testing conventions, etc.)
 
 ## Notes
 - Keep this file updated as conventions solidify; treat it as a living document, not a one-time setup.
