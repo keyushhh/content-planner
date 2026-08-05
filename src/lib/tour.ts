@@ -36,7 +36,7 @@ export const APP_TOUR: TourStep[] = [
     section: "repository",
     anchor: "repo-header",
     title: "Your content library",
-    body: "Every post you create lives here. A post goes Draft, then WIP, then Approved — and a campaign takes it live from there.",
+    body: "Every post you create lives here. A post goes Draft, then WIP, then Approved; a campaign takes it live from there.",
     placement: "bottom",
   },
   {
@@ -44,7 +44,7 @@ export const APP_TOUR: TourStep[] = [
     section: "repository",
     anchor: "repo-new-post",
     title: "Start creating",
-    body: "Pick a type — image, frames, PDF or reshare — and the composer opens for you to write.",
+    body: "Pick a type (image, frames, PDF or reshare) and the composer opens for you to write.",
     placement: "bottom",
   },
   {
@@ -52,7 +52,7 @@ export const APP_TOUR: TourStep[] = [
     section: "repository",
     anchor: "repo-status",
     title: "Track progress",
-    body: "Status shows where a post is. Only Approved posts can be sent to a campaign — that's the gate.",
+    body: "Status shows where a post is. Only Approved posts can be sent to a campaign; that's the gate.",
     placement: "bottom",
   },
   {
@@ -77,7 +77,7 @@ export const APP_TOUR: TourStep[] = [
     section: "repository",
     anchor: "repo-row",
     title: "The composer",
-    body: "Click any post to open it — write your copy, attach visuals, get feedback from your team, and approve it.",
+    body: "Click any post to open it: write your copy, attach visuals, get feedback from your team, and approve it.",
     placement: "top",
     optional: true,
   },

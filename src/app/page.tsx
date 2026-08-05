@@ -54,7 +54,7 @@ import { ScreenSetupPage } from "@/components/repository/screen-setup-page";
 import { CampaignsView } from "@/components/campaigns/campaigns-view";
 import { CampaignEditor } from "@/components/campaigns/campaign-editor";
 import { CampaignCreateWizard, type CampaignWizardState } from "@/components/campaigns/campaign-create-wizard";
-import { useBrandLayer } from "@/components/content-planner/brand-toggle";
+import { useBrandLayer, BrandVariantToggle } from "@/components/content-planner/brand-toggle";
 import { DevPanel } from "@/components/content-planner/dev-panel";
 import { Walkthrough } from "@/components/content-planner/walkthrough";
 import {
@@ -64,6 +64,7 @@ import {
   type TourContext,
 } from "@/lib/tour";
 import { useLifecycleStrip } from "@/lib/lifecycle";
+import { HANDOFF_MODE } from "@/lib/handoff";
 import { PRIMARY_ACTION_SM } from "@/lib/button-styles";
 import {
   VERSIONS,
@@ -124,6 +125,43 @@ const DEMO_STATES: { id: DemoState; label: string }[] = [
   { id: "empty", label: "Empty" },
   { id: "loading", label: "Loading" },
 ];
+
+/**
+ * The Dev Panel is the only place `demoState` can be changed, and it's hidden
+ * entirely in HANDOFF_MODE. Without this, devs would never see the table's
+ * empty or loading states — only ever the seeded/filled one.
+ */
+function DemoStateToggle({
+  value,
+  onChange,
+}: {
+  value: DemoState;
+  onChange: (next: DemoState) => void;
+}) {
+  return (
+    <div
+      title="Repository table state"
+      className="flex items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.03] p-0.5 text-[11px] font-medium inset-ring-1 inset-ring-(--ink)/[0.08]"
+    >
+      {DEMO_STATES.map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={value === id}
+          onClick={() => onChange(id)}
+          className={cn(
+            "flex h-6 items-center rounded-(--r-pill) px-2 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-(--press)",
+            value === id
+              ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 type LegacyComment = {
   id: string;
@@ -383,10 +421,10 @@ export default function Home() {
   const nextId = useRef(1000);
 
   useEffect(() => {
-    document.title = mode
-      ? `${mode === "repository" ? "Repository" : "Classic"} · Content Planner (Demo)`
-      : "Choose a version · Content Planner (Demo)";
-  }, [mode]);
+    document.title = HANDOFF_MODE
+      ? "Dev - Repository Planner"
+      : "Demo - Repository Planner";
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -1149,6 +1187,15 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center gap-1.5">
+        {HANDOFF_MODE && (
+          <>
+            <DemoStateToggle value={demoState} onChange={setDemoState} />
+            <BrandVariantToggle
+              mode={brandMode === "light" ? "light" : "dark"}
+              onChange={setBrandMode}
+            />
+          </>
+        )}
         <div className="relative">
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -1219,7 +1266,7 @@ export default function Home() {
                 New here?
               </span>
               <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground text-pretty">
-                Take the 30-second tour — we&rsquo;ll show you how a post gets from draft
+                Take the 30-second tour; we&rsquo;ll show you how a post gets from draft
                 to a live campaign.
               </span>
               <div className="mt-3 flex items-center justify-end gap-1.5">
@@ -1533,6 +1580,7 @@ export default function Home() {
               <div className="flex size-full min-h-0 min-w-0">
                 <div className="min-h-0 min-w-0 flex-1">
                   <SessionDetailPane
+                    key={selectedSession.id}
                     session={selectedSession}
                     mediaFolders={mediaFolders}
                     mediaAssets={mediaAssets}
@@ -1627,11 +1675,15 @@ export default function Home() {
             campaignIds,
           });
         }}
-        onNewCampaign={(initialPostIds) => {
-          setSection("campaigns");
-          setRepoCampaignId(null);
-          setCampaignWizard({ step: 1, campaignId: null, postIds: initialPostIds });
-        }}
+        onNewCampaign={
+          HANDOFF_MODE
+            ? undefined
+            : (initialPostIds) => {
+                setSection("campaigns");
+                setRepoCampaignId(null);
+                setCampaignWizard({ step: 1, campaignId: null, postIds: initialPostIds });
+              }
+        }
       />
 
       <CommandPalette
@@ -1642,12 +1694,16 @@ export default function Home() {
         actions={{
           onOpenSession: openSession,
           onNewContent: handleNewContent,
-          onInvite: () => setShowInviteModal(true),
-          onOpenChangelog: () => {
-            setShowChangelog(true);
-            markChangelogSeen();
-          },
-          changelogUnread,
+          ...(HANDOFF_MODE
+            ? {}
+            : {
+                onInvite: () => setShowInviteModal(true),
+                onOpenChangelog: () => {
+                  setShowChangelog(true);
+                  markChangelogSeen();
+                },
+                changelogUnread,
+              }),
           onOpenCampaign: openCampaign,
         }}
       />
@@ -1778,30 +1834,32 @@ export default function Home() {
         ]}
       />
 
-      <DevPanel
-        open={devPanelOpen}
-        onOpenChange={setDevPanelOpen}
-        seeded={sessions.some((s) => s.id.startsWith("seed-"))}
-        onToggleSeed={seedDemoContent}
-        demoState={demoState}
-        demoStates={DEMO_STATES}
-        onDemoState={(id) => setDemoState(id as DemoState)}
-        brandMode={brandMode}
-        onBrandMode={setBrandMode}
-        version={mode}
-        versions={VERSIONS}
-        onVersion={(id) => {
-          if (id !== mode) setPendingVersion(id as AppVersion);
-        }}
-        onResetTour={() => {
-          resetTour();
-          setDevPanelOpen(false);
-        }}
-        onResetLifecycle={() => {
-          resetLifecycle();
-          setDevPanelOpen(false);
-        }}
-      />
+      {!HANDOFF_MODE && (
+        <DevPanel
+          open={devPanelOpen}
+          onOpenChange={setDevPanelOpen}
+          seeded={sessions.some((s) => s.id.startsWith("seed-"))}
+          onToggleSeed={seedDemoContent}
+          demoState={demoState}
+          demoStates={DEMO_STATES}
+          onDemoState={(id) => setDemoState(id as DemoState)}
+          brandMode={brandMode}
+          onBrandMode={setBrandMode}
+          version={mode}
+          versions={VERSIONS}
+          onVersion={(id) => {
+            if (id !== mode) setPendingVersion(id as AppVersion);
+          }}
+          onResetTour={() => {
+            resetTour();
+            setDevPanelOpen(false);
+          }}
+          onResetLifecycle={() => {
+            resetLifecycle();
+            setDevPanelOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

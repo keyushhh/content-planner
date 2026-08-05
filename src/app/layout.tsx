@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, JetBrains_Mono, Space_Grotesk } from "next/font/goog
 import localFont from "next/font/local";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
+import { HANDOFF_MODE } from "@/lib/handoff";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,8 +41,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Demo · Content Planner",
-  description: "Both models in one build. Choose a version at launch.",
+  title: HANDOFF_MODE ? "Dev - Repository Planner" : "Demo - Repository Planner",
+  description: "The Repository → Campaign draft hand-off flow.",
 };
 
 export default function RootLayout({

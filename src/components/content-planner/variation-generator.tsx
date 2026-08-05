@@ -687,11 +687,14 @@ export function PostAiAssist({
         </button>
       </div>
 
-      {draft && (
+      {draft !== null && (
         <div className="rounded-(--r-inner) bg-(--ink)/[0.022] p-3 inset-ring-1 inset-ring-(--ink)/[0.07]">
-          <p className="whitespace-pre-line text-[12.5px] leading-snug text-muted-foreground">
-            {draft}
-          </p>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            aria-label="Edit the generated draft"
+            className="block max-h-[280px] min-h-[80px] w-full resize-y whitespace-pre-line bg-transparent text-[12.5px] leading-snug text-foreground/90 outline-none"
+          />
           <div className="mt-2 flex justify-end gap-1.5">
             <DraftAction label="Discard" onClick={() => setDraft(null)} />
             <DraftAction label="Use" onClick={() => onUse(draft)} accent />

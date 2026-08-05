@@ -219,7 +219,7 @@ export default function PublicPostContent() {
           <SocialProofStack
             people={proofPeople}
             caption={`${proofCount} ${proofCount === 1 ? "person has" : "people have"} shared this post.`}
-            emptyCaption="Nobody has shared this post yet — be the first."
+            emptyCaption="Nobody has shared this post yet - be the first."
           />
         </div>
       </div>

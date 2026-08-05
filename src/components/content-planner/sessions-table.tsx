@@ -303,7 +303,7 @@ function CampaignCell({
   const where = names.length ? `In ${names.join(", ")}.` : "Already sent.";
   const why = actionable
     ? needsResend
-      ? "It changed since it went out — send the update."
+      ? "It changed since it went out; send the update."
       : "Click to send it to another campaign."
     : approved
       ? "Sent, and nothing has changed since. Edit it to send an update."
@@ -1084,7 +1084,7 @@ export function SessionsTable({
                             Open
                           </button>
                         ) : (
-                          <span className="text-xs text-muted-foreground/40">—</span>
+                          <span className="text-xs text-muted-foreground/40">-</span>
                         )}
                       </div>
                     )}

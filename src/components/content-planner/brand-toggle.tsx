@@ -3,6 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { Moon, Palette, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HANDOFF_MODE } from "@/lib/handoff";
 
 const BRAND_STORAGE_KEY = "cp_brand";
 
@@ -18,9 +19,10 @@ function read(): BrandMode {
     const raw = window.localStorage.getItem(BRAND_STORAGE_KEY);
     if (raw === "on" || raw === "dark") return "dark";
     if (raw === "light") return "light";
-    return "off";
+    if (raw === "off") return "off";
+    return HANDOFF_MODE ? "dark" : "off";
   } catch {
-    return "off";
+    return HANDOFF_MODE ? "dark" : "off";
   }
 }
 
@@ -146,6 +148,43 @@ export function BrandToggle({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Dark/Light picker only — no on/off switch. For the hand-off build, where brand
+ * guidelines must always stay on; devs can still preview both variants.
+ */
+export function BrandVariantToggle({
+  mode,
+  onChange,
+}: {
+  mode: Exclude<BrandMode, "off">;
+  onChange: (next: Exclude<BrandMode, "off">) => void;
+}) {
+  return (
+    <div
+      title="Wozku brand guideline"
+      className="flex items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.03] p-0.5 text-[11px] font-medium inset-ring-1 inset-ring-(--ink)/[0.08]"
+    >
+      {MODES.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={mode === id}
+          onClick={() => onChange(id)}
+          className={cn(
+            "flex h-6 items-center gap-1.5 rounded-(--r-pill) px-2 transition-[background-color,color,box-shadow,scale] duration-150 active:scale-(--press)",
+            mode === id
+              ? "bg-(--ink)/[0.11] text-foreground shadow-(--lift-sm)"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Icon className="size-3.5 shrink-0" />
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

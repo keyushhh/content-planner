@@ -57,6 +57,7 @@ import {
 import { platformMeta } from "@/lib/platforms";
 import { Hint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { HANDOFF_MODE } from "@/lib/handoff";
 import type { Campaign, CampaignSettings, MediaAsset, Session } from "@/lib/types";
 
 interface CampaignPageProps {
@@ -229,7 +230,7 @@ export function CampaignPage({
                   <PlusCircle className="size-4" />
                   Add post
                 </button>
-                {shareable && <ShareCampaignButton campaign={campaign} />}
+                {!HANDOFF_MODE && shareable && <ShareCampaignButton campaign={campaign} />}
                 {drafts.length > 0 && (
                   <button
                     onClick={submit}
@@ -246,12 +247,12 @@ export function CampaignPage({
                       : `Submit all ${drafts.length}`}
                   </button>
                 )}
-                {state === "draft" && (
+                {!HANDOFF_MODE && state === "draft" && (
                   <Hint
                     label={
                       readyToGoLive
                         ? "Put this campaign live on Wozku"
-                        : "Submit a post first — a campaign cannot go live empty."
+                        : "Submit a post first; a campaign cannot go live empty."
                     }
                   >
                     <span className="inline-flex">
@@ -266,7 +267,7 @@ export function CampaignPage({
                     </span>
                   </Hint>
                 )}
-                {state === "live" && (
+                {!HANDOFF_MODE && state === "live" && (
                   <Hint label="Take the public page offline for now. Nothing is lost.">
                     <button onClick={() => onPausedChange(true)} className={SECONDARY_ACTION_MD}>
                       <Pause className="size-3.5" />
@@ -274,7 +275,7 @@ export function CampaignPage({
                     </button>
                   </Hint>
                 )}
-                {state === "paused" && (
+                {!HANDOFF_MODE && state === "paused" && (
                   <Hint label="Put the public page back online">
                     <button onClick={() => onPausedChange(false)} className={PRIMARY_ACTION}>
                       <Play className="size-3.5" />
@@ -291,25 +292,31 @@ export function CampaignPage({
                     <MoreHorizontal className="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-auto min-w-[190px]">
-                    <DropdownMenuItem onClick={onEdit} className="whitespace-nowrap">
-                      <Pencil className="size-3.5" />
-                      Edit page
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onRoiOpenChange(true)}
-                      className="whitespace-nowrap"
-                    >
-                      <Calculator className="size-3.5" />
-                      Calculate ROI
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={onOpenScreenSetup}
-                      className="whitespace-nowrap"
-                    >
-                      <MonitorPlay className="size-3.5" />
-                      Screen Setup
-                    </DropdownMenuItem>
-                    {stoppable && (
+                    {!HANDOFF_MODE && (
+                      <DropdownMenuItem onClick={onEdit} className="whitespace-nowrap">
+                        <Pencil className="size-3.5" />
+                        Edit page
+                      </DropdownMenuItem>
+                    )}
+                    {!HANDOFF_MODE && (
+                      <DropdownMenuItem
+                        onClick={() => onRoiOpenChange(true)}
+                        className="whitespace-nowrap"
+                      >
+                        <Calculator className="size-3.5" />
+                        Calculate ROI
+                      </DropdownMenuItem>
+                    )}
+                    {!HANDOFF_MODE && (
+                      <DropdownMenuItem
+                        onClick={onOpenScreenSetup}
+                        className="whitespace-nowrap"
+                      >
+                        <MonitorPlay className="size-3.5" />
+                        Screen Setup
+                      </DropdownMenuItem>
+                    )}
+                    {!HANDOFF_MODE && stoppable && (
                       <DropdownMenuItem
                         onClick={() => setConfirmStop(true)}
                         className="whitespace-nowrap text-destructive data-highlighted:text-destructive"
@@ -323,7 +330,7 @@ export function CampaignPage({
             </div>
           </div>
 
-          {state === "draft" && (
+          {!HANDOFF_MODE && state === "draft" && (
             <div
               className={cn(
                 "mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) px-4 py-3 text-[12.5px] inset-ring-1",
@@ -371,7 +378,7 @@ export function CampaignPage({
             </div>
           )}
 
-          {state === "live" && (
+          {!HANDOFF_MODE && state === "live" && (
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-live-500/[0.06] px-4 py-3 text-[12.5px] text-live-100/90 inset-ring-1 inset-ring-live-400/25">
               <Rocket className="size-3.5 shrink-0 text-live-300" />
               <span className="min-w-0 flex-1 text-pretty">
@@ -397,12 +404,12 @@ export function CampaignPage({
             </div>
           )}
 
-          {state === "paused" && (
+          {!HANDOFF_MODE && state === "paused" && (
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-sky-500/[0.05] px-4 py-3 text-[12.5px] text-sky-100/85 inset-ring-1 inset-ring-sky-400/20">
               <Pause className="size-3.5 shrink-0 text-sky-300" />
               <span className="min-w-0 flex-1 text-pretty">
                 This campaign is paused. Its public page is unavailable until you
-                resume it — the posts, shares and stats are all still here.
+                resume it; the posts, shares and stats are all still here.
               </span>
               <span className="flex shrink-0 items-center gap-1.5">
                 <button
@@ -416,7 +423,7 @@ export function CampaignPage({
             </div>
           )}
 
-          {state === "ended" && (
+          {!HANDOFF_MODE && state === "ended" && (
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--r-float) bg-amber-500/[0.05] px-4 py-3 text-[12.5px] text-amber-100/85 inset-ring-1 inset-ring-amber-400/20">
               <TrendingUp className="size-3.5 shrink-0 text-amber-300" />
               <span className="min-w-0 flex-1 text-pretty">
@@ -466,9 +473,9 @@ export function CampaignPage({
 
         {/* Same 4-track geometry as the stat grid above, so the split lands on the
             same gutter: content spans the first three cards, the rail the fourth. */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-4">
-          <div className="flex min-h-0 min-w-0 flex-col lg:col-span-3">
-            {submitted.length > 0 && (
+        <div className={cn("grid min-h-0 flex-1 grid-cols-1 gap-3", !HANDOFF_MODE && "lg:grid-cols-4")}>
+          <div className={cn("flex min-h-0 min-w-0 flex-col", !HANDOFF_MODE && "lg:col-span-3")}>
+            {!HANDOFF_MODE && submitted.length > 0 && (
               <CampaignPerformanceCard campaignId={campaign.id} className="mb-3 shrink-0" />
             )}
 
@@ -564,6 +571,7 @@ export function CampaignPage({
             />
           </div>
 
+          {!HANDOFF_MODE && (
           <div className="flex min-w-0 shrink-0 flex-col gap-3 lg:col-span-1 lg:sticky lg:top-0 lg:self-start">
             {state === "live" && <LiveLinkChip campaign={campaign} />}
 
@@ -592,6 +600,7 @@ export function CampaignPage({
               />
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -602,7 +611,7 @@ export function CampaignPage({
         onOpenChange={setConfirmStop}
         tone="destructive"
         title="Stop this campaign?"
-        description="Its public page closes for good and it stops collecting shares. Posts and stats are kept, but a stopped campaign cannot be reopened — pause it instead if you only need a break."
+        description="Its public page closes for good and it stops collecting shares. Posts and stats are kept, but a stopped campaign cannot be reopened; pause it instead if you only need a break."
         actions={[
           { label: "Cancel", tone: "outline", onClick: () => setConfirmStop(false) },
           {
