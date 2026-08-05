@@ -172,7 +172,7 @@ export function RoiSheet({ open, onOpenChange, campaign }: RoiSheetProps) {
                 )}
               >
                 {roiPct === null
-                  ? "—"
+                  ? "-"
                   : `${roiPct >= 0 ? "+" : ""}${roiPct.toFixed(0)}%`}
               </span>
             </div>

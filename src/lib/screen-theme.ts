@@ -102,7 +102,7 @@ export const MOMENTS: {
     id: "prize",
     label: "Prize",
     description: "What people are playing for.",
-    imageHint: "The prize itself — a product shot works well.",
+    imageHint: "The prize itself; a product shot works well.",
     imageSize: "1920×1080",
   },
   {

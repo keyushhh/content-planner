@@ -780,7 +780,10 @@ function VariationEditor({
                     onPatch({ copy });
                     setSaveStatus("saving");
                   }}
-                  onAddAlternates={onAddAlternates}
+                  onAddAlternates={(copies) => {
+                    onAddAlternates(copies);
+                    back();
+                  }}
                   onClose={() => setGenerating(false)}
                 />
               )}

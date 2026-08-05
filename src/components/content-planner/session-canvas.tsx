@@ -243,12 +243,16 @@ export function SessionCanvas({
           >
             {!isCampaignLocked && (
               <div className="flex h-0.5 w-full shrink-0 overflow-hidden">
-                {checklist.map((item) => (
+                {/* Fills left-to-right by how many items are done, not by which
+                    specific field is done — so completing them out of order
+                    (e.g. tags before copy) still reads as steady left-to-right
+                    progress instead of lighting up a fixed per-field slot. */}
+                {checklist.map((item, i) => (
                   <span
                     key={item.field}
                     className={cn(
                       "h-full flex-1 transition-colors duration-500",
-                      item.done ? "bg-violet-400" : "bg-(--ink)/[0.06]",
+                      i < doneCount ? "bg-violet-400" : "bg-(--ink)/[0.06]",
                     )}
                     style={{ transitionTimingFunction: EASE }}
                   />

@@ -17,20 +17,51 @@ export type ChangelogDay = {
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-08-05",
+    entries: [
+      {
+        kind: "new",
+        title: "A locked-down build for the dev hand-off",
+        detail:
+          "The Repository → Campaign draft flow is design-complete, so this build restricts itself to exactly that: no Classic mode, brand guidelines forced on, and the in-progress Campaign section (Go Live, ROI, Screen Setup, campaign creation) hidden from the UI and from ⌘K. The README is now the full spec: the six screens, the data model, the API contract we recommend, and what's safe to reuse.",
+        commit: "6174211",
+      },
+      {
+        kind: "fixed",
+        title: "The post readiness bar filled in the wrong order",
+        detail:
+          "Each segment was tied to a specific field's fixed position (copy, then assets, then tags), so finishing them out of order looked like the bar was filling from the right. It now fills left to right by how many are done, whichever fields they are.",
+        commit: "6174211",
+      },
+      {
+        kind: "fixed",
+        title: "AI Assist's generated draft is now editable before you use it",
+        detail: "It used to be read-only text until you clicked Use; you can now edit it directly first.",
+        commit: "6174211",
+      },
+      {
+        kind: "fixed",
+        title: "Adding a variation as an alternate returns you to the variations table",
+        detail: "It used to leave you stranded on that variation's own screen instead.",
+        commit: "6174211",
+      },
+    ],
+  },
+  {
     date: "2026-08-04",
     entries: [
       {
         kind: "new",
         title: "Delete several posts at once",
         detail:
-          "Selecting rows already let you send a batch to a campaign together. Clearing out stale drafts meant deleting them one at a time until now — select them and delete the batch, behind the same confirmation a single delete already asks for.",
+          "Selecting rows already let you send a batch to a campaign together. Clearing out stale drafts meant deleting them one at a time until now; select them and delete the batch, behind the same confirmation a single delete already asks for.",
         commit: "25be6c3",
       },
       {
         kind: "new",
         title: "Taking a campaign live now leads somewhere",
         detail:
-          "It used to just fire a toast. A modal now hands you the public link plus two next steps — invite advocates or estimate its ROI — and the campaign page keeps speaking once it's live or ended instead of going quiet. The journey strip carries the story two beats further too: advocates sharing it, and seeing what it earned.",
+          "It used to just fire a toast. A modal now hands you the public link plus two next steps (invite advocates or estimate its ROI), and the campaign page keeps speaking once it's live or ended instead of going quiet. The journey strip carries the story two beats further too: advocates sharing it, and seeing what it earned.",
         commit: "8b174c1",
       },
       {
@@ -57,35 +88,35 @@ export const CHANGELOG: ChangelogDay[] = [
         kind: "new",
         title: "A campaign page you can run the campaign from",
         detail:
-          "It was a header and a table. It now opens on four stat cards, a performance chart that stays folded away because the posts table is what the page is actually for, and a settings panel that says what each toggle does instead of naming it. The post-type mix hides itself when there is only one type, because a bar reading “Image 100%” tells you nothing. Row actions inside a campaign moved into their own column — the hover overlay floats above the row, and in a narrower table it was landing on top of the cells it is meant to sit beside. Tables elsewhere are untouched.",
+          "It was a header and a table. It now opens on four stat cards, a performance chart that stays folded away because the posts table is what the page is actually for, and a settings panel that says what each toggle does instead of naming it. The post-type mix hides itself when there is only one type, because a bar reading “Image 100%” tells you nothing. Row actions inside a campaign moved into their own column; the hover overlay floats above the row, and in a narrower table it was landing on top of the cells it is meant to sit beside. Tables elsewhere are untouched.",
         commit: "85605c6",
       },
       {
         kind: "new",
         title: "Pause, resume and stop a campaign",
         detail:
-          "A live campaign had one exit: wait for its end date. You can pause one and put it back, or stop it early behind a confirmation that spells out the difference — a stopped campaign cannot be reopened, so pause it if you only need a break. Stopping records itself separately rather than back-dating the end date, so ending a campaign early never rewrites the schedule it was planned against. Both public pages follow: a paused campaign shows a holding page, and a hidden post says so rather than breaking.",
+          "A live campaign had one exit: wait for its end date. You can pause one and put it back, or stop it early behind a confirmation that spells out the difference: a stopped campaign cannot be reopened, so pause it if you only need a break. Stopping records itself separately rather than back-dating the end date, so ending a campaign early never rewrites the schedule it was planned against. Both public pages follow: a paused campaign shows a holding page, and a hidden post says so rather than breaking.",
         commit: "b0fb7e4",
       },
       {
         kind: "new",
         title: "Screen Setup decides what the public screen actually shows",
         detail:
-          "The old sheet was a placeholder. It is a page now: the link and QR to hand out, and every post on the screen with a switch, drag-to-reorder, and its own menu. Turning a post off takes it off the screen without removing it from the campaign, and that choice is per-campaign — the same post can show in one and be hidden in another.",
+          "The old sheet was a placeholder. It is a page now: the link and QR to hand out, and every post on the screen with a switch, drag-to-reorder, and its own menu. Turning a post off takes it off the screen without removing it from the campaign, and that choice is per-campaign; the same post can show in one and be hidden in another.",
         commit: "c81bc58",
       },
       {
         kind: "new",
         title: "Themes, and a second screen built for a projector",
         detail:
-          "Colour scheme, accent, font and a backdrop, with the preview beside them showing the result as you go — and that preview is no longer an impression of the page, it is the page itself at a smaller scale, so it cannot drift from what visitors get. There is a second surface too, a full-screen version that plays Welcome, Posts, a featured video, the prize and a thank-you on a loop, with space and arrow keys so whoever is running the room can hold a slide when a speaker overruns.",
+          "Colour scheme, accent, font and a backdrop, with the preview beside them showing the result as you go; that preview is no longer an impression of the page, it is the page itself at a smaller scale, so it cannot drift from what visitors get. There is a second surface too, a full-screen version that plays Welcome, Posts, a featured video, the prize and a thank-you on a loop, with space and arrow keys so whoever is running the room can hold a slide when a speaker overruns.",
         commit: "e0ace76",
       },
       {
         kind: "new",
         title: "Contest settings, a leaderboard, and an embed that works",
         detail:
-          "The leaderboard is real: a podium for the top three and a ranked list below, or a flat list of everyone when you would rather not show scores. Contest settings covers the call to action, what the QR opens, the language scores are formatted in, and the two closing messages for winners announced or still pending. Clearing the board asks first and can be rebuilt afterwards, so it is not a one-way door. Embed gives you an iframe that genuinely runs — whole screen or leaderboard only — rather than a snippet you have to trust.",
+          "The leaderboard is real: a podium for the top three and a ranked list below, or a flat list of everyone when you would rather not show scores. Contest settings covers the call to action, what the QR opens, the language scores are formatted in, and the two closing messages for winners announced or still pending. Clearing the board asks first and can be rebuilt afterwards, so it is not a one-way door. Embed gives you an iframe that genuinely runs (whole screen or leaderboard only) rather than a snippet you have to trust.",
         commit: "a6f9610",
       },
       {
@@ -209,7 +240,7 @@ export const CHANGELOG: ChangelogDay[] = [
       {
         kind: "new",
         title: "Type @ to tag someone, without leaving the keyboard",
-        detail: "A suggestion menu opens at your cursor as soon as you type \"@\" — arrow keys to move, Enter to insert. It works in the main copy, in variations, and in AI drafts. Handles you type or paste yourself now count as tags too, so the post's tagged list always matches what it actually says.",
+        detail: "A suggestion menu opens at your cursor as soon as you type \"@\"; arrow keys to move, Enter to insert. It works in the main copy, in variations, and in AI drafts. Handles you type or paste yourself now count as tags too, so the post's tagged list always matches what it actually says.",
         commit: "8c6d55d",
       },
       {
@@ -222,7 +253,7 @@ export const CHANGELOG: ChangelogDay[] = [
         kind: "new",
         title: "You can write a post from inside a campaign",
         detail:
-          "Add post sits in the campaign's header and creates the post already attached to that campaign, so it lands in its staged drafts instead of unattached in the repository — approve it and submit, as usual. Share, Calculate ROI and Screen Setup joined the header too; the quieter actions live behind the ⋯ menu so the row stays legible.",
+          "Add post sits in the campaign's header and creates the post already attached to that campaign, so it lands in its staged drafts instead of unattached in the repository; approve it and submit, as usual. Share, Calculate ROI and Screen Setup joined the header too; the quieter actions live behind the ⋯ menu so the row stays legible.",
         commit: "e187355",
       },
       {
@@ -236,14 +267,14 @@ export const CHANGELOG: ChangelogDay[] = [
         kind: "new",
         title: "Calculate ROI estimates what a campaign returned",
         detail:
-          "Enter what the campaign cost and what a share or a click is worth, and it works out earned reach, estimated value and ROI against the campaign's own figures. Nothing is saved — it's a scratchpad for sizing a campaign up. Screen Setup is in the menu but isn't wired up yet.",
+          "Enter what the campaign cost and what a share or a click is worth, and it works out earned reach, estimated value and ROI against the campaign's own figures. Nothing is saved; it's a scratchpad for sizing a campaign up. Screen Setup is in the menu but isn't wired up yet.",
         commit: "e187355",
       },
       {
         kind: "improved",
         title: "The campaign stat graphs were rebuilt, and they now read correctly in light mode",
         detail:
-          "Total shares and Est. reach sit in stat tiles — label and value on the left, a small sharp-edged graph on the right. The shape is a seeded random walk rather than twelve unrelated samples, so it trends the way the percentage beside it claims instead of sawtoothing, and the line keeps its weight whatever the tile's width. Their colours previously only worked against the dark surface; they now follow the theme in both modes.",
+          "Total shares and Est. reach sit in stat tiles: label and value on the left, a small sharp-edged graph on the right. The shape is a seeded random walk rather than twelve unrelated samples, so it trends the way the percentage beside it claims instead of sawtoothing, and the line keeps its weight whatever the tile's width. Their colours previously only worked against the dark surface; they now follow the theme in both modes.",
         commit: "800adde",
       },
       {
@@ -257,7 +288,7 @@ export const CHANGELOG: ChangelogDay[] = [
         kind: "new",
         title: "Sending a post from inside a campaign no longer means staging a draft first",
         detail:
-          "The campaign you're looking at arrives pre-selected and marked \"Current\", and committing sends the post to it outright instead of leaving a draft you then had to submit by hand. Picking a different campaign is still one click — the pre-selection is a head start, not a decision, so the list never gets skipped. Any other campaign you tick still receives the post as a draft for its own owner to look over, and sending from the repository works exactly as before.",
+          "The campaign you're looking at arrives pre-selected and marked \"Current\", and committing sends the post to it outright instead of leaving a draft you then had to submit by hand. Picking a different campaign is still one click; the pre-selection is a head start, not a decision, so the list never gets skipped. Any other campaign you tick still receives the post as a draft for its own owner to look over, and sending from the repository works exactly as before.",
         commit: "800adde",
       },
     ],

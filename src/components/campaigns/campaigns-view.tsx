@@ -39,6 +39,7 @@ import type { Campaign, CampaignState, Session } from "@/lib/types";
 import { CampaignGalleryCard } from "./campaign-gallery-card";
 import { CampaignListItem } from "./campaign-list-item";
 import { CampaignTable } from "./campaign-table";
+import { HANDOFF_MODE } from "@/lib/handoff";
 
 const FILTERS: { id: CampaignState | "all"; label: string }[] = [
   { id: "all", label: "All campaigns" },
@@ -189,13 +190,15 @@ export function CampaignsView({
               <ViewToggle active={viewType === "list"} onClick={() => handleViewChange("list")} icon={List} title="List" />
             </div>
 
-            <button
-              onClick={onNewCampaign}
-              className={cn(PRIMARY_ACTION, "shrink-0")}
-            >
-              <PlusCircle className="size-4" />
-              New campaign
-            </button>
+            {!HANDOFF_MODE && (
+              <button
+                onClick={onNewCampaign}
+                className={cn(PRIMARY_ACTION, "shrink-0")}
+              >
+                <PlusCircle className="size-4" />
+                New campaign
+              </button>
+            )}
           </div>
         </div>
 
@@ -229,7 +232,7 @@ export function CampaignsView({
               >
                 Clear filters
               </button>
-            ) : (
+            ) : !HANDOFF_MODE ? (
               <button
                 onClick={onNewCampaign}
                 className={cn(PRIMARY_ACTION_MD, "mt-4")}
@@ -237,7 +240,7 @@ export function CampaignsView({
                 <PlusCircle className="size-4" />
                 New campaign
               </button>
-            )}
+            ) : null}
           </Stagger>
         ) : viewType === "table" ? (
           <Stagger index={0} className="w-full">
