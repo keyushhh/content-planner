@@ -92,7 +92,7 @@ export function GoLiveModal({
               {campaign.name} is live
             </DialogTitle>
             <DialogDescription className="mt-1.5 text-[13px] leading-snug text-muted-foreground text-pretty">
-              Its public page is open to visitors. Share the link, invite advocates
+              Its live screen is open to visitors. Share the link, invite advocates
               to spread it, or come back to see how it&rsquo;s doing.
             </DialogDescription>
           </DialogHeader>
@@ -115,7 +115,7 @@ export function GoLiveModal({
               href={path}
               target="_blank"
               rel="noopener noreferrer"
-              title="Open the public page"
+              title="Open the live screen"
               className="flex size-7 shrink-0 items-center justify-center rounded-(--r-pill) text-foreground/70 transition-[background-color,color] duration-150 hover:bg-(--ink)/[0.14] hover:text-foreground"
             >
               <ExternalLink className="size-3.5" />

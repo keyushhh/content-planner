@@ -21,7 +21,7 @@ import {
   QrCode,
 } from "lucide-react";
 import { QrGlyph } from "@/components/public/qr-glyph";
-import { ScreenPreview, type PreviewSurface } from "@/components/repository/screen-preview";
+import { ScreenPreview } from "@/components/repository/screen-preview";
 import { SetupSection, type SetupSectionId } from "@/components/repository/setup-section";
 import { ContestPanel } from "@/components/repository/contest-panel";
 import { ThemePanel } from "@/components/repository/theme-panel";
@@ -39,7 +39,13 @@ import {
   isHiddenOnScreen,
   screenPosts,
 } from "@/lib/campaigns";
-import { MOMENTS, type MomentId, type ScreenTheme } from "@/lib/screen-theme";
+import {
+  MOMENTS,
+  templateOf,
+  usesMoments,
+  type MomentId,
+  type ScreenTheme,
+} from "@/lib/screen-theme";
 import type { ContestSettings } from "@/lib/contest";
 import { cn } from "@/lib/utils";
 import type { Campaign, MediaAsset, Session } from "@/lib/types";
@@ -78,7 +84,6 @@ export function ScreenSetupPage({
   const [now] = useState(() => Date.now());
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const [surface, setSurface] = useState<PreviewSurface>("page");
   const [openSection, setOpenSection] = useState<SetupSectionId | null>("posts");
   const [moment, setMoment] = useState<MomentId | null>(null);
 
@@ -93,11 +98,6 @@ export function ScreenSetupPage({
   const url = `${origin}${path}`;
   /* A draft has no audience yet, so the link is a preview rather than something to hand out. */
   const isPublic = state === "live" || state === "ended";
-
-  function selectMoment(id: MomentId | null) {
-    setMoment(id);
-    if (id) setSurface("screen");
-  }
 
   function toggleSection(id: SetupSectionId) {
     setOpenSection((current) => (current === id ? null : id));
@@ -164,14 +164,14 @@ export function ScreenSetupPage({
                 className={SECONDARY_ACTION_MD}
               >
                 <ExternalLink className="size-3.5" />
-                Open page
+                Open screen
               </a>
             </div>
           </div>
 
           <p className="-mt-2 mb-5 max-w-[62ch] text-[12.5px] leading-snug text-muted-foreground text-pretty">
-            This is what visitors see when they open the campaign: which posts appear, in
-            what order, and how the page looks. Changes take effect straight away, whether
+            This is what people see when they open the campaign: which posts appear, in
+            what order, and how the screen looks. Changes take effect straight away, whether
             the campaign is still a draft or already running.
           </p>
         </div>
@@ -180,34 +180,8 @@ export function ScreenSetupPage({
           <div className="min-w-0 lg:self-start">
             <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
               <span className="text-[11px] font-semibold font-(family-name:--font-label) uppercase tracking-[0.09em] text-muted-foreground/70">
-                Preview
+                Live screen preview
               </span>
-              <div className="flex w-fit items-center gap-0.5 rounded-(--r-pill) bg-(--ink)/[0.05] p-0.5 inset-ring-1 inset-ring-(--ink)/[0.06]">
-                {(
-                  [
-                    { id: "page", label: "Shareable page" },
-                    { id: "screen", label: "Live screen" },
-                  ] as const
-                ).map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    aria-pressed={surface === option.id}
-                    onClick={() => {
-                      setSurface(option.id);
-                      if (option.id === "page") setMoment(null);
-                    }}
-                    className={cn(
-                      "flex h-7 items-center rounded-(--r-pill) px-3 text-[12px] font-medium transition-[background-color,color] duration-150",
-                      surface === option.id
-                        ? "bg-(--surface-float) text-foreground shadow-(--lift-sm)"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <ScreenPreview
@@ -215,18 +189,19 @@ export function ScreenSetupPage({
               posts={visible}
               mediaAssets={mediaAssets}
               state={state}
-              surface={surface}
               momentId={moment ?? undefined}
             />
 
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground/75 text-pretty">
-              {surface === "page"
-                ? "The page people land on from a link or a QR code. Scaled down; this is the real page."
+              {!usesMoments(campaign.theme)
+                ? `The live screen, scaled down. ${
+                    templateOf(campaign.theme).label
+                  } holds one layout rather than playing moments.`
                 : moment
                   ? `Holding on the ${
                       MOMENTS.find((m) => m.id === moment)?.label ?? ""
                     } moment. Select another below to move the preview.`
-                  : "The full-screen version for a projector. Select a moment below to preview it."}
+                  : "The live screen, scaled down. Select a moment below to preview it."}
             </p>
           </div>
 
@@ -334,10 +309,14 @@ export function ScreenSetupPage({
             </SetupSection>
 
             <ThemePanel
+              campaign={campaign}
+              posts={visible}
+              mediaAssets={mediaAssets}
+              state={state}
               theme={campaign.theme}
               selectedMoment={moment}
               openSection={openSection}
-              onSelectMoment={selectMoment}
+              onSelectMoment={setMoment}
               onToggleSection={toggleSection}
               onChange={onThemeChange}
             />

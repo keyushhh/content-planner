@@ -1,31 +1,34 @@
 "use client";
 
-import { ChevronDown, type LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SetupSectionId =
   | "distribution"
   | "posts"
-  | "appearance"
   | "moments"
   | "contest"
   | "embed";
 
-export function SetupSection({
-  icon: Icon,
-  title,
-  summary,
-  open,
-  onToggle,
-  children,
-}: {
+type SetupSectionProps = {
   icon: LucideIcon;
   title: string;
   summary: React.ReactNode;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
+} & (
+  | {
+      variant?: "accordion";
+      open: boolean;
+      onToggle: () => void;
+      children: React.ReactNode;
+    }
+  | { variant: "dialog"; onOpen: () => void }
+);
+
+export function SetupSection(props: SetupSectionProps) {
+  const { icon: Icon, title, summary } = props;
+  const dialog = props.variant === "dialog";
+  const open = dialog ? false : props.open;
+
   return (
     <div
       className={cn(
@@ -35,8 +38,9 @@ export function SetupSection({
     >
       <button
         type="button"
-        onClick={onToggle}
-        aria-expanded={open}
+        onClick={dialog ? props.onOpen : props.onToggle}
+        aria-expanded={dialog ? undefined : open}
+        aria-haspopup={dialog ? "dialog" : undefined}
         className="flex w-full items-center gap-2.5 rounded-(--r-surface) px-4 py-3.5 text-left transition-colors duration-150 hover:bg-(--ink)/[0.03]"
       >
         <span
@@ -57,17 +61,21 @@ export function SetupSection({
           )}
         </span>
 
-        <ChevronDown
-          className={cn(
-            "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180",
-          )}
-        />
+        {dialog ? (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
+              open && "rotate-180",
+            )}
+          />
+        )}
       </button>
 
-      {open && (
+      {!dialog && open && (
         <div className="flex flex-col gap-3 border-t border-(--ink)/[0.06] px-4 pt-3.5 pb-4 duration-200 animate-in fade-in">
-          {children}
+          {props.children}
         </div>
       )}
     </div>

@@ -2,22 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pause } from "lucide-react";
-import { CampaignScreen } from "@/components/public/campaign-screen";
 import { LiveScreen } from "@/components/public/live-screen";
 import { screenThemeVars, type MomentId } from "@/lib/screen-theme";
 import { cn } from "@/lib/utils";
 import type { Campaign, CampaignState, MediaAsset, Session } from "@/lib/types";
 
 const DESIGN_WIDTH = 1280;
-
-export type PreviewSurface = "page" | "screen";
+const ASPECT = 16 / 9;
 
 export function ScreenPreview({
   campaign,
   posts,
   mediaAssets,
   state,
-  surface,
   momentId,
   className,
 }: {
@@ -25,7 +22,6 @@ export function ScreenPreview({
   posts: Session[];
   mediaAssets: MediaAsset[];
   state: CampaignState;
-  surface: PreviewSurface;
   momentId?: MomentId;
   className?: string;
 }) {
@@ -43,8 +39,7 @@ export function ScreenPreview({
   }, []);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const aspect = surface === "screen" ? 16 / 9 : 16 / 10;
-  const innerHeight = DESIGN_WIDTH / aspect;
+  const innerHeight = DESIGN_WIDTH / ASPECT;
 
   return (
     <div
@@ -62,7 +57,6 @@ export function ScreenPreview({
         <span className="ml-1.5 min-w-0 flex-1 truncate rounded-(--r-pill) bg-(--ink)/[0.05] px-2.5 py-0.5 text-[10.5px] text-muted-foreground/70">
           {origin.replace(/^https?:\/\//, "")}/c/
           <span className="text-muted-foreground/45">{campaign.id}</span>
-          {surface === "screen" && <span className="text-muted-foreground/45">/screen</span>}
         </span>
       </div>
 
@@ -80,7 +74,7 @@ export function ScreenPreview({
           </span>
         </div>
       ) : (
-        <div ref={frame} className="relative w-full overflow-hidden" style={{ aspectRatio: aspect }}>
+        <div ref={frame} className="relative w-full overflow-hidden" style={{ aspectRatio: ASPECT }}>
           <div
             className="absolute left-0 top-0 origin-top-left"
             style={{
@@ -89,22 +83,13 @@ export function ScreenPreview({
               transform: `scale(${scale})`,
             }}
           >
-            {surface === "screen" ? (
-              <LiveScreen
-                campaign={campaign}
-                posts={posts}
-                mediaAssets={mediaAssets}
-                momentId={momentId}
-                running={false}
-              />
-            ) : (
-              <CampaignScreen
-                campaign={campaign}
-                posts={posts}
-                mediaAssets={mediaAssets}
-                interactive={false}
-              />
-            )}
+            <LiveScreen
+              campaign={campaign}
+              posts={posts}
+              mediaAssets={mediaAssets}
+              momentId={momentId}
+              running={false}
+            />
           </div>
         </div>
       )}

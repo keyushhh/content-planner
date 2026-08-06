@@ -40,6 +40,9 @@ import {
   Tag,
   Minus,
   FileEdit,
+  ChartNoAxesColumn,
+  QrCode,
+  Trophy,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -97,6 +100,19 @@ interface SessionsTableProps {
    * cells it is meant to sit beside. Opt in where the table is width-constrained.
    */
   inlineActions?: boolean;
+  /**
+   * Opt in to an engagement column. The table stays unaware of how a score is worked
+   * out: hand it a reader and it renders what comes back, or nothing when null.
+   */
+  engagementFor?: (session: Session) => SessionEngagement | null;
+  onOpenReport?: (id: string) => void;
+  onOpenLinks?: (id: string) => void;
+}
+
+export interface SessionEngagement {
+  score: number;
+  shares: number;
+  leaderLabel: string | null;
 }
 
 const ROW_EXIT_MS = 220;
@@ -217,6 +233,30 @@ function CampaignNames({
         <span className="shrink-0 tabular-nums text-muted-foreground/70">
           +{named.length - 1}
         </span>
+      )}
+    </span>
+  );
+}
+
+function EngagementCell({ engagement }: { engagement: SessionEngagement | null }) {
+  if (!engagement) {
+    return <span className="text-xs text-muted-foreground/40">-</span>;
+  }
+
+  return (
+    <span className="flex min-w-0 flex-col gap-0.5">
+      <Hint label={`${engagement.shares} shares, scored on likes, shares and comments`}>
+        <span className="w-fit text-[13px] font-medium tabular-nums">
+          {engagement.score.toLocaleString()}
+        </span>
+      </Hint>
+      {engagement.leaderLabel !== null && (
+        <Hint label={`${engagement.leaderLabel} is this post's best performer`}>
+          <span className="flex min-w-0 items-center gap-1 text-[10.5px] text-live-300/85">
+            <Trophy className="size-2.5 shrink-0" />
+            <span className="truncate">{engagement.leaderLabel}</span>
+          </span>
+        </Hint>
       )}
     </span>
   );
@@ -423,6 +463,9 @@ export function SessionsTable({
   onSelectionChange,
   actionsFade = true,
   inlineActions = false,
+  engagementFor,
+  onOpenReport,
+  onOpenLinks,
   customColumns = [],
   customCellValues = {},
   onAddColumn,
@@ -595,13 +638,14 @@ export function SessionsTable({
   const campaignLeft = 20 + (selectable ? 26 + 12 : 0) + NAME_CAP + 12;
   const campaignWidth = EDITED_LEFT - 12 - campaignLeft;
   const viewCol = onViewPublic ? "96px " : "";
+  const engagementCol = engagementFor ? "116px " : "";
   /* Inline actions occupy a real trailing track; the overlay only needs dead space to float over. */
   const actionsBuffer = inlineActions || headerColumns.length > 0 ? "" : " 88px";
   const inlineActionsCol = inlineActions ? " 96px" : "";
   const canvasGrid = {
     "--cols-sm": `${pick}minmax(0,1fr) 104px`,
     "--cols-md": `${pick}minmax(0,1fr) 152px 184px 112px`,
-    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 160px 118px ${viewCol}116px${actionsBuffer} ${headerColumns
+    "--cols-lg": `${pick}${NAME_CAP}px ${campaignWidth}px 160px 118px ${engagementCol}${viewCol}116px${actionsBuffer} ${headerColumns
       .map(() => "140px")
       .join(" ")}${inlineActionsCol}`,
   } as React.CSSProperties;
@@ -837,6 +881,7 @@ export function SessionsTable({
                   <span>Status</span>
                 )}
               </div>
+              {engagementFor && <span className={wideOnly}>Engagement</span>}
               {onViewPublic && <span className={wideOnly}>View</span>}
               <span className={wideOnly}>Actions</span>
 
@@ -903,6 +948,28 @@ export function SessionsTable({
                 /* Same controls either way — only where they sit changes. */
                 const rowActions = (
                   <>
+                    {onOpenReport && (
+                      <Hint label="See what this post earned, and which version is winning">
+                        <button
+                          onClick={() => onOpenReport(session.id)}
+                          aria-label="Open report"
+                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                        >
+                          <ChartNoAxesColumn className="size-3.5" />
+                        </button>
+                      </Hint>
+                    )}
+                    {onOpenLinks && (
+                      <Hint label="Links and QR codes for this post">
+                        <button
+                          onClick={() => onOpenLinks(session.id)}
+                          aria-label="Links and QR codes"
+                          className="flex size-8 items-center justify-center rounded-(--r-pill) text-muted-foreground/50 transition-[background-color,color,scale] duration-150 hover:bg-(--ink)/[0.08] hover:text-foreground active:scale-(--press)"
+                        >
+                          <QrCode className="size-3.5" />
+                        </button>
+                      </Hint>
+                    )}
                     {locked && (
                       <Hint label="Live on Wozku and locked from editing. Unlock to edit.">
                         <button
@@ -1071,6 +1138,12 @@ export function SessionsTable({
                     <div className="min-w-0">
                       <StatusBadge status={session.status} variant="dot" />
                     </div>
+
+                    {engagementFor && (
+                      <div className={cn(wideOnly, "min-w-0")}>
+                        <EngagementCell engagement={engagementFor(session)} />
+                      </div>
+                    )}
 
                     {onViewPublic && (
                       <div className={wideOnly} onClick={(e) => e.stopPropagation()}>

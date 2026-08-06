@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Check, Copy, EyeOff, Gift, Star, Users } from "lucide-react";
 import { platformMeta } from "@/lib/platforms";
@@ -17,7 +17,7 @@ import {
 import { mentionAccounts } from "@/lib/mentions";
 import { mockCount } from "@/lib/mock-engagement";
 import { cn, relativeTime, tagTint } from "@/lib/utils";
-import type { Campaign, Session } from "@/lib/types";
+import type { Campaign, Platform, Session } from "@/lib/types";
 
 function readStored(id: string): {
   session: Session | null;
@@ -41,8 +41,10 @@ const PARTICIPANT_POOL = mentionAccounts.filter((a) => a.kind === "person");
 
 export default function PublicPostContent() {
   const params = useParams<{ id: string }>();
+  const search = useSearchParams();
   const [{ session, campaign, sessions }] = useState(() => readStored(params.id));
   const [copied, setCopied] = useState(false);
+  const requestedPlatform = search.get("share") as Platform | null;
 
   if (!session) {
     return (
@@ -76,7 +78,11 @@ export default function PublicPostContent() {
     );
   }
 
-  const platformId = campaign?.platforms[0] ?? session.platforms[0];
+  /* A ?share= link names the platform it was handed out for; anything else falls back. */
+  const platformId =
+    requestedPlatform && session.platforms.includes(requestedPlatform)
+      ? requestedPlatform
+      : (campaign?.platforms[0] ?? session.platforms[0]);
   const platformMetaValue = platformId ? platformMeta(platformId) : null;
   const platformLabel = platformMetaValue?.label ?? "your network";
   const authorName = session.lastEditedBy?.name ?? campaign?.name ?? "Wozku";
