@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { templateById, type ScreenTemplateId } from "./screen-templates";
 
 export type ScreenMode = "dark" | "light";
 export type ScreenFontId = "sans" | "display" | "mono";
@@ -19,6 +20,7 @@ export interface ScreenMoment {
 }
 
 export interface ScreenTheme {
+  template: ScreenTemplateId;
   mode: ScreenMode;
   accent: string;
   font: ScreenFontId;
@@ -120,6 +122,7 @@ function blankMoment(enabled: boolean, seconds: number): ScreenMoment {
 
 export function blankScreenTheme(): ScreenTheme {
   return {
+    template: "blade",
     mode: "dark",
     accent: "violet",
     font: "sans",
@@ -154,6 +157,47 @@ export function migrateScreenTheme(theme: Partial<ScreenTheme> | undefined): Scr
   };
 }
 
+export function templateOf(theme: ScreenTheme) {
+  return templateById(theme.template);
+}
+
+/* Picking a template stamps its palette on, but every one of those values stays editable. */
+export function applyTemplate(id: ScreenTemplateId): Partial<ScreenTheme> {
+  return { template: id, ...templateById(id).defaults };
+}
+
+/* A theme built purely from a template's own defaults, for rendering its thumbnail. */
+export function templatePreviewTheme(id: ScreenTemplateId): ScreenTheme {
+  return { ...blankScreenTheme(), ...applyTemplate(id) };
+}
+
+export type ScreenAppearance = Pick<
+  ScreenTheme,
+  "template" | "mode" | "accent" | "font" | "backdrop"
+>;
+
+export function appearanceOf(theme: ScreenTheme): ScreenAppearance {
+  return {
+    template: theme.template,
+    mode: theme.mode,
+    accent: theme.accent,
+    font: theme.font,
+    backdrop: { ...theme.backdrop },
+  };
+}
+
+export function sameAppearance(a: ScreenTheme, b: ScreenTheme) {
+  return (
+    a.template === b.template &&
+    a.mode === b.mode &&
+    a.accent === b.accent &&
+    a.font === b.font &&
+    a.backdrop.kind === b.backdrop.kind &&
+    a.backdrop.imageUrl === b.backdrop.imageUrl &&
+    a.backdrop.videoUrl === b.backdrop.videoUrl
+  );
+}
+
 export function accentOf(theme: ScreenTheme) {
   return ACCENTS.find((a) => a.id === theme.accent) ?? ACCENTS[0];
 }
@@ -185,6 +229,7 @@ export function screenThemeVars(theme: ScreenTheme): CSSProperties {
   const accent = accentOf(theme);
   return {
     ...SURFACES[theme.mode],
+    ...(templateOf(theme).vars?.[theme.mode] ?? {}),
     "--screen-accent": accent.hex,
     "--screen-accent-ink": accent.on,
     "--screen-font": fontOf(theme).stack,
@@ -194,6 +239,15 @@ export function screenThemeVars(theme: ScreenTheme): CSSProperties {
 
 export function activeMoments(theme: ScreenTheme) {
   return MOMENTS.filter((m) => m.fixed || theme.moments[m.id].enabled);
+}
+
+/* Single-view templates hold one layout instead of rotating, so moments do not apply. */
+export function usesMoments(theme: ScreenTheme) {
+  return templateOf(theme).kind === "sequence";
+}
+
+export function usesBackdrop(theme: ScreenTheme) {
+  return templateOf(theme).ownsBackground === false;
 }
 
 export function embedUrl(url: string, { muted }: { muted: boolean }) {

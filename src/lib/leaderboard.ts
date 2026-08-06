@@ -7,9 +7,11 @@ export interface LeaderboardEntry {
   shares: number;
   score: number;
   rank: number;
+  /* Stands in for a profile photo: stable per person, readable in both modes. */
+  hue: number;
 }
 
-const PEOPLE = [
+export const PEOPLE = [
   "Priya Raghavan",
   "John Mercer",
   "Sarah Taylor",
@@ -42,6 +44,7 @@ export function leaderboardFor(
         shares,
         score: shares * mockCount(`weight-${campaign.id}-${person.id}`, 8, 40),
         rank: 0,
+        hue: mockCount(`hue-${person.id}`, 0, 359),
       };
     })
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))

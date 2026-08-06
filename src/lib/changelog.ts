@@ -17,6 +17,41 @@ export type ChangelogDay = {
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-08-06",
+    summary:
+      "The screen is the only public surface now, and every post can show you which of its versions is actually earning.",
+    entries: [
+      {
+        kind: "new",
+        title: "See which version of a post is winning",
+        detail:
+          "A post can carry variations, and the QR hands them out at random, so the product was already running a test on every post and throwing the result away. Each post in a campaign now opens a report: what it earned, then its versions ranked against each other on likes, shares and comments, each showing the wording it used and how far ahead of the primary post it is. Underneath sits the share ledger the numbers are built from, one row per person, naming the version they were given, and it downloads as CSV. A version needs four shares before it can be crowned, because with random assignment a lead off two shares is the draw talking rather than the copy.",
+        commit: "a34a112",
+      },
+      {
+        kind: "new",
+        title: "Links and QR codes for a post",
+        detail:
+          "The public link and one link per platform the post goes out on, each with a QR code that is generated from the URL rather than drawn to look like one, downloadable as PNG or SVG. The code is shown, not just offered, so you can see what you are about to print. The per-platform link still routes through the landing page instead of jumping straight to the platform, because that page is where a version gets assigned and the share gets counted.",
+        commit: "a34a112",
+      },
+      {
+        kind: "improved",
+        title: "There is no shareable page any more, only the live screen",
+        detail:
+          "Screen Setup and Appearance each had a preview toggle between a shareable page and the live screen, which meant designing two surfaces and explaining the difference. The page is gone. Opening a campaign link lands on the live screen, and the previews show that and nothing else.",
+        commit: "a34a112",
+      },
+      {
+        kind: "improved",
+        title: "The campaign posts table lost its duplicate action",
+        detail:
+          "Duplicating a post belongs in the Repository, where posts are made. Inside a campaign it sat next to actions about a live post's performance and read as a way to fork something already running. It is still in the Repository, untouched.",
+        commit: "a34a112",
+      },
+    ],
+  },
+  {
     date: "2026-08-05",
     entries: [
       {

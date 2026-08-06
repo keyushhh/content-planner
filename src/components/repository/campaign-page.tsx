@@ -27,9 +27,15 @@ import {
   TrendingUp,
   UserPlus,
 } from "lucide-react";
-import { SessionsTable } from "@/components/content-planner/sessions-table";
+import {
+  SessionsTable,
+  type SessionEngagement,
+} from "@/components/content-planner/sessions-table";
 import { PostPreview } from "@/components/content-planner/post-preview";
 import { RoiSheet } from "@/components/repository/roi-sheet";
+import { PostReportSheet } from "@/components/repository/post-report-sheet";
+import { PostLinksDialog } from "@/components/repository/post-links-dialog";
+import { postEngagement, scoreOf } from "@/lib/post-engagement";
 import { ConfirmDialog } from "@/components/content-planner/confirm-dialog";
 import { CampaignPostMix } from "@/components/repository/campaign-post-mix";
 import { CampaignPerformanceCard } from "@/components/repository/campaign-performance-card";
@@ -72,7 +78,6 @@ interface CampaignPageProps {
   onOpenSend: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onUnlockSession: (id: string) => void;
-  onDuplicateSession: (id: string) => void;
   onSubmit: (sessionIds: string[]) => void;
   onWithdraw: (sessionId: string) => void;
   onGoLive: () => void;
@@ -99,7 +104,6 @@ export function CampaignPage({
   onOpenSend,
   onDeleteSession,
   onUnlockSession,
-  onDuplicateSession,
   onSubmit,
   onWithdraw,
   onGoLive,
@@ -130,6 +134,8 @@ export function CampaignPage({
   const [expanded, setExpanded] = useState<string[]>([]);
   const [now] = useState(() => Date.now());
   const [confirmStop, setConfirmStop] = useState(false);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [linksId, setLinksId] = useState<string | null>(null);
 
   const state = campaignState(campaign, now);
   const tone = CAMPAIGN_STATE[state];
@@ -148,6 +154,35 @@ export function CampaignPage({
      dead URL. Stopping is only offered while there is something running to stop. */
   const shareable = state === "live" || state === "ended";
   const stoppable = state === "live" || state === "paused";
+
+  /* Nothing has been shared before a campaign goes public, so engagement stays hidden
+     on a draft rather than showing numbers that could not exist yet. */
+  const reportable = !HANDOFF_MODE && shareable;
+
+  const engagement = useMemo(() => {
+    if (!reportable) return new Map<string, SessionEngagement>();
+    return new Map(
+      submitted.map((session) => {
+        const { totals, leader } = postEngagement(campaign, session, now);
+        return [
+          session.id,
+          {
+            score: scoreOf(totals),
+            shares: totals.shares,
+            leaderLabel: leader?.label ?? null,
+          },
+        ];
+      }),
+    );
+  }, [reportable, submitted, campaign, now]);
+
+  const engagementFor = useCallback(
+    (session: Session) => engagement.get(session.id) ?? null,
+    [engagement],
+  );
+
+  const reportSession = submitted.find((s) => s.id === reportId) ?? null;
+  const linksSession = submitted.find((s) => s.id === linksId) ?? null;
 
   const live = drafts.filter((d) => picked.includes(d.id));
   const allPicked = drafts.length > 0 && live.length === drafts.length;
@@ -557,9 +592,11 @@ export function CampaignPage({
               onSelectSession={onSelectSession}
               onOpenSend={onOpenSend}
               onViewPublic={(id) => window.open(`/p/${id}`, "_blank", "noopener,noreferrer")}
+              engagementFor={reportable ? engagementFor : undefined}
+              onOpenReport={reportable ? setReportId : undefined}
+              onOpenLinks={setLinksId}
               onDeleteSession={onDeleteSession}
               onUnlockSession={onUnlockSession}
-              onDuplicateSession={onDuplicateSession}
               actionsFade={false}
               inlineActions
               emptyState={{
@@ -605,6 +642,20 @@ export function CampaignPage({
       </div>
 
       <RoiSheet open={roiOpen} onOpenChange={onRoiOpenChange} campaign={campaign} />
+
+      <PostReportSheet
+        open={reportSession !== null}
+        onOpenChange={(open) => !open && setReportId(null)}
+        campaign={campaign}
+        session={reportSession}
+        now={now}
+      />
+
+      <PostLinksDialog
+        open={linksSession !== null}
+        onOpenChange={(open) => !open && setLinksId(null)}
+        session={linksSession}
+      />
 
       <ConfirmDialog
         open={confirmStop}
@@ -706,7 +757,7 @@ function ShareCampaignButton({ campaign }: { campaign: Campaign }) {
   return (
     <button
       onClick={handleShare}
-      title="Share this campaign's public page"
+      title="Share this campaign's live screen"
       className={SECONDARY_ACTION_MD}
     >
       {copied ? (

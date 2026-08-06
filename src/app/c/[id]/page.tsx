@@ -1,11 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import dynamic from "next/dynamic";
-
-const PublicCampaignContent = dynamic(() => import("./public-campaign"), {
-  ssr: false,
-});
-
-export default function PublicCampaignPage() {
-  return <PublicCampaignContent />;
+export default async function PublicCampaignPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  redirect(`/c/${id}/screen`);
 }

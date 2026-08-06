@@ -1508,7 +1508,6 @@ export default function Home() {
             onOpenSend={requestSend}
             onDeleteSession={deleteSession}
             onUnlockSession={unlockSession}
-            onDuplicateSession={duplicateSession}
             onSubmit={(ids) => submitDrafts(repoCampaign.id, ids)}
             onWithdraw={(id) => withdrawDraft(repoCampaign.id, id)}
             onGoLive={() => takeCampaignLive(repoCampaign.id)}
